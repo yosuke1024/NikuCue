@@ -23,11 +23,17 @@
   .bubble { background:#fff; color:#403633; border-radius:14px; padding:8px 12px; min-height:44px; font-size:15px; border:1px solid rgba(0,0,0,.08); }
   .status { font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
   select { font:inherit; padding:6px; border-radius:8px; }
+  /* ?record=1: cat room + bubble only, for Playwright video capture (no header/controls, nothing to scroll) */
+  body.record { padding:0; }
+  body.record h1, body.record .note, body.record .controls > :not(.bubble) { display:none; }
+  body.record .stage { flex-direction:column; gap:8px; }
+  body.record canvas { border-radius:0; }
+  body.record .controls { min-width:0; width:100%; padding:0 12px; }
 </style>
 </head>
 <body>
 <h1>Mali rig preview (development tool)</h1>
-<p class="note">Rendered in the browser from <code>character_spec.json</code>, <code>mali_paths.json</code> and <code>animations.json</code>. This is a review aid for the code-drawn prototype art and timing — it is <strong>not</strong> the iOS app and not a Simulator recording. Human art approval (R02) is still open.</p>
+<p class="note">Rendered in the browser from the bundled rig contracts: the owner-supplied whole-body pose textures (<code>mali_poses.json</code>, cross-fade + light motion, interim) when they are bundled, otherwise the code-drawn placeholder (<code>character_spec.json</code>, <code>mali_paths.json</code>). It is <strong>not</strong> the iOS app and not a Simulator recording. Human art approval (R02) is still open.</p>
 <div class="stage">
   <canvas id="c" width="720" height="720" aria-label="Mali the cat. Tap to pet."></canvas>
   <div class="controls">
@@ -41,7 +47,7 @@
     </div>
     <div class="row">
       <label><input type="checkbox" id="rm"> Reduce Motion</label>
-      <label>Room <select id="room"><option value="morning">morning</option><option value="day" selected>day</option><option value="night">night</option></select></label>
+      <label>Room <select id="room"><option value="morning">morning</option><option value="day" selected>day</option><option value="night">night</option><option value="dark">dark UI</option></select></label>
       <label>Speed <select id="speed"><option>1</option><option>0.5</option><option>0.25</option></select></label>
     </div>
     <div class="status" id="status"></div>
@@ -55,6 +61,7 @@
 <script>__RIG_JS__</script>
 <script>
 (function () {
+  if (new URLSearchParams(location.search).get('record') === '1') document.body.classList.add('record');
   const spec = JSON.parse(document.getElementById('spec').textContent);
   const paths = JSON.parse(document.getElementById('paths').textContent);
   const anims = JSON.parse(document.getElementById('anims').textContent);
@@ -66,17 +73,20 @@
   const rig = new MaliRig.Rig(spec, paths, anims, { reduceMotion: false, seed: 7, texturePack: pack, images: pack ? packImages : null });
   const bubble = document.getElementById('bubble');
   const status = document.getElementById('status');
-  const ROOM = { morning: '#FFF1D6', day: '#FBEFD9', night: '#D3C6D4' };
+  const ROOM = { morning: '#FFF1D6', day: '#FBEFD9', night: '#D3C6D4', dark: '#241E1B' };
   const MESSAGES = { greet: "I'm glad you're here. Your pace is just fine.", pet: 'That feels lovely.', celebrate: "One little win. I'm happy with you.", cheer: 'A small start is welcome.', settle: "It's okay to rest today.", milestone: 'Three days with little wins together.', doze: 'A little sleepy… still here with you.', idle: '' };
   let speed = 1, virtual = 0, last = null, lastPet = -1e9, paused = false;
   const PET_COOLDOWN = 2000;
   let currentClip = 'idle';
 
-  function fit() {
-    const w = canvas.width, h = canvas.height;
-    const scale = Math.min(w / 1024, h / 1024);
-    return { scale, ox: (w - 1024 * scale) / 2, oy: h - (h - 1024 * scale) / 2 };
+  // Mirrors CatScene.layoutRig: designSize fits 92 % of the view, the root (floor centre) sits 6 % above the bottom.
+  const rootNode = spec.nodes.find(n => n.id === 'root');
+  const design = spec.designSize || [760, 760];
+  function fitInto(w, h) {
+    const scale = Math.min(h * 0.92 / design[1], w * 0.92 / design[0]);
+    return { scale, ox: w / 2 - rootNode.position[0] * scale, oy: h * 0.94 + rootNode.position[1] * scale };
   }
+  function fit() { return fitInto(canvas.width, canvas.height); }
   function frame(ts) {
     if (last == null) last = ts;
     if (!paused) virtual += (ts - last) * speed;

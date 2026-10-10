@@ -60,16 +60,16 @@ final class TexturePackArtProviderTests: XCTestCase {
         XCTAssertFalse(provider.isProductionArt)
         XCTAssertTrue(provider.hasVariants("eyeL"))
         XCTAssertFalse(provider.hasVariants("body"))
-        let body = try XCTUnwrap(provider.art(for: "body", expression: nil, pixelsPerUnit: 99))
+        let body = try XCTUnwrap(provider.art(for: "body", look: nil, pixelsPerUnit: 99))
         XCTAssertEqual(body.size, CGSize(width: 10, height: 10))
         XCTAssertEqual(body.anchorPoint.x, 0.4, accuracy: 0.0001)
         XCTAssertEqual(body.anchorPoint.y, 0.2, accuracy: 0.0001)
-        _ = provider.art(for: "body", expression: nil, pixelsPerUnit: 1)
+        _ = provider.art(for: "body", look: nil, pixelsPerUnit: 1)
         XCTAssertEqual(requested.filter { $0 == "body" }.count, 1, "textures are cached")
-        let sleepy = try XCTUnwrap(provider.art(for: "eyeL", expression: .sleepy, pixelsPerUnit: 1))
+        let sleepy = try XCTUnwrap(provider.art(for: "eyeL", look: "sleepy", pixelsPerUnit: 1))
         XCTAssertEqual(sleepy.anchorPoint, CGPoint(x: 0.5, y: 0.5))
         XCTAssertTrue(requested.contains("eyeL_sleepy"))
-        XCTAssertNil(provider.art(for: "nonexistent", expression: nil, pixelsPerUnit: 1))
+        XCTAssertNil(provider.art(for: "nonexistent", look: nil, pixelsPerUnit: 1))
     }
 
     func testRigBuildsFromTexturePackWithoutCodeChanges() throws {
@@ -88,7 +88,7 @@ final class TexturePackArtProviderTests: XCTestCase {
     func testMissingTextureYieldsNoArtInsteadOfCrash() throws {
         let rig = try rigSpec()
         let provider = TexturePackArtProvider(manifest: fullManifest(rig: rig)) { name in name == "tail" ? nil : self.solidTexture(name) }
-        XCTAssertNil(provider.art(for: "tail", expression: nil, pixelsPerUnit: 1))
+        XCTAssertNil(provider.art(for: "tail", look: nil, pixelsPerUnit: 1))
         let catRig = CatRig(spec: rig, art: provider, pixelsPerUnit: 1)
         let tail = try XCTUnwrap(catRig.node("tail") as? SKSpriteNode)
         XCTAssertNil(tail.texture)

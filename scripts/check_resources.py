@@ -157,6 +157,65 @@ def main() -> None:
                     raise ValueError(f"texture pack: {png.name} is not a PNG")
             pack_parts += 1
 
+    # 5c. whole-body pose textures (owner-supplied), when bundled
+    poses_path = RES / "Character" / "mali_poses.json"
+    wb_summary = "absent"
+    if poses_path.exists():
+        poses = load(poses_path)
+        wb_spec = load(RES / "Character" / "mali_wholebody_spec.json")
+        wb_anims = load(RES / "Character" / "mali_wholebody_animations.json")
+        catalog = RES / "Assets.xcassets" / "Mali"
+        require(set(wb_spec["expressions"]) <= set(poses["poses"]), "whole-body: rig looks must all be poses")
+        for name, pose in poses["poses"].items():
+            b = pose["bounds"]
+            require(len(b) == 4 and b[0] < b[2] and b[1] < b[3], f"whole-body: {name} bounds")
+            folder = catalog / f"{pose['imageSet']}.imageset"
+            png = folder / f"mali_{name}.png"
+            require(png.exists() and (folder / "Contents.json").exists(), f"whole-body: image set {pose['imageSet']} missing")
+            import struct
+            with png.open("rb") as fh:
+                head = fh.read(24)
+            w, h = struct.unpack(">II", head[16:24])
+            require([w, h] == poses["frame"], f"whole-body: {name} is {w}x{h}, frame is {poses['frame']}")
+            require(abs((b[2] - b[0]) - w) < 1 and abs((b[3] - b[1]) - h) < 1, f"whole-body: {name} bounds do not match the frame")
+        for clip_id, pose in poses["clipPoses"].items():
+            require(pose in poses["poses"], f"whole-body: clip {clip_id} → unknown pose {pose}")
+        require(poses["clipPoses"]["settle"] not in poses.get("neverShowOnSkip", []), "whole-body: settle must not show a guilt pose")
+        for e in character["expressions"]:
+            require(poses["expressionMap"].get(e) in poses["poses"], f"whole-body: expressionMap lacks {e}")
+        ids = {n["id"] for n in wb_spec["nodes"]}
+        require({"root", "shadow", "bodyPivot", "pose"} <= ids, "whole-body: rig nodes")
+        require(len(wb_anims["clips"]) == 8, "whole-body: eight clips")
+        for clip in wb_anims["clips"]:
+            require(clip["expression"] == poses["clipPoses"][clip["id"]], f"whole-body: clip {clip['id']} default pose")
+            for tr in clip["tracks"] + clip["reducedMotionTracks"]:
+                require(tr["node"] in ids, f"whole-body: {clip['id']} track node {tr['node']}")
+                if tr["property"] == "expression":
+                    for kf in tr["keyframes"]:
+                        require(kf["v"] in poses["poses"], f"whole-body: {clip['id']} pose {kf['v']}")
+                else:
+                    for kf in tr["keyframes"]:
+                        if tr["property"] in ("scale", "scaleX", "scaleY") and tr["node"] == "bodyPivot":
+                            require(0.97 <= kf["v"] <= 1.03, f"whole-body: {clip['id']} scale {kf['v']} distorts the artwork")
+                        if tr["property"] == "rotation" and tr["node"] == "bodyPivot":
+                            require(abs(kf["v"]) <= 5, f"whole-body: {clip['id']} rotation {kf['v']} too large for a single portrait")
+        # Every pose, the biggest lift and the milestone hearts must stay inside the rig frame (CatScene fits
+        # designSize into the view, root 6 % above the bottom), otherwise ears or hearts get clipped on device.
+        canvas = wb_spec["canvas"]
+        require(wb_spec["designSize"][1] == canvas["height"], "whole-body: design height must equal the frame height")
+        headroom = canvas["height"] - canvas["rootGroundY"]
+        above_max = max(pose["bounds"][3] - poses["qa"][name]["opaqueBBox"][1] for name, pose in poses["poses"].items())
+        lift_max = max((kf["v"] for c in wb_anims["clips"] for tr in c["tracks"]
+                        if tr["node"] == "bodyPivot" and tr["property"] == "offsetY" for kf in tr["keyframes"]), default=0)
+        require(above_max + lift_max <= headroom, f"whole-body: tallest pose + lift ({above_max + lift_max}) exceeds the frame ({headroom})")
+        milestone = next(c for c in wb_anims["clips"] if c["id"] == "milestone")
+        hearts = milestone["hearts"]
+        heart_half = 26 * hearts["scale"]
+        for pos in hearts["positions"] + [hearts["reducedMotion"]["position"]]:
+            require(abs(pos[0]) + 24 * hearts["scale"] <= canvas["width"] / 2, f"whole-body: heart {pos} leaves the frame sideways")
+            require(pos[1] + hearts["riseUnits"] + heart_half <= headroom, f"whole-body: heart {pos} rises above the frame")
+        wb_summary = f"present ({len(poses['poses'])} poses, {sum(1 for c in wb_anims['clips'])} clips, frame {canvas['width']}x{canvas['height']})"
+
     # 6. reactions reference existing clips and strings
     clip_ids = {c["id"] for c in anims["clips"]}
     for r in reactions["items"]:
@@ -166,7 +225,8 @@ def main() -> None:
     print(json.dumps({"status": "PASS", "scope": "bundled resource contracts only; not an iOS build",
                       "localizationKeys": len(keys), "rigNodes": len(nodes), "clips": len(anims["clips"]),
                       "artParts": len(parts), "reactions": len(reactions["items"]),
-                      "texturePack": "present (%d parts)" % pack_parts if pack_path.exists() else "absent (placeholder art active)"}, indent=2))
+                      "texturePack": "present (%d parts)" % pack_parts if pack_path.exists() else "absent",
+                      "wholeBodyPoses": wb_summary}, indent=2))
 
 
 if __name__ == "__main__":

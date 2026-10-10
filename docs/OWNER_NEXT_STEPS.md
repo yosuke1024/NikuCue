@@ -29,8 +29,9 @@ xcodebuild test -project NikuCue.xcodeproj -scheme NikuCue \
 
 ## 4. 猫の実機確認（G1）
 
-1. Debug ビルドを Simulator / 実機で起動 → Home 右上「Gallery」（Debug のみ）で 8 クリップと 5 表情を再生。
-2. 画面録画（30 秒以上: 待機 → なでる → できた → 休む → 節目）を `artifacts/P01/` に保存。ブラウザ描画のファイルと混同しないよう `simulator_` を接頭辞にする。
+1. Debug ビルドを Simulator / 実機で起動 → Home 右上「Gallery」（Debug のみ）。表示ラベルが「whole-body textures mali_v1_wholebody (review)」であること（placeholder ではない）。「Poses」の 6 ボタン（idle / happy / celebrate / pet / sleepy / sad）で cross-fade を、8 クリップで動きを確認する。
+2. 画面録画（15〜30 秒: 待機 → なでる → できた（celebrate）→ 休む（settle）→ 節目（milestone）→ 夜の部屋で doze）を `artifacts/mali-assets-v1/` に保存。ブラウザ描画のファイルと混同しないよう `simulator_` / `device_` を接頭辞にする。暗い面の確認は Gallery の夜の部屋（`#D3C6D4`）と、ブラウザ記録の `contact_sheet_dark.png` を併用する。
+   - 見る点: 耳の先とハートが部屋の上端で切れない、床（前足の下端）が全ポーズで同じ高さ、celebrate の持ち上げが戻る、切替時に顔が歪まない（cross-fade だけ）、`sad` がクリップ中に出ない。
 3. 設定の「動きを減らす」と iOS の「視差効果を減らす」で跳躍とハートが止まることを確認。
 4. 30 fps 設定で Instruments（Time Profiler / Allocations）10 分表示、なで続け 1 分で action 数が増えないこと（Gallery の Active actions 表示）。
 

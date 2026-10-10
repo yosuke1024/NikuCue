@@ -43,9 +43,9 @@
 </style>
 <main>
   <header class="group">
-    <h1>Mali（マリ）リグ・プレビュー（プレースホルダー絵）</h1>
-    <p class="lede">NikuCue の猫キャラクター Mali を、iOS アプリと同じ JSON 契約（character_spec / mali_paths / animations）からブラウザで描画した確認用ページです。猫をタップすると「なでる」反応、ボタンで各クリップと表情を再生できます。</p>
-    <p class="notice">これは開発用プレビューで、iOS アプリや Simulator の録画ではありません。絵は<strong>開発用プレースホルダー</strong>（コード描画）で、製品用の猫ではありません。製品用は高品質 2D イラストの画像パーツで制作します（docs/CHARACTER_ASSET_PIPELINE.md）。</p>
+    <h1>__PAGE_TITLE__</h1>
+    <p class="lede">__PAGE_LEDE__</p>
+    <p class="notice">__PAGE_NOTICE__</p>
   </header>
   <section class="stage">
     <div class="room" id="room">
@@ -74,7 +74,7 @@
         <h2>表示設定</h2>
         <div class="row">
           <label><input type="checkbox" id="rm"> 動きを減らす（Reduce Motion）</label>
-          <label>部屋 <select id="roomSel"><option value="morning">朝</option><option value="day" selected>昼</option><option value="night">夜</option></select></label>
+          <label>部屋 <select id="roomSel"><option value="morning">朝</option><option value="day" selected>昼</option><option value="night">夜</option><option value="dark">ダーク背景</option></select></label>
           <label>速度 <select id="speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label>
         </div>
         <div class="status" id="status"></div>
@@ -116,7 +116,7 @@
   const bubble = document.getElementById('bubble');
   const status = document.getElementById('status');
   const room = document.getElementById('room');
-  const ROOM = { morning: '#FFF1D6', day: '#FBEFD9', night: '#D3C6D4' };
+  const ROOM = { morning: '#FFF1D6', day: '#FBEFD9', night: '#D3C6D4', dark: '#241E1B' };
   const MESSAGES = {
     greet: '会えてうれしい。今日も、自分のペースでね。', pet: 'そのなで方、好き。', celebrate: '一つできたね。うれしいな。',
     cheer: '小さく始めてもいいよ。', settle: '今日は休んでも大丈夫。', milestone: '一緒にできた日が3日になったね。', doze: 'うとうと……。そばにいるね。'
@@ -126,7 +126,14 @@
   const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (prefersReduced) { rig.opts.reduceMotion = true; document.getElementById('rm').checked = true; }
 
-  function fit() { const w = canvas.width, h = canvas.height; const s = Math.min(w / 1024, h / 1024) * 1.08; return { scale: s, ox: (w - 1024 * s) / 2, oy: h - (h - 1024 * s) / 2 - 20 }; }
+  // Mirrors CatScene.layoutRig: designSize fits 92 % of the view, the root (floor centre) sits 6 % above the bottom.
+  const rootNode = spec.nodes.find(n => n.id === 'root');
+  const design = spec.designSize || [760, 760];
+  function fitInto(w, h) {
+    const scale = Math.min(h * 0.92 / design[1], w * 0.92 / design[0]);
+    return { scale, ox: w / 2 - rootNode.position[0] * scale, oy: h * 0.94 + rootNode.position[1] * scale };
+  }
+  function fit() { return fitInto(canvas.width, canvas.height); }
   function frame(ts) {
     if (last == null) last = ts;
     virtual += (ts - last) * speed; last = ts;
@@ -164,17 +171,23 @@
   document.getElementById('roomSel').onchange = e => { room.style.background = ROOM[e.target.value]; if (e.target.value === 'night') play('doze'); else if (rig.ambientId === 'doze') play('idle'); };
   document.getElementById('speed').onchange = e => { speed = parseFloat(e.target.value); };
 
-  // 64px contact sheet: one static rig per expression
+  // 128px contact sheet: one static rig per look (pose or expression), drawn once textures are decoded
   const sheet = document.getElementById('sheet');
-  for (const e of spec.expressions) {
+  const thumbs = spec.expressions.map(e => {
     const wrap = document.createElement('div'); wrap.className = 'thumb';
     const cv = document.createElement('canvas'); cv.width = 128; cv.height = 128;
-    const r = new MaliRig.Rig(spec, paths, anims, { reduceMotion: true, seed: 1 });
-    r.setExpression(e, 0); r.prevExpression = null; r.update(0);
-    const s = 128 / 1024 * 1.25;
-    r.draw(cv.getContext('2d'), s, (128 - 1024 * s) / 2, 128 - (128 - 1024 * s) / 2 - 2);
     const cap = document.createElement('span'); cap.textContent = e;
     wrap.appendChild(cv); wrap.appendChild(cap); sheet.appendChild(wrap);
+    return { e, cv };
+  });
+  function drawThumbs() {
+    for (const { e, cv } of thumbs) {
+      const r = new MaliRig.Rig(spec, paths, anims, { reduceMotion: true, seed: 1, texturePack: pack, images: pack ? packImages : null });
+      r.setExpression(e, 0); r.prevExpression = null; r.update(0);
+      const { scale, ox, oy } = fitInto(cv.width, cv.height);
+      r.draw(cv.getContext('2d'), scale, ox, oy);
+    }
   }
+  Promise.all(Object.values(packImages).map(im => im.decode().catch(() => null))).then(drawThumbs, drawThumbs);
 })();
 </script>

@@ -1,0 +1,132 @@
+{
+  "schema": "NikuCue.Mali.TexturePack.v1",
+  "size": [
+    1024,
+    1024
+  ],
+  "format": "RGBA PNG",
+  "character": "Mali",
+  "canonical_reference": "Reference/Mali_Approved_Concept_A.png",
+  "states": {
+    "idle": {
+      "texture": "Assets/Mali/mali_idle.png"
+    },
+    "greet": {
+      "texture": "Assets/Mali/mali_happy.png"
+    },
+    "pet": {
+      "texture": "Assets/Mali/mali_pet.png"
+    },
+    "celebrate": {
+      "texture": "Assets/Mali/mali_celebrate.png"
+    },
+    "cheer": {
+      "texture": "Assets/Mali/mali_happy.png"
+    },
+    "settle": {
+      "texture": "Assets/Mali/mali_idle.png"
+    },
+    "doze": {
+      "texture": "Assets/Mali/mali_sleepy.png"
+    }
+  },
+  "qa": {
+    "idle": {
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_true": true,
+      "alpha_zero_fraction": 0.5012,
+      "opaque_bbox": [
+        135,
+        64,
+        984,
+        960
+      ],
+      "file_bytes": 798664
+    },
+    "happy": {
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_true": true,
+      "alpha_zero_fraction": 0.5072,
+      "opaque_bbox": [
+        123,
+        54,
+        965,
+        959
+      ],
+      "file_bytes": 804150
+    },
+    "celebrate": {
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_true": true,
+      "alpha_zero_fraction": 0.5348,
+      "opaque_bbox": [
+        153,
+        23,
+        951,
+        989
+      ],
+      "file_bytes": 784281
+    },
+    "pet": {
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_true": true,
+      "alpha_zero_fraction": 0.4919,
+      "opaque_bbox": [
+        110,
+        30,
+        977,
+        960
+      ],
+      "file_bytes": 825281
+    },
+    "sleepy": {
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_true": true,
+      "alpha_zero_fraction": 0.5081,
+      "opaque_bbox": [
+        124,
+        54,
+        970,
+        959
+      ],
+      "file_bytes": 801492
+    },
+    "sad": {
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "alpha_true": true,
+      "alpha_zero_fraction": 0.5303,
+      "opaque_bbox": [
+        136,
+        126,
+        968,
+        959
+      ],
+      "file_bytes": 758522
+    }
+  },
+  "optional_texture": "Assets/Mali/mali_sad.png"
+}

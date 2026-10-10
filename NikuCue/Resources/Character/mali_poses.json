@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "characterId": "mali_v1_wholebody",
+  "isProductionArt": false,
+  "status": "Owner-supplied whole-body textures (Concept A), interim cross-fade treatment; visual sign-off pending (R02)",
+  "source": "docs/assets/mali_v1 (NikuCue_Mali_Assets_v1.zip from the owner)",
+  "license": "Owner-provided artwork for NikuCue; see docs/assets/mali_v1/README.md",
+  "pixelsPerUnit": 1,
+  "frame": [
+    1024,
+    1024
+  ],
+  "poses": {
+    "idle": {
+      "imageSet": "MaliIdle",
+      "bounds": [
+        -512.0,
+        -64,
+        512.0,
+        960
+      ],
+      "floorShiftFromSeated": 2
+    },
+    "happy": {
+      "imageSet": "MaliHappy",
+      "bounds": [
+        -512.0,
+        -65,
+        512.0,
+        959
+      ],
+      "floorShiftFromSeated": 3
+    },
+    "celebrate": {
+      "imageSet": "MaliCelebrate",
+      "bounds": [
+        -512.0,
+        -35,
+        512.0,
+        989
+      ],
+      "floorShiftFromSeated": -27
+    },
+    "pet": {
+      "imageSet": "MaliPet",
+      "bounds": [
+        -512.0,
+        -64,
+        512.0,
+        960
+      ],
+      "floorShiftFromSeated": 2
+    },
+    "sleepy": {
+      "imageSet": "MaliSleepy",
+      "bounds": [
+        -512.0,
+        -65,
+        512.0,
+        959
+      ],
+      "floorShiftFromSeated": 3
+    },
+    "sad": {
+      "imageSet": "MaliSad",
+      "bounds": [
+        -512.0,
+        -64,
+        512.0,
+        960
+      ],
+      "floorShiftFromSeated": 2
+    }
+  },
+  "clipPoses": {
+    "idle": "idle",
+    "greet": "happy",
+    "pet": "pet",
+    "celebrate": "celebrate",
+    "cheer": "happy",
+    "settle": "idle",
+    "doze": "sleepy",
+    "milestone": "celebrate"
+  },
+  "expressionMap": {
+    "neutral": "idle",
+    "softSmile": "happy",
+    "closedHappy": "happy",
+    "curious": "happy",
+    "sleepy": "sleepy"
+  },
+  "optionalPoses": [
+    "sad"
+  ],
+  "neverShowOnSkip": [
+    "sad"
+  ],
+  "qa": {
+    "idle": {
+      "removedPixels": 4112,
+      "opaqueBBox": [
+        147,
+        64,
+        983,
+        959
+      ]
+    },
+    "happy": {
+      "removedPixels": 4279,
+      "opaqueBBox": [
+        141,
+        54,
+        964,
+        958
+      ]
+    },
+    "celebrate": {
+      "removedPixels": 4344,
+      "opaqueBBox": [
+        170,
+        23,
+        950,
+        988
+      ]
+    },
+    "pet": {
+      "removedPixels": 4193,
+      "opaqueBBox": [
+        115,
+        30,
+        976,
+        959
+      ]
+    },
+    "sleepy": {
+      "removedPixels": 4251,
+      "opaqueBBox": [
+        148,
+        55,
+        970,
+        958
+      ]
+    },
+    "sad": {
+      "removedPixels": 3920,
+      "opaqueBBox": [
+        147,
+        125,
+        967,
+        959
+      ]
+    }
+  }
+}

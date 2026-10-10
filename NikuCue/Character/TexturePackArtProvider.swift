@@ -30,9 +30,9 @@ struct TexturePackManifest: Decodable, Sendable {
             self.variants = variants
         }
 
-        func drawing(for expression: Expression?) -> Drawing? {
+        func drawing(for look: String?) -> Drawing? {
             if let variants {
-                return variants[(expression ?? .neutral).rawValue] ?? variants[Expression.neutral.rawValue]
+                return variants[look ?? Expression.neutral.rawValue] ?? variants[Expression.neutral.rawValue]
             }
             guard let texture, let bounds else { return nil }
             return Drawing(texture: texture, bounds: bounds)
@@ -148,9 +148,9 @@ final class TexturePackArtProvider: CharacterArtProvider {
     func hasVariants(_ partId: String) -> Bool { manifest.parts[partId]?.hasVariants ?? false }
 
     /// `pixelsPerUnit` is ignored: the art has one fixed density (`manifest.pixelsPerUnit`).
-    func art(for partId: String, expression: Expression?, pixelsPerUnit: CGFloat) -> PartArt? {
-        guard let part = manifest.parts[partId], let drawing = part.drawing(for: expression), drawing.bounds.count == 4 else { return nil }
-        let key = "\(partId)/\(part.hasVariants ? (expression ?? .neutral).rawValue : "_")"
+    func art(for partId: String, look: String?, pixelsPerUnit: CGFloat) -> PartArt? {
+        guard let part = manifest.parts[partId], let drawing = part.drawing(for: look), drawing.bounds.count == 4 else { return nil }
+        let key = "\(partId)/\(part.hasVariants ? (look ?? Expression.neutral.rawValue) : "_")"
         lock.lock()
         if let hit = cache[key] { lock.unlock(); return hit }
         lock.unlock()
@@ -171,12 +171,12 @@ final class TexturePackArtProvider: CharacterArtProvider {
     func preload(rig: RigSpec, completion: @escaping () -> Void) {
         var textures: [SKTexture] = []
         for node in rig.nodes where !node.isPivot {
-            let expressions: [Expression?] = hasVariants(node.id) ? Expression.allCases : [nil]
-            for e in expressions {
-                if let art = art(for: node.id, expression: e, pixelsPerUnit: 1) { textures.append(art.texture) }
+            let looks: [String?] = hasVariants(node.id) ? rig.expressions : [nil]
+            for look in looks {
+                if let art = art(for: node.id, look: look, pixelsPerUnit: 1) { textures.append(art.texture) }
             }
         }
-        if let heart = art(for: "heart", expression: nil, pixelsPerUnit: 1) { textures.append(heart.texture) }
+        if let heart = art(for: "heart", look: nil, pixelsPerUnit: 1) { textures.append(heart.texture) }
         SKTexture.preload(textures, withCompletionHandler: completion)
     }
 
@@ -187,22 +187,49 @@ final class TexturePackArtProvider: CharacterArtProvider {
     }
 }
 
-/// Picks the art for this build: the bundled texture pack when present, otherwise the code-drawn placeholder.
+/// Picks the art for this build, in order: whole-body pose textures (owner-supplied, mali_poses.json) →
+/// layered texture pack (mali_texture_pack.json) → code-drawn placeholder. Each choice names its rig and animation files.
 enum CharacterArtSelection {
+    case wholeBody(WholeBodyArtProvider)
     case texturePack(TexturePackArtProvider)
     case placeholder(VectorArtProvider)
 
     var provider: CharacterArtProvider {
         switch self {
+        case .wholeBody(let p): return p
         case .texturePack(let p): return p
         case .placeholder(let p): return p
         }
     }
 
+    /// Drops decoded textures that are not on screen (memory warnings); sprites keep what they display.
+    func purgeCaches() {
+        switch self {
+        case .wholeBody(let p): p.purgeCache()
+        case .texturePack(let p): p.purgeCache()
+        case .placeholder(let p): p.purgeCache()
+        }
+    }
+
+    /// Resource names (without extension) of the rig contract and the animation tracks for this art.
+    var rigResourceName: String {
+        if case .wholeBody = self { return "mali_wholebody_spec" }
+        return "character_spec"
+    }
+
+    var animationResourceName: String {
+        if case .wholeBody = self { return "mali_wholebody_animations" }
+        return "animations"
+    }
+
     static func resolve(paths: ArtPaths, bundle: Bundle = .main) -> CharacterArtSelection {
+        let placeholder = VectorArtProvider(paths: paths)
+        if let poses = WholeBodyArtProvider.loadBundled(decorations: placeholder, bundle: bundle) {
+            return .wholeBody(poses)
+        }
         if let pack = TexturePackArtProvider.loadBundled(bundle: bundle) {
             return .texturePack(pack)
         }
-        return .placeholder(VectorArtProvider(paths: paths))
+        return .placeholder(placeholder)
     }
 }

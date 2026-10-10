@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 RES = ROOT / "NikuCue" / "Resources" / "Character"
 here = Path(__file__).resolve().parent
+spec = (RES / "character_spec.json").read_text(encoding="utf-8")
 anims = (RES / "animations.json").read_text(encoding="utf-8")
 import base64, json as _json
 pack_file = RES / "mali_texture_pack.json"
@@ -20,10 +21,26 @@ if pack_file.exists():
             if png.exists():
                 images[d["texture"]] = "data:image/png;base64," + base64.b64encode(png.read_bytes()).decode("ascii")
     pack_json, images_json = _json.dumps(pack), _json.dumps(images)
+
+# Whole-body pose textures (owner-supplied) take precedence over the layered pack and the placeholder.
+poses_file = RES / "mali_poses.json"
+if poses_file.exists():
+    poses = _json.loads(poses_file.read_text(encoding="utf-8"))
+    spec = (RES / "mali_wholebody_spec.json").read_text(encoding="utf-8")
+    anims = (RES / "mali_wholebody_animations.json").read_text(encoding="utf-8")
+    catalog = ROOT / "NikuCue" / "Resources" / "Assets.xcassets" / "Mali"
+    variants, images = {}, {}
+    for name, pose in poses["poses"].items():
+        variants[name] = {"texture": pose["imageSet"], "bounds": pose["bounds"]}
+        png = catalog / f"{pose['imageSet']}.imageset" / f"mali_{name}.png"
+        if png.exists():
+            images[pose["imageSet"]] = "data:image/png;base64," + base64.b64encode(png.read_bytes()).decode("ascii")
+    pack_json = _json.dumps({"parts": {"pose": {"variants": variants}}, "pixelsPerUnit": 1, "isProductionArt": False})
+    images_json = _json.dumps(images)
 html = (here / "index.html").read_text(encoding="utf-8")
-html = html.replace("__CHARACTER_SPEC__", (RES / "character_spec.json").read_text(encoding="utf-8"))
+html = html.replace("__CHARACTER_SPEC__", spec)
 html = html.replace("__MALI_PATHS__", (RES / "mali_paths.json").read_text(encoding="utf-8"))
-html = html.replace("__ANIMATIONS__", (RES / "animations.json").read_text(encoding="utf-8"))
+html = html.replace("__ANIMATIONS__", anims)
 html = html.replace("__TEXTURE_PACK__", pack_json).replace("__PACK_IMAGES__", images_json)
 html = html.replace("__RIG_JS__", (here / "rig.js").read_text(encoding="utf-8").replace("</script", "<\\/script"))
 out = here / "dist" / "mali-preview.html"

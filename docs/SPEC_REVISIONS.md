@@ -20,3 +20,7 @@ README の方針「勝手に片方を無視せず修正して根拠を記録す�
 補足（2026-10-10 方針変更）: REV-003〜REV-007 はコード描画の**開発用プレースホルダー**に関する記録。製品用の猫は画像アセット方式（`docs/CHARACTER_ASSET_PIPELINE.md`）で制作し、原画取り込み時に `character_spec.json` の position / size を `tools/character/build_texture_pack.py` が再生成する（REV-ART-n として JSON 内に記録）。
 
 | REV-L10N-1 | `localization/{en,ja,th}.json` | 追加キー: `habit.moveUp`, `habit.moveDown`, `common.more`, `history.previousMonth`, `history.nextMonth`, `home.otherHabits`, `home.archivedHabits`（パックの 169 キーは値も含めて無変更） | docs/02 §2「並び替えは有効な習慣内で可能」の操作ラベル、履歴の月送りボタンの VoiceOver ラベル、Home で今日以外の曜日の習慣とアーカイブ済み習慣の編集導線に必要。タイ語は他のキーと同様にネイティブ確認（R03）の対象 |
+
+| REV-WB-1 | `mali_poses.json` / `mali_wholebody_spec.json` / `mali_wholebody_animations.json`（新規、生成物） | オーナー提供の全身イラスト 6 枚用の rig（root / shadow / bodyPivot / pose の 4 ノード、フレーム 1024 × 1066、root = (512, 60)）と、8 クリップを「ポーズ切替 + 軽い動き」に置き換えた track。`character_spec.json` / `animations.json` は無変更 | docs/04 §2「絵を差し替えるときは `CharacterArtProvider` を差し替える」の範囲で、アセット README の制約（cross-fade 120–220 ms、呼吸 ≤ 1.5 %、持ち上げと戻りのみ、伸縮なし、sad を skip で出さない）を数値で固定した。clip → ポーズはアセット manifest の `clip_mapping`、milestone は celebrate → happy。生成元 `tools/character/import_wholebody_pack.py` / `generate_wholebody_tracks.py`。R02 承認まで `isProductionArt: false` |
+| REV-WB-2 | `milestone.hearts`（全身 rig 版） | 位置 `[-360,840]`, `[320,860]`, `[440,620]`、上昇 80 | celebrate ポーズの alpha を測り、顔・上げた前足に重ならずフレーム内（床から 1006 以内）に収まる角へ。REV-004 と同じ理由 |
+

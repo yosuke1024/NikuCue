@@ -33,9 +33,9 @@ struct CharacterGalleryView: View {
                         .buttonStyle(.bordered)
                     }
                 }
-                section("Expressions") {
-                    ForEach(Expression.allCases, id: \.self) { e in
-                        Button(e.rawValue) { container.rig.setExpression(e, blend: container.animationSpec.expressionBlend) }
+                section(container.rigSpec.expressionMap == nil ? "Expressions" : "Poses (whole-body textures)") {
+                    ForEach(container.rigSpec.expressions, id: \.self) { look in
+                        Button(look) { container.rig.setLook(look, blend: container.animationSpec.expressionBlend) }
                             .buttonStyle(.bordered)
                     }
                 }

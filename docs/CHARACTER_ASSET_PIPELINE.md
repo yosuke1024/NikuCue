@@ -11,6 +11,7 @@
 | A3 | SpriteKit、ノード階層（`character_spec.json`）、キーフレーム（`animations.json`）、`CatRig` / `AnimationLibrary` / `CatSceneController`、Domain（反応エンジン・キュー・習慣ロジック）は**そのまま維持** |
 | A4 | 原画の差し替えは `CharacterArtProvider` の実装差し替え（`TexturePackArtProvider`）と `mali_texture_pack.json` の同梱で行い、状態遷移・習慣ロジックには触れない |
 | A5 | 正式な原画がオーナーから提供され、Gallery で承認されるまで、猫のビジュアルは**未完成**（RELEASE_BLOCKERS R02 は開いたまま） |
+| A6 | **暫定段階（2026-10-10 〜）**: オーナー提供の全身イラスト 6 枚（`docs/assets/mali_v1`）を `WholeBodyArtProvider` で表示し、クリップごとにポーズを cross-fade + 軽い動き（持ち上げ・小さな傾き・呼吸 ≤ 1.5 %）で見せる。パーツ分け原画（A2）が来るまでの置き換えであり、瞬き・しっぽ・手足は動かさない。製品ビジュアルの完成扱いはしない |
 
 ## 1. 現在の実装の仕分け
 
@@ -84,12 +85,16 @@
 ```text
 AppContainer
  ├ CharacterArtSelection.resolve(bundle:)
- │    ├ mali_texture_pack.json がある → TexturePackArtProvider（production or review）
- │    └ 無い                       → VectorArtProvider（placeholder）
- ├ CatRig(spec: character_spec.json, art: provider)      ← 変更なし
- ├ AnimationLibrary(spec: animations.json)              ← 変更なし
- └ CatScene / CatSceneController                        ← 変更なし
+ │    ├ mali_poses.json がある        → WholeBodyArtProvider（暫定: 全身 6 枚、rig = mali_wholebody_spec.json, track = mali_wholebody_animations.json）
+ │    ├ mali_texture_pack.json がある → TexturePackArtProvider（production or review、rig = character_spec.json）
+ │    └ 無い                         → VectorArtProvider（placeholder、rig = character_spec.json）
+ ├ CatRig(spec: selection.rigResourceName, art: provider)   ← look（表情名 or ポーズ名）を 2 枚スプライトで cross-fade
+ ├ AnimationLibrary(spec: selection.animationResourceName)  ← expression track は look 名を運ぶ
+ └ CatScene / CatSceneController                            ← 変更なし（瞬きは目ノードがある rig だけ）
 ```
+
+- 全身段階の契約: `mali_poses.json`（ポーズ → image set、床中心基準の bounds、clip → ポーズ、`expressionMap`、`optionalPoses` / `neverShowOnSkip`）。各ポーズは同じ 1024 フレームを保ち、bounds でポーズごとの床を root に合わせる（実行時クロップなし）。rig フレームは 1024 × 1066、root = (512, 60)、`designSize` = フレーム。`CatScene.layoutRig` は designSize を画面の 92 % に収め root を下端 6 % に置くので、最も高いポーズ + 持ち上げ + ハートがフレーム内に収まる（`check_resources.py` が検証）。
+- パーツ分け原画が納品されたら `mali_poses.json` を同梱から外す（または `build_texture_pack.py` の出力を同梱する）だけで A2 の経路に戻る。状態遷移・反応・習慣ロジックは触らない。
 
 - `TexturePackArtProvider.art(for:expression:pixelsPerUnit:)`: manifest の part / variant を引き、テクスチャを `SKTextureAtlas(named:)`（`MaliParts.spriteatlas`、Xcode が自動でアトラス化）か同梱 PNG から取得。`size` = bounds の幅・高さ（units）、`anchorPoint` = bounds から計算。`pixelsPerUnit` 引数は無視（画像の解像度は固定）。
 - 起動時 `validate(against: rigSpec)`: 描画ノード全てにパーツがある、目と口に 5 表情、bounds が正、テクスチャが存在。欠落があれば Debug ではエラー表示、Release では placeholder にフォールバック**しない**（製品は画像のみ。欠落は出荷前に検出）。
@@ -101,7 +106,8 @@ AppContainer
 | 手順 | 担当 | 受入基準 |
 |---|---|---|
 | S1 骨組み（provider / manifest / build script / 検証 / テスト / provider 選択） | Claude（今回） | テクスチャパック無しで従来どおり動く。`check_resources.py` が manifest 有無の両方で PASS |
-| S2 原画の制作 | オーナー（イラストレーター） | §3 の納品物が揃う |
+| S1' 全身 6 枚の暫定表示（2026-10-10 実施） | Claude | `import_wholebody_pack.py` → imageset + `mali_poses.json` + rig、`generate_wholebody_tracks.py` → track。`check_resources.py` PASS、ブラウザで 6 ポーズ × 明暗と 8 クリップを記録（`artifacts/mali-assets-v1`）。Simulator / 実機は未実施 |
+| S2 原画の制作（追加レイヤーの判断はオーナー: 瞬き・しっぽ・耳・前足など §3 の順で） | オーナー（イラストレーター） | §3 の納品物が揃う |
 | S3 変換 | Claude | `build_texture_pack.py` で manifest・atlas・`character_spec.json` の position を生成。合成チェック画像が原画と一致（ピボット誤差 ≤ 2 px） |
 | S4 ブラウザ / Gallery 確認 | オーナー + Claude | 8 クリップで継ぎ目なし、64 px 判読、表情で位置ずれなし、Reduce Motion、30fps・メモリ（実機） |
 | S5 キーフレーム調整 | Claude | ±20% 以内の調整を `SPEC_REVISIONS.md` に記録 |

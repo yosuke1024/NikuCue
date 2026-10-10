@@ -41,6 +41,7 @@ final class AppContainer: ObservableObject {
     let databaseError: String?
     /// Problems found while validating the bundled contracts at start-up (shown in Debug only).
     let contractProblems: [String]
+    private var memoryWarningObserver: NSObjectProtocol?
 
     init(configuration: AppConfiguration = .current, storeMode: StoreMode = .persistent,
          repository overrideRepository: (any HabitRepository)? = nil, clock: any Clock = SystemClock(),
@@ -90,18 +91,20 @@ final class AppContainer: ObservableObject {
         banner = BannerService(configuration: configuration, consent: consentService, adapter: bannerAdapter, sdkPrivacyConfigurationVerified: false)
 
         reactionCatalog = try ReactionCatalog.load(from: try BundledResources.data(named: "reactions", extension: "json", subdirectory: "Reactions"))
-        rigSpec = try RigSpec.load(from: try BundledResources.data(named: "character_spec", extension: "json", subdirectory: "Character"))
         artPaths = try ArtPaths.load(from: try BundledResources.data(named: "mali_paths", extension: "json", subdirectory: "Character"))
-        animationSpec = try AnimationSpec.load(from: try BundledResources.data(named: "animations", extension: "json", subdirectory: "Character"))
+        // Art decides which rig contract and animation tracks apply (whole-body pose textures vs layered parts).
+        artSelection = CharacterArtSelection.resolve(paths: artPaths)
+        rigSpec = try RigSpec.load(from: try BundledResources.data(named: artSelection.rigResourceName, extension: "json", subdirectory: "Character"))
+        animationSpec = try AnimationSpec.load(from: try BundledResources.data(named: artSelection.animationResourceName, extension: "json", subdirectory: "Character"))
 
         var problems = rigSpec.validate()
         problems += animationSpec.validate(against: rigSpec)
         problems += reactionCatalog.validate(knownMessageKeys: Set(localizer.catalog.tables["en"]?.keys.map { $0 } ?? []))
 
-        // Production art = bundled texture pack (docs/CHARACTER_ASSET_PIPELINE.md); otherwise the code-drawn placeholder.
-        artSelection = CharacterArtSelection.resolve(paths: artPaths)
-        if case .texturePack(let pack) = artSelection {
-            problems += pack.manifest.validate(against: rigSpec)
+        switch artSelection {
+        case .wholeBody(let poses): problems += poses.pack.validate(against: rigSpec)
+        case .texturePack(let pack): problems += pack.manifest.validate(against: rigSpec)
+        case .placeholder: break
         }
         // Placeholder textures are rendered for a ≈300 pt room at the device scale; the rig is scaled as a whole.
         let unitsPerPoint = rigSpec.canvas.height / 300
@@ -127,6 +130,20 @@ final class AppContainer: ObservableObject {
         notificationDelegate.onReminderTapped = { [weak self] in
             self?.appState.isModalPresented = false
         }
+        if case .wholeBody(let poses) = artSelection {
+            // Decode the remaining pose textures up front (GPU upload runs off the main thread) so the first
+            // cross-fade does not stall. Launch cost not measured in this environment.
+            poses.preload {}
+        }
+        memoryWarningObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.artSelection.purgeCaches() }
+        }
+    }
+
+    deinit {
+        if let observer = memoryWarningObserver { NotificationCenter.default.removeObserver(observer) }
     }
 
     /// Call when Home visibility, scene activity, consent or preferences change.

@@ -28,7 +28,9 @@ final class CatRig {
     let root: SKNode
     private(set) var nodes: [String: SKNode] = [:]
     private(set) var rest: [String: RestTransform] = [:]
-    private(set) var expression: Expression = .neutral
+    /// Current look: an expression name (parts rig) or a pose name (whole-body rig).
+    private(set) var look: String
+    var expression: Expression { Expression(rawValue: look) ?? .neutral }
     private let art: CharacterArtProvider
     private let pixelsPerUnit: CGFloat
     /// Parts with expression variants keep two sprites so expressions can cross-fade.
@@ -38,6 +40,7 @@ final class CatRig {
         self.spec = spec
         self.art = art
         self.pixelsPerUnit = pixelsPerUnit
+        self.look = spec.look(for: .neutral)
         root = SKNode()
         root.name = spec.rootNode?.id ?? "root"
         nodes[root.name!] = root
@@ -54,9 +57,10 @@ final class CatRig {
             node.position = CGPoint(x: child.position[0], y: child.position[1])
             node.zPosition = CGFloat(child.z)
             node.alpha = CGFloat(child.opacity ?? 1)
+            if let scale = child.scale { node.setScale(CGFloat(scale)) }
             parent.addChild(node)
             nodes[child.id] = node
-            rest[child.id] = RestTransform(position: node.position, zRotation: 0, xScale: 1, yScale: 1, alpha: node.alpha)
+            rest[child.id] = RestTransform(position: node.position, zRotation: 0, xScale: node.xScale, yScale: node.yScale, alpha: node.alpha)
             build(children: spec.children(of: child.id), under: node)
         }
     }
@@ -72,17 +76,17 @@ final class CatRig {
             container.addChild(back)
             container.addChild(front)
             variantSprites[n.id] = (front, back)
-            apply(partId: n.id, expression: expression, to: front)
+            apply(partId: n.id, look: look, to: front)
             back.alpha = 0
             return container
         }
         let sprite = SKSpriteNode()
-        apply(partId: n.id, expression: nil, to: sprite)
+        apply(partId: n.id, look: nil, to: sprite)
         return sprite
     }
 
-    private func apply(partId: String, expression: Expression?, to sprite: SKSpriteNode) {
-        guard let part = art.art(for: partId, expression: expression, pixelsPerUnit: pixelsPerUnit) else {
+    private func apply(partId: String, look: String?, to sprite: SKSpriteNode) {
+        guard let part = art.art(for: partId, look: look, pixelsPerUnit: pixelsPerUnit) else {
             sprite.texture = nil
             sprite.size = .zero
             return
@@ -102,10 +106,16 @@ final class CatRig {
         }
     }
 
-    /// Switches the facial expression with a short cross-fade (docs/04 §5: 80–120 ms blend).
+    /// Switches the facial expression (mapped to a pose on the whole-body rig) with a short cross-fade.
     func setExpression(_ new: Expression, blend: TimeInterval) {
-        guard new != expression else { return }
-        expression = new
+        setLook(spec.look(for: new), blend: blend)
+    }
+
+    /// Switches the look (expression or pose) with a cross-fade: docs/04 §5 asks for 80–120 ms on the parts rig,
+    /// the whole-body asset README for 120–220 ms. Faces are never morphed, only faded.
+    func setLook(_ new: String, blend: TimeInterval) {
+        guard new != look, spec.expressions.contains(new) else { return }
+        look = new
         for (partId, pair) in variantSprites {
             // the previous look moves to the back sprite and fades out while the new one fades in
             pair.back.texture = pair.front.texture
@@ -113,14 +123,18 @@ final class CatRig {
             pair.back.anchorPoint = pair.front.anchorPoint
             pair.back.removeAllActions()
             pair.front.removeAllActions()
-            apply(partId: partId, expression: new, to: pair.front)
+            apply(partId: partId, look: new, to: pair.front)
             if blend <= 0 {
                 pair.back.alpha = 0
+                pair.back.texture = nil
                 pair.front.alpha = 1
             } else {
-                pair.back.alpha = 1
+                // A switch during a running fade carries the current alpha instead of snapping the half-faded
+                // texture to 1 (visible on whole-body portraits). The faded-out texture is released afterwards.
+                pair.back.alpha = pair.front.alpha
                 pair.front.alpha = 0
-                pair.back.run(.fadeOut(withDuration: blend), withKey: "expression.fade")
+                let release = SKAction.run { [weak back = pair.back] in back?.texture = nil }
+                pair.back.run(.sequence([.fadeOut(withDuration: blend), release]), withKey: "expression.fade")
                 pair.front.run(.fadeIn(withDuration: blend), withKey: "expression.fade")
             }
         }
@@ -128,14 +142,20 @@ final class CatRig {
 
     /// A heart sprite for the milestone clip (max three at a time, spawned by the controller).
     func makeHeart() -> SKSpriteNode? {
-        guard let part = art.art(for: "heart", expression: nil, pixelsPerUnit: pixelsPerUnit) else { return nil }
+        guard let part = art.art(for: "heart", look: nil, pixelsPerUnit: pixelsPerUnit) else { return nil }
         let sprite = SKSpriteNode(texture: part.texture, size: part.size)
         sprite.anchorPoint = part.anchorPoint
         sprite.zPosition = 20
         return sprite
     }
 
-    /// Character bounds in design units from the contract (docs/04 §3: about 760 × 720 within the 1024 canvas).
-    var designSize: CGSize { CGSize(width: 760, height: 760) }
+    /// Character bounds in design units: the whole-body rig states them; the parts rig uses the docs/04 §3 guide (≈760 × 760).
+    var designSize: CGSize {
+        if let d = spec.designSize, d.count == 2 { return CGSize(width: d[0], height: d[1]) }
+        return CGSize(width: 760, height: 760)
+    }
+
+    /// Whether the rig has independently animated eyes (the whole-body rig does not; no fake blinks).
+    var hasEyeParts: Bool { nodes["eyeL"] != nil && nodes["eyeR"] != nil }
     var groundY: CGFloat { CGFloat(spec.canvas.rootGroundY) }
 }

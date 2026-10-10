@@ -1,0 +1,737 @@
+{
+  "schemaVersion": 1,
+  "characterId": "mali_v1_wholebody",
+  "coordinateUnits": "1024-design-units (texture pixels), not display pixels",
+  "fpsTarget": 30,
+  "maxQueuedInteractions": 1,
+  "clips": [
+    {
+      "id": "idle",
+      "durationMs": 3600,
+      "loop": true,
+      "expression": "idle",
+      "controls": [
+        "bodyPivot",
+        "shadow",
+        "pose"
+      ],
+      "description": "Whole-body texture treatment: Breathing scaleY ±0.01; tail ±5deg; blink intervals 4000–7000ms, seeded for tests. Pause conflicting channels during interactions.",
+      "reducedMotion": "Static neutral with optional gentle expression crossfade",
+      "tracks": [
+        {
+          "node": "bodyPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 900,
+              "v": 1.012,
+              "ease": "sine"
+            },
+            {
+              "t": 2700,
+              "v": 0.994,
+              "ease": "sine"
+            },
+            {
+              "t": 3600,
+              "v": 1.0,
+              "ease": "sine"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": []
+    },
+    {
+      "id": "greet",
+      "durationMs": 1100,
+      "loop": false,
+      "expression": "happy",
+      "controls": [
+        "bodyPivot",
+        "shadow",
+        "pose"
+      ],
+      "description": "Whole-body texture treatment: Look up, one small double paw wave. Not a full-body walk.",
+      "reducedMotion": "softSmile crossfade",
+      "tracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "happy"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 250,
+              "v": 10,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 10,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1100,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "scale",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 250,
+              "v": 1.01,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 1.01,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1100,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "happy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pet",
+      "durationMs": 900,
+      "loop": false,
+      "expression": "pet",
+      "controls": [
+        "bodyPivot",
+        "shadow",
+        "pose"
+      ],
+      "description": "Whole-body texture treatment: Lean head 7deg towards touch, soft eyes, small tail curve.",
+      "reducedMotion": "closedHappy crossfade",
+      "tracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "pet"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 250,
+              "v": 3,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": 3,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "scale",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 250,
+              "v": 1.02,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": 1.02,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "pet"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "celebrate",
+      "durationMs": 1600,
+      "loop": false,
+      "expression": "celebrate",
+      "controls": [
+        "bodyPivot",
+        "shadow",
+        "pose"
+      ],
+      "timeline": [
+        {
+          "endMs": 140,
+          "label": "anticipation",
+          "bodyScale": [
+            1.03,
+            0.96
+          ],
+          "bodyOffsetY": 0
+        },
+        {
+          "endMs": 420,
+          "label": "lift",
+          "bodyScale": [
+            1.0,
+            1.025
+          ],
+          "bodyOffsetY": 34
+        },
+        {
+          "endMs": 680,
+          "label": "land",
+          "bodyScale": [
+            1.035,
+            0.96
+          ],
+          "bodyOffsetY": 0
+        },
+        {
+          "endMs": 1050,
+          "label": "settle",
+          "bodyScale": [
+            1,
+            1
+          ],
+          "bodyOffsetY": 0
+        },
+        {
+          "endMs": 1600,
+          "label": "smile-and-blend-to-ambient",
+          "bodyScale": [
+            1,
+            1
+          ],
+          "bodyOffsetY": 0
+        }
+      ],
+      "note": "Animate bodyPivot position relative to its rest transform. Keep root and ground shadow position fixed. Shadow opacity/scale may change. Restore all transforms on cancel.",
+      "reducedMotion": "softSmile→closedHappy 100ms crossfade, no jump or particles",
+      "tracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "celebrate"
+            },
+            {
+              "t": 1300,
+              "v": "happy"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 140,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 420,
+              "v": 34,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1600,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "shadow",
+          "property": "scale",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 140,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 420,
+              "v": 0.9,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 1.0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1600,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "shadow",
+          "property": "alpha",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 140,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 420,
+              "v": 0.7,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 1.0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1600,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "celebrate"
+            },
+            {
+              "t": 1300,
+              "v": "happy"
+            }
+          ]
+        }
+      ],
+      "description": "Whole-body texture treatment: "
+    },
+    {
+      "id": "cheer",
+      "durationMs": 1200,
+      "loop": false,
+      "expression": "happy",
+      "controls": [
+        "bodyPivot",
+        "shadow",
+        "pose"
+      ],
+      "description": "Whole-body texture treatment: Gently raise forepaws and look attentive. No repeated urging.",
+      "reducedMotion": "curious crossfade",
+      "tracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "happy"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 300,
+              "v": 8,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 8,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "happy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "settle",
+      "durationMs": 1300,
+      "loop": false,
+      "expression": "idle",
+      "controls": [
+        "bodyPivot",
+        "shadow",
+        "pose"
+      ],
+      "description": "Whole-body texture treatment: Slow blink, relaxed posture. Never sadness, tears, or loss of affection.",
+      "reducedMotion": "softSmile crossfade",
+      "tracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "idle"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 500,
+              "v": 0.99,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1300,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "idle"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doze",
+      "durationMs": 4800,
+      "loop": true,
+      "expression": "sleepy",
+      "controls": [
+        "bodyPivot",
+        "shadow",
+        "pose"
+      ],
+      "description": "Whole-body texture treatment: Slow breathing and slight head tilt; interruption allowed.",
+      "reducedMotion": "Static sleepy pose",
+      "tracks": [
+        {
+          "node": "bodyPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 1200,
+              "v": 1.01,
+              "ease": "sine"
+            },
+            {
+              "t": 3600,
+              "v": 0.994,
+              "ease": "sine"
+            },
+            {
+              "t": 4800,
+              "v": 1.0,
+              "ease": "sine"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": []
+    },
+    {
+      "id": "milestone",
+      "durationMs": 2200,
+      "loop": false,
+      "expression": "celebrate",
+      "controls": [
+        "bodyPivot",
+        "shadow",
+        "pose"
+      ],
+      "description": "Whole-body texture treatment: Two gentle celebration beats and max three hearts; never full-screen.",
+      "reducedMotion": "Happy expression with static small heart; no motion",
+      "tracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "celebrate"
+            },
+            {
+              "t": 1500,
+              "v": "happy"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 150,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 400,
+              "v": 26,
+              "ease": "easeOut"
+            },
+            {
+              "t": 650,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 800,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1050,
+              "v": 22,
+              "ease": "easeOut"
+            },
+            {
+              "t": 1300,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 2200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "shadow",
+          "property": "alpha",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 400,
+              "v": 0.75,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1050,
+              "v": 0.78,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1300,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 2200,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "pose",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "celebrate"
+            },
+            {
+              "t": 1500,
+              "v": "happy"
+            }
+          ]
+        }
+      ],
+      "hearts": {
+        "spawnAtMs": [
+          250,
+          510,
+          770
+        ],
+        "lifeMs": 900,
+        "riseUnits": 80,
+        "max": 3,
+        "positions": [
+          [
+            -360,
+            840
+          ],
+          [
+            320,
+            860
+          ],
+          [
+            440,
+            620
+          ]
+        ],
+        "scale": 1.8,
+        "reducedMotion": {
+          "position": [
+            320,
+            860
+          ],
+          "scale": 1.8
+        }
+      }
+    }
+  ],
+  "ambient": {
+    "blink": {
+      "intervalMs": [
+        4000,
+        7000
+      ],
+      "durationMs": 160,
+      "closedScaleY": 0.08,
+      "enabled": false
+    }
+  },
+  "expressionBlendMs": 180,
+  "trackFormat": "same as animations.json; 'expression' tracks carry pose names from mali_poses.json"
+}

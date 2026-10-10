@@ -152,11 +152,12 @@ final class CatSceneController: ObservableObject {
         stopInteraction()
         rig.resetToRest()
         currentClip = intent.clip
-        // Clips with an expression track set their own expression on the first frame; avoid a double crossfade.
+        // The look at t = 0 is applied synchronously: the expression track's SKAction only evaluates once an SKView
+        // drives the scene, and the pose must not lag a frame behind the clip. Later keyframes still come from the
+        // track; `setLook` ignores same-look calls, so there is no double cross-fade.
         let tracks = reduceMotion ? clip.reducedMotionTracks : clip.tracks
-        if !tracks.contains(where: { $0.property == "expression" }) {
-            rig.setExpression(clip.defaultExpression, blend: library.spec.expressionBlend)
-        }
+        let initialLook = tracks.first { $0.property == "expression" }.flatMap { KeyframeSampler.name($0, at: 0) } ?? clip.defaultLook
+        rig.setLook(initialLook, blend: library.spec.expressionBlend)
         running = library.actions(for: clip, reducedMotion: reduceMotion, rig: rig)
         for item in running { item.node.run(item.action, withKey: item.key) }
         if intent.clip == .milestone, let hearts = clip.hearts { spawnHearts(hearts) }
@@ -198,10 +199,11 @@ final class CatSceneController: ObservableObject {
         currentClip = clipId
         guard let clip = library.spec.clip(clipId) else { return }
         rig.resetToRest()
-        rig.setExpression(clip.defaultExpression, blend: library.spec.expressionBlend)
+        rig.setLook(clip.defaultLook, blend: library.spec.expressionBlend)
         ambientActions = library.actions(for: clip, reducedMotion: reduceMotion, rig: rig)
         for item in ambientActions { item.node.run(item.action, withKey: item.key) }
-        if clipId == .idle && !reduceMotion { scheduleBlink() }
+        // Blinks exist only on the parts rig; whole-body textures are never stretched to fake one (asset README §6).
+        if clipId == .idle && !reduceMotion && rig.hasEyeParts && (library.spec.ambient.blink.enabled ?? true) { scheduleBlink() }
     }
 
     private func restartAmbient() {

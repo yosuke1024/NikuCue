@@ -36,10 +36,9 @@ struct AnimationLibrary {
                 base = SKAction.customAction(withDuration: duration) { [weak rig] _, elapsed in
                     guard let rig else { return }
                     let ms = Double(elapsed) * 1000
-                    if let name = KeyframeSampler.name(track, at: ms), let expression = Expression(rawValue: name),
-                       box.last != expression {
-                        box.last = expression
-                        rig.setExpression(expression, blend: blend)
+                    if let name = KeyframeSampler.name(track, at: ms), box.last != name {
+                        box.last = name
+                        rig.setLook(name, blend: blend)
                     }
                 }
             } else {
@@ -91,6 +90,6 @@ struct AnimationLibrary {
     }
 
     private final class ExpressionBox {
-        var last: Expression?
+        var last: String?
     }
 }

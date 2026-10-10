@@ -229,3 +229,42 @@ cd Packages/NikuCueDomain && swift test   （Swift 6.0.3, Linux x86_64）
 | オンボーディングの曜日チップが 375pt 幅で 44pt 未満 | 間隔 6 → 4 |
 
 却下（反証成立）: 編集シート表示中に猫を pause しない（モーダルは短時間で演出継続が仕様上問題なし）、`.inactive` でバナーを破棄する（仕様どおり）。
+
+### Mali 原画 v1（全身 6 枚）の取り込み（2026-10-10, オーナー提供 `NikuCue_Mali_Assets_v1.zip`）
+
+オーナーが承認済みコンセプト A の全身イラスト 6 枚（idle / happy / celebrate / pet / sleepy / sad、1024 × 1024 RGBA）と README・統合メモ・manifest を提供。コード描画の猫を置き換え、既存の SpriteKit 状態遷移と習慣ロジックは維持した。6 枚はボーンアニメーションではなく**ポーズ差し替え + 軽い動き**として扱う（アセット README §6 のとおり。瞬き・しっぽ・手足の動きは別レイヤーが来るまで作らない）。
+
+| ID | 決定 | 根拠 |
+|---|---|---|
+| D-WB-1 | 全身テクスチャ用の rig を**別契約**（`mali_wholebody_spec.json` / `mali_wholebody_animations.json` / `mali_poses.json`）として同梱し、`character_spec.json` / `animations.json`（パーツ rig）は無変更で残す | パーツ分け原画が来たとき既存契約へ戻せる。`AppContainer` は `CharacterArtSelection` の順（全身 → テクスチャパック → placeholder）で rig と track を読む |
+| D-WB-2 | rig の「表情」を「look」に一般化（パーツ rig = 表情名、全身 rig = ポーズ名）。既存の反応意図（`Expression`）は `expressionMap` でポーズへ写す（neutral→idle, softSmile/closedHappy/curious→happy, sleepy→sleepy） | `CatReactionEngine` / `ReactionQueue` / `CatSceneController` の API を変えずにポーズを切り替えるため |
+| D-WB-3 | クリップ → ポーズ: idle→idle, greet→happy, pet→pet, celebrate→celebrate（1300 ms で happy）, cheer→happy, settle→idle, doze→sleepy, milestone→celebrate（1500 ms で happy）。`sad` はどのクリップにも割り当てず Debug Gallery でのみ表示 | アセット manifest の `clip_mapping` と README「skip / pause で sad を出さない」 |
+| D-WB-4 | 動きは README の上限内: 呼吸 scaleY ≤ 1.2 %、celebrate は +34 units の持ち上げ（420 ms 上昇 / 680 ms 着地、影の縮小と淡化）、pet は 3° + scale 1.02、cross-fade 180 ms、瞬きなし（`ambient.blink.enabled=false`）、Reduce Motion はポーズ切替のみ | 一枚絵を伸縮させない（README §4） |
+| D-WB-5 | 各ポーズは同じ 1024 フレームのまま、ポーズごとの alpha 下端を床（root）に合わせる `bounds` を持つ（celebrate は座りより 27 px 低い） | README「同じ座標空間・床の位置を安定させる・実行時に個別クロップしない」 |
+| D-WB-6 | rig フレームを 1024 × 1066（root = (512, 60)、`designSize` = [908, 1066]）と定義。`CatScene` は designSize を画面の 92 % に収め root を下端 6 % に置くので、最も高い celebrate（床から 966）+ 持ち上げ 34 とハートがフレーム内に収まる | 最初のキャプチャで耳とハートが上端で切れた（下記の不具合 1） |
+
+**取り込み結果**（`tools/character/import_wholebody_pack.py`）: 縁取りの掃除（alpha < 8、および不透明部の 4 px 膨張の外にある孤立画素を透明化。色は変更しない）で除去した画素は idle 4112 / happy 4279 / celebrate 4344 / pet 4193 / sleepy 4251 / sad 3920。原本は `docs/assets/mali_v1/` に保持し、掃除済みを `NikuCue/Resources/Assets.xcassets/Mali/Mali<Pose>.imageset` に生成。確認画像 `artifacts/mali-assets-v1/inspection_{light,dark}.png`。
+
+**変更ファイル**: `NikuCue/Character/WholeBodyArtProvider.swift`（新規: `WholeBodyPosePack` デコード・検証、ポーズごとのテクスチャを遅延読込、anchor = bounds から算出、影とハートは placeholder provider に委譲、`purgeCache`）、`CharacterArtProvider.swift`（`art(for:look:pixelsPerUnit:)`）、`TexturePackArtProvider.swift`（`CharacterArtSelection.wholeBody`、`rigResourceName` / `animationResourceName`）、`RigSpec.swift`（`expressionMap`、`designSize`、node `scale`、`look(for:)`、clip `defaultLook`、blink `enabled`）、`CatRig.swift`（`look` / `setLook(_:blend:)` の 2 枚スプライト cross-fade、`designSize`、`hasEyeParts`）、`AnimationLibrary.swift`（expression track がポーズ名を運ぶ）、`CatSceneController.swift`（瞬きは目ノードがあり `blink.enabled != false` のときのみ）、`App/AppContainer.swift`（選択順と whole-body 検証）、`Features/Gallery/CharacterGalleryView.swift`（6 ポーズのボタン）、`NikuCueTests/WholeBodyArtProviderTests.swift`（新規: 契約検証・画像セット読込・cross-fade・選択順。未実行）、`CharacterContractTests` / `TexturePackArtProviderTests`（look 化）、`scripts/check_resources.py`（§5c: 画像セット・bounds・clipPoses・settle が guilt ポーズでない・expressionMap・可動域・**フレーム内に収まること**）、`tools/character/generate_wholebody_tracks.py`（新規）、`tools/rig-preview/`（全身モード、`CatScene.layoutRig` と同じ配置、瞬きガード、`?record=1` 録画レイアウト、サムネイルは画像デコード後に描画）。
+
+**実行したコマンドと結果**:
+
+```sh
+python3 tools/character/import_wholebody_pack.py      # 6 imageset + mali_poses.json + mali_wholebody_spec.json（designSize [908, 1066]）
+python3 tools/character/generate_wholebody_tracks.py  # mali_wholebody_animations.json（8 clips）
+python3 -I scripts/check_resources.py                 # PASS, "wholeBodyPoses": "present (6 poses, 8 clips, frame 1024x1066)"
+python3 -I tools/xcodeproj/validate_pbxproj.py        # PASS: 33 objects
+cd Packages/NikuCueDomain && swift test               # Executed 56 tests, with 0 failures（Domain は無変更）
+python3 tools/rig-preview/build.py && node tools/rig-preview/capture.mjs --out artifacts/mali-assets-v1/preview --video
+```
+
+**記録物（ブラウザ描画。Simulator / 実機ではない）**: `artifacts/mali-assets-v1/contact_sheet_{light,dark}.png`（6 ポーズ × 明暗）、`artifacts/mali-assets-v1/preview/*.png`（idle、celebrate 0 / 420 / 680 / 1300 ms、pet、greet、cheer、settle、doze、milestone のハート、夜の部屋）、`artifacts/mali-assets-v1/preview/browser_render_mali_v1_30s.mp4`（32 秒: 待機 → greet → なでる → できた → 休む → 節目 → 夜の部屋で doze → 暗い面で待機となでる）。対話プレビュー（非公開 Artifact、オーナーのみ閲覧可）: https://claude.ai/artifact/S3rXqf6ReZcbdC3Nhamoqq
+
+**キャプチャ確認で見つけて直した不具合**: (1) 最初の配置では耳の先が上端に接し、節目のハート（y = 920）がフレーム外だった → rig フレームと designSize を再定義（D-WB-6）、ハートは celebrate の alpha を測って空いている角（[-360, 840], [320, 860], [440, 620]、上昇 80）へ。(2) ブラウザプレビューの瞬きが目ノードの無い rig で例外を投げ、4 秒で描画ループが止まった（録画の 1 回目で発覚）→ 目ノードと `blink.enabled` を確認してから瞬き。Swift 側は元から `hasEyeParts` で守られている。(3) 初期 look が `neutral` でポーズが引けず影だけ描かれた → 初期 look は `expressions[0]`。
+
+**静的レビュー（エージェントによる読み合わせ、コンパイルの代わりではない）**: コンパイル上の指摘なし。確定して直したもの: (a) `playDemo(.celebrate)` 直後の `look` 検証が、expression track の `SKAction`（SKView 無しでは評価されない）に依存していた → クリップ開始時に t = 0 の look を同期的に適用（`setLook` は同じ look を無視するので二重 cross-fade にならない）。(b) `preload` に呼び出し元がなく、初回の cross-fade で 1024² PNG をメインスレッドで復号していた → `AppContainer` 初期化末尾で全身ポーズを preload（起動コストは未計測）。(c) cross-fade 中の再切替で半透明のテクスチャが alpha 1 に跳ねる → 現在の alpha を引き継ぎ、fade 後に back のテクスチャを解放。(d) `purgeCache` に呼び出し元がない → `didReceiveMemoryWarningNotification` で全 provider の cache を破棄。却下: 「各ポーズの alpha 重心（x ≈ 545–565）で横位置を補正する」は、重心がしっぽで右に寄っているだけで胴体は中央にあり、ポーズごとに補正すると cross-fade で横に跳ぶため不採用（README「同じ座標空間を保つ」）。
+
+**オーナーに見てほしい点（R02 の判断材料）**: cross-fade のみなので、ポーズ間で頭の大きさ・体の向きが少し違い（例: celebrate は体が右へ回り頭が大きい、pet は首をかしげる）、切替時にシルエットが「跳ぶ」。これは一枚絵の宿命で、瞬き・しっぽ・耳などの追加レイヤーが来れば idle 中の動きを足せる。影は placeholder の楕円（#D7C9B8）のままで、暗い面では灰色の円盤に見える（原画の影を使うなら 1 枚追加）。縁取りの掃除は保守的なので、暗い面で薄い輪郭が残っていないか確認（`contact_sheet_dark.png`）。
+
+**未実施（この環境に macOS がない）**: アプリターゲットのコンパイル、`WholeBodyArtProviderTests` を含む XCTest、Simulator / 実機での表示と画面録画、メモリ（1024² × 6 枚、ポーズごとに遅延読込、メモリ警告で `purgeCache`）、30 fps 確認。手順は `docs/OWNER_NEXT_STEPS.md` §4。「6 枚で高度なアニメーションが完成した」とは扱わない。`isProductionArt: false`、R02 は開いたまま。
+

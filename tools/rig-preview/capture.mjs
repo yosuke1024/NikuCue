@@ -35,8 +35,11 @@ async function still(name, setup, t) {
 }
 
 await page.evaluate(() => window.__mali.pause(true));
+const looks = await page.evaluate(() => JSON.parse(document.getElementById('spec').textContent).expressions);
 await still('01_idle_neutral', {}, 0);
-for (const e of ['neutral', 'softSmile', 'closedHappy', 'curious', 'sleepy']) await still(`02_expression_${e}`, { expression: e }, 200);
+for (const e of looks) await still(`02_look_${e}_light`, { expression: e }, 300);
+for (const e of looks) await still(`02_look_${e}_dark`, { expression: e, room: 'dark' }, 300);
+await page.evaluate(() => window.__mali.setRoom('day'));
 const celebrateTimes = [0, 140, 280, 420, 560, 680, 860, 1050, 1300, 1600];
 for (const t of celebrateTimes) await still(`03_celebrate_${String(t).padStart(4, '0')}ms`, { clip: 'celebrate' }, t);
 await still('04_pet_mid', { clip: 'pet' }, 450);
@@ -50,18 +53,26 @@ await page.evaluate(() => window.__mali.setRoom('day'));
 
 // contact sheet of expressions + a 64px check
 if (wantVideo) {
-  const ctx = await browser.newContext({ viewport: { width: 760, height: 760 }, recordVideo: { dir: outDir, size: { width: 760, height: 760 } } });
+  // Record-only layout (?record=1): the 720 px room plus the bubble, driven programmatically so nothing scrolls.
+  const ctx = await browser.newContext({ viewport: { width: 720, height: 800 }, recordVideo: { dir: outDir, size: { width: 720, height: 800 } } });
   const p = await ctx.newPage();
-  await p.goto(html);
+  await p.goto(html + '?record=1');
   await p.waitForFunction(() => window.__mali);
+  await p.waitForTimeout(300);
+  const pet = () => p.evaluate(() => document.getElementById('pet').click());
+  const done = () => p.evaluate(() => document.getElementById('demoDone').click());
   const t0 = Date.now();
   const at = async (ms, fn) => { const wait = t0 + ms - Date.now(); if (wait > 0) await p.waitForTimeout(wait); await fn(); };
-  await at(6000, () => p.evaluate(() => window.__mali.play('greet')));
-  await at(9000, () => p.locator('#pet').click());
-  await at(13000, () => p.locator('#demoDone').click());
-  await at(17000, () => p.evaluate(() => window.__mali.play('settle')));
-  await at(21000, () => p.evaluate(() => window.__mali.play('milestone')));
-  await at(26000, () => p.evaluate(() => window.__mali.play('doze')));
+  // Asset README §7 review video: idle, greet, pet, completion, rest, milestone, doze on the night room, then the
+  // same idle/pet on a dark surface so fringes and the shadow can be judged on light and dark backgrounds.
+  await at(4500, () => p.evaluate(() => window.__mali.play('greet')));
+  await at(7500, pet);
+  await at(11000, done);
+  await at(14500, () => p.evaluate(() => window.__mali.play('settle')));
+  await at(18000, () => p.evaluate(() => window.__mali.play('milestone')));
+  await at(22000, () => p.evaluate(() => { window.__mali.setRoom('night'); window.__mali.play('doze'); }));
+  await at(26000, () => p.evaluate(() => { window.__mali.setRoom('dark'); window.__mali.play('idle'); }));
+  await at(27500, pet);
   await at(31000, async () => {});
   const video = p.video();
   await ctx.close();

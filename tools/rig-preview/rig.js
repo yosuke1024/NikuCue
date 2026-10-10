@@ -78,7 +78,7 @@
       this.nodes = {};
       this.order = [];
       for (const n of spec.nodes) {
-        this.nodes[n.id] = { spec: n, children: [], rest: { x: n.position[0], y: n.position[1] },
+        this.nodes[n.id] = { spec: n, children: [], rest: { x: n.position[0], y: n.position[1], s: n.scale == null ? 1 : n.scale },
           dx: 0, dy: 0, rot: 0, sx: 1, sy: 1, alpha: n.opacity == null ? 1 : n.opacity, visible: true };
       }
       for (const n of spec.nodes) if (n.parent) this.nodes[n.parent].children.push(this.nodes[n.id]);
@@ -92,7 +92,8 @@
           for (const v in part.variants) this.compiled[id].variants[v] = this._compile(part.variants[v]);
         } else this.compiled[id] = this._compile(part);
       }
-      this.expression = 'neutral';
+      // Initial look: 'neutral' on the parts rig, the first listed pose on the whole-body rig.
+      this.expression = spec.expressions.includes('neutral') ? 'neutral' : spec.expressions[0];
       this.prevExpression = null;
       this.expressionBlendStart = 0;
       this.hearts = [];
@@ -169,9 +170,11 @@
         else if (tr.property === 'scale') { n.sx *= v; n.sy *= v; }
         else if (tr.property === 'alpha') n.alpha *= v;
       }
-      // blink: ambient only, seeded intervals from animations.json
-      if (!rm && loop && this.ambientId === 'idle') {
-        const b = this.anims.ambient.blink;
+      // blink: ambient only, seeded intervals from animations.json; only rigs with eye nodes and blink.enabled !== false
+      // (the whole-body texture rig has neither: no fake blinks by stretching a portrait)
+      const blinkSpec = this.anims.ambient && this.anims.ambient.blink;
+      if (!rm && loop && this.ambientId === 'idle' && blinkSpec && blinkSpec.enabled !== false && this.nodes.eyeL && this.nodes.eyeR) {
+        const b = blinkSpec;
         if (this.blink.next === 0) this.blink.next = t + b.intervalMs[0] + this.rng() * (b.intervalMs[1] - b.intervalMs[0]);
         if (this.blink.start < 0 && t >= this.blink.next) this.blink.start = t;
         if (this.blink.start >= 0) {
@@ -196,7 +199,7 @@
       ctx.save();
       ctx.translate(n.rest.x + n.dx, n.rest.y + n.dy);
       ctx.rotate(n.rot * Math.PI / 180);
-      ctx.scale(n.sx, n.sy);
+      ctx.scale(n.sx * n.rest.s, n.sy * n.rest.s);
       const alpha = parentAlpha * n.alpha;
       const id = n.spec.id;
       // children with z < own art draw first? In SpriteKit, a node's own content is drawn before children.
@@ -212,7 +215,7 @@
         if (part) { this._drawPackPart(ctx, id, part, alpha); return; }
       }
       if (art.variants) {
-        const cur = art.variants[this.expression] || art.variants.neutral;
+        const cur = art.variants[this.expression] || art.variants.neutral || art.variants[this.spec.expressions[0]];
         const blendT = Math.min(1, (this.time - this.expressionBlendStart) / EXPRESSION_BLEND_MS);
         if (this.prevExpression && blendT < 1) {
           const prev = art.variants[this.prevExpression] || art.variants.neutral;
@@ -225,7 +228,7 @@
     }
 
     _drawPackPart(ctx, id, part, alpha) {
-      const pick = (expr) => part.variants ? (part.variants[expr] || part.variants.neutral) : part;
+      const pick = (expr) => part.variants ? (part.variants[expr] || part.variants.neutral || part.variants[this.spec.expressions[0]]) : part;
       const draw = (d, a) => {
         const img = this.images[d.texture]; if (!img || !d.bounds) return;
         const [x0, y0, x1, y1] = d.bounds;

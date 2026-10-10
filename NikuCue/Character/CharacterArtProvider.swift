@@ -20,9 +20,16 @@ protocol CharacterArtProvider: AnyObject {
     var isProductionArt: Bool { get }
     /// Shown in the Debug gallery so placeholder and production art are never confused.
     var artLabel: String { get }
-    /// `expression` is only meaningful for parts that have expression variants (eyes, mouth).
-    func art(for partId: String, expression: Expression?, pixelsPerUnit: CGFloat) -> PartArt?
+    /// `look` is an expression name (parts rig: eyes/mouth variants) or a pose name (whole-body rig).
+    /// Only meaningful for parts that have variants; `nil` means the default look.
+    func art(for partId: String, look: String?, pixelsPerUnit: CGFloat) -> PartArt?
     func hasVariants(_ partId: String) -> Bool
+}
+
+extension CharacterArtProvider {
+    func art(for partId: String, expression: Expression?, pixelsPerUnit: CGFloat) -> PartArt? {
+        art(for: partId, look: expression?.rawValue, pixelsPerUnit: pixelsPerUnit)
+    }
 }
 
 /// Parses the mini path language used by mali_paths.json (`M x y | L x y | C … | Q … | Z`, absolute coordinates).
@@ -99,9 +106,9 @@ final class VectorArtProvider: CharacterArtProvider {
 
     func hasVariants(_ partId: String) -> Bool { paths.parts[partId]?.hasVariants ?? false }
 
-    func art(for partId: String, expression: Expression?, pixelsPerUnit: CGFloat) -> PartArt? {
-        guard let part = paths.parts[partId], let drawing = part.drawing(for: expression) else { return nil }
-        let variant = part.hasVariants ? (expression ?? .neutral).rawValue : "_"
+    func art(for partId: String, look: String?, pixelsPerUnit: CGFloat) -> PartArt? {
+        guard let part = paths.parts[partId], let drawing = part.drawing(for: look) else { return nil }
+        let variant = part.hasVariants ? (look ?? Expression.neutral.rawValue) : "_"
         let density = (pixelsPerUnit * 100).rounded() / 100
         let key = "\(partId)/\(variant)@\(density)"
         lock.lock()

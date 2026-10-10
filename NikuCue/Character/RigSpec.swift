@@ -19,6 +19,8 @@ struct RigSpec: Decodable, Sendable {
         var anchor: [Double]?
         var fill: String?
         var opacity: Double?
+        /// Optional uniform rest scale (whole-body rig uses it to widen the placeholder shadow).
+        var scale: Double?
 
         var isPivot: Bool { kind == "pivot" }
     }
@@ -28,7 +30,12 @@ struct RigSpec: Decodable, Sendable {
     var isProductionArt: Bool
     var canvas: Canvas
     var palette: [String: String]
+    /// Looks the art can show: expression names for the parts rig, pose names for the whole-body rig.
     var expressions: [String]
+    /// Whole-body rig only: engine expression → pose (e.g. closedHappy → happy).
+    var expressionMap: [String: String]?
+    /// Whole-body rig only: visible character bounds in design units (parts rig uses the docs/04 760 × 760 guide).
+    var designSize: [Double]?
     var nodes: [Node]
 
     static func load(from data: Data) throws -> RigSpec {
@@ -64,8 +71,20 @@ struct RigSpec: Decodable, Sendable {
             }
             if n.position.count != 2 { problems.append("\(n.id): position needs two values") }
         }
-        for e in Expression.allCases where !expressions.contains(e.rawValue) { problems.append("missing expression \(e.rawValue)") }
+        if expressionMap == nil {
+            for e in Expression.allCases where !expressions.contains(e.rawValue) { problems.append("missing expression \(e.rawValue)") }
+        } else {
+            for e in Expression.allCases {
+                guard let mapped = expressionMap?[e.rawValue] else { problems.append("expressionMap lacks \(e.rawValue)"); continue }
+                if !expressions.contains(mapped) { problems.append("expressionMap maps \(e.rawValue) to unknown look \(mapped)") }
+            }
+        }
         return problems
+    }
+
+    /// The look to show for an engine expression (identity for the parts rig).
+    func look(for expression: Expression) -> String {
+        expressionMap?[expression.rawValue] ?? expression.rawValue
     }
 }
 
@@ -92,9 +111,9 @@ struct ArtPaths: Decodable, Sendable {
         var layers: [Layer]?
         var variants: [String: Drawing]?
 
-        func drawing(for expression: Expression?) -> Drawing? {
+        func drawing(for look: String?) -> Drawing? {
             if let variants {
-                return variants[(expression ?? .neutral).rawValue] ?? variants[Expression.neutral.rawValue]
+                return variants[look ?? Expression.neutral.rawValue] ?? variants[Expression.neutral.rawValue]
             }
             guard let bounds, let layers else { return nil }
             return Drawing(bounds: bounds, layers: layers)
@@ -170,12 +189,16 @@ struct AnimationSpec: Decodable, Sendable {
         var duration: TimeInterval { durationMs / 1000 }
         var clipID: ClipID? { ClipID(rawValue: id) }
         var defaultExpression: Expression { Expression(rawValue: expression) ?? .neutral }
+        /// The look (expression or pose name) the clip starts with.
+        var defaultLook: String { expression }
     }
 
     struct Blink: Decodable, Sendable {
         var intervalMs: [Double]
         var durationMs: Double
         var closedScaleY: Double
+        /// Whole-body textures cannot blink (no eye parts); the controller skips scheduling when false.
+        var enabled: Bool?
     }
 
     struct Ambient: Decodable, Sendable {
@@ -201,6 +224,7 @@ struct AnimationSpec: Decodable, Sendable {
     func validate(against rig: RigSpec) -> [String] {
         var problems: [String] = []
         for id in ClipID.allCases where clip(id) == nil { problems.append("missing clip \(id.rawValue)") }
+        for clip in clips where !rig.expressions.contains(clip.expression) { problems.append("\(clip.id): default look \(clip.expression) not in rig looks") }
         let props: Set<String> = ["rotation", "offsetX", "offsetY", "scaleX", "scaleY", "scale", "alpha", "expression"]
         for clip in clips {
             let allowed = Set(clip.controls).union(["face"])
@@ -212,8 +236,8 @@ struct AnimationSpec: Decodable, Sendable {
                 let times = track.keyframes.map(\.t)
                 if times != times.sorted() || (times.last ?? 0) > clip.durationMs { problems.append("\(clip.id): bad keyframe times on \(track.node)") }
                 if track.property == "expression" {
-                    for k in track.keyframes where k.v.name.flatMap(Expression.init(rawValue:)) == nil {
-                        problems.append("\(clip.id): bad expression value")
+                    for k in track.keyframes where !(k.v.name.map { rig.expressions.contains($0) } ?? false) {
+                        problems.append("\(clip.id): expression track value not in rig looks")
                     }
                 } else if track.keyframes.contains(where: { $0.v.number == nil }) {
                     problems.append("\(clip.id): non-numeric keyframe on \(track.node).\(track.property)")

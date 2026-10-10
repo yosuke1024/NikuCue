@@ -34,10 +34,10 @@ final class CharacterContractTests: XCTestCase {
         let provider = VectorArtProvider(paths: art)
         for density in [CGFloat(0.5), 1.0] {
             for node in rig.nodes where !node.isPivot {
-                let expressions: [Expression?] = provider.hasVariants(node.id) ? Expression.allCases : [nil]
-                for e in expressions {
-                    let part = provider.art(for: node.id, expression: e, pixelsPerUnit: density)
-                    XCTAssertNotNil(part, "\(node.id)/\(e.map(\.rawValue) ?? "-") at \(density)")
+                let looks: [String?] = provider.hasVariants(node.id) ? rig.expressions : [nil]
+                for look in looks {
+                    let part = provider.art(for: node.id, look: look, pixelsPerUnit: density)
+                    XCTAssertNotNil(part, "\(node.id)/\(look ?? "-") at \(density)")
                     if let part {
                         XCTAssertGreaterThan(part.size.width, 0)
                         XCTAssertGreaterThan(part.size.height, 0)
@@ -46,7 +46,7 @@ final class CharacterContractTests: XCTestCase {
                 }
             }
         }
-        XCTAssertNotNil(provider.art(for: "heart", expression: nil, pixelsPerUnit: 1))
+        XCTAssertNotNil(provider.art(for: "heart", look: nil, pixelsPerUnit: 1))
     }
 
     func testRigBuildsHierarchyAndRestoresRest() throws {
