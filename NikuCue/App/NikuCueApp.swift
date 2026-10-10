@@ -21,13 +21,17 @@ struct NikuCueApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(startupError: startupError)
+            RootView(container: container, startupError: startupError)
                 .environmentObject(container)
                 .environmentObject(container.localizer)
                 .onChange(of: scenePhase) { _, phase in
                     // Pause the cat whenever the app is not active; never replay stale reactions on return (docs/04 §5).
+                    container.appState.isSceneActive = phase == .active
                     container.scene.controller.setPaused(phase != .active)
                     container.scene.isPaused = phase != .active
+                    if phase == .background {
+                        Task { await container.appState.markFirstSessionFinishedIfNeeded() }
+                    }
                 }
         }
     }

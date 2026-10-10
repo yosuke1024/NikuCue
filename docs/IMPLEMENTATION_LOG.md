@@ -123,3 +123,32 @@ cd Packages/NikuCueDomain && swift test   （Swift 6.0.3, Linux x86_64）
 途中で見つけて直した不具合: `DayProgress` の Hashable 欠落、`XCTAssert` 内の `try await`（Swift では autoclosure 不可 → ローカル変数へ）、履歴訂正テストが習慣作成前の日を対象にしていた、undo 後の revision（記録が消えるため 0 を返し、再登録は 1 から）、バックアップの未来日（仏暦年 2569 を Gregorian key として受理していた → 出力日 +1 日より後の記録は拒否）。
 
 **未実施**: SwiftData 実装（P04）、Xcode での同一テスト実行（macOS で `swift test` を再実行すること）。
+
+### P04 SwiftData Repository / 移行 / バックアップ（2026-10-10, 実装のみ）
+
+- `NikuCue/Data/SwiftDataModels.swift`: `HabitModel` / `ScheduleVersionModel` / `DayRecordModel`（`recordKey` unique）/ `SingletonBlobModel`（CompanionProfile・UserPreferences を Codable JSON で保存。項目追加に強い）/ `ReminderSlotModel`、`NikuCueSchemaV1` + `NikuCueMigrationPlan`（段階なし）、`NikuCueStore.makeContainer`（Application Support、`cloudKitDatabase: .none`。失敗時にストアを削除しない）。
+- `NikuCue/Data/SwiftDataHabitRepository.swift`: `@ModelActor` で直列化。全書込は `write { }` で 1 トランザクション、失敗時 `rollback()` → 元データ維持（QA Q03 / Q39）。冪等 upsert は `InMemoryHabitRepository.apply` と同じ決定表を共有。`replaceAll` は全削除 + 全挿入を 1 save。
+- `NikuCue/Data/BackupService.swift`: `nikucue-backup-v1.json` の一時書き出し、5MB 超の事前拒否、検証（Domain）→ プレビュー → 置換。
+- `AppContainer`: 起動時に永続コンテナを開き、失敗なら `databaseError` を保持して `DatabaseErrorView`（再試行 / 削除しない）。
+- テスト: `NikuCueTests/SwiftDataRepositoryTests.swift`（CRUD、10 連打で 1 件、revision 競合、再オープンで保持、復元で通知 OFF、全削除）。**未実行**（Simulator がない）。
+
+### P06 CatReactionEngine 統合（2026-10-10, 実装のみ）
+
+`NikuCue/App/CatCoordinator.swift`: `WriteOutcome.event` → `CatReactionEngine` → `CatSceneController`。`completionUndone` は演出キャンセル（悲しませない）。反応開始時に `HabitService.markShown`（節目 / 当日 allDone）を記録、待機中の反応は開始前に「今日・同じ記録・同じ revision」で再検証。`HomeViewModel` が保存 → 集計 → UI → 猫イベントの順を守り、連打は `busyHabitIds` で 1 書込に抑える。
+
+### P08 ローカル通知（2026-10-10, 実装のみ）
+
+`NikuCue/Services/LocalNotificationService.swift`: slot × 曜日の `UNCalendarNotificationTrigger(repeats: true)` を最大 14、identifier `nikucue.reminder.v1.<slot>.weekday.<iso>`、prefix 内だけ差分適用（QA Q18）、文言変更は同 identifier で置換（Q21）、バッジ・音なし、foreground では banner を出さない delegate、tap は Home（自動完了なし）。Mock は `MockNotificationScheduler`。画面は `ReminderSettingsView`（並行実装中）。**未実行**。
+
+### P09 StoreKit 2 広告削除（2026-10-10, 実装のみ）
+
+`NikuCue/Services/PurchaseService.swift`: `Transaction.currentEntitlements` で初期状態（照会完了まで `unknown`）、`Transaction.updates` 常時監視、`.verified` かつ `revocationDate == nil` のみ owned、`AppStore.sync()` は明示復元のみ、cancel は静か、pending / unverified は権利なし、二重購入開始の禁止。`NikuCue/Resources/NikuCue.storekit`（placeholder product ID の非消耗型 1 商品、scheme に添付）。`PurchaseViewModel` + `MockPurchaseService`、テスト `NikuCueTests/MonetizationTests.swift`（Q24–Q27）。**未実行**。価格は常に StoreKit から取得し定数を置かない。
+
+### P10 UMP / 広告 / privacy manifest（2026-10-10, 部分実装）
+
+`NikuCue/Services/AdServices.swift`: `AdConsentServicing`（UMP 境界）、`BannerService`（`AdGate` を entitlement / consent / Home 可視 / scene active / 初回セッション / 設定有効 / SDK プライバシー確認の全条件で評価。owned / unknown / 未同意では request なし、バックグラウンドで破棄、演出ごとの reload なし）、Mock 群。`GoogleMobileAdsAdapter.swift` は `#if canImport(GoogleMobileAds)` で囲み、SDK を SPM で追加するまでコンパイル対象外。
+**SDK のバージョン**: developers.google.com はこの環境のネットワークポリシーで遮断されており、現行の安定版を確認できない。CLAUDE.md「バージョン番号を創作しない」に従い、SPM 依存は追加していない（owner が公式資料で版を確認して追加 → `Package.resolved` を記録 → `sdkPrivacyConfigurationVerified` を true に）。それまで広告は一切出ない。
+
+### P12 肉球 App アイコン（2026-10-10, 暫定）
+
+`tools/icon/generate_app_icon.py`（編集可能な元データ、幾何は Python 定数）→ `AppIcon-1024.png`（1024×1024 sRGB 不透明、角丸なし）、`artifacts/icon/app_icon_source.svg`、`preview_sizes.png`（180/120/60/40）、`preview_home_light/dark.png`。文字・カメラモチーフなし、パッド 1 + 指球 4。**R14 未完了**（Yoh の視覚承認待ち）。

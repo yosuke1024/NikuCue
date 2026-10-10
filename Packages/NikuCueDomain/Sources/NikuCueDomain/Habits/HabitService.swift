@@ -176,6 +176,16 @@ public actor HabitService {
         }
     }
 
+    /// All schedule versions (for the editor's "current weekdays" display).
+    public func scheduleVersions() async throws -> [HabitScheduleVersion] {
+        try await wrap { try await self.repository.scheduleVersions() }
+    }
+
+    /// All habits in sort order, active and archived.
+    public func habits() async throws -> [Habit] {
+        try await wrap { try await self.repository.habits() }
+    }
+
     public func distinctDoneDays() async throws -> Int {
         try await wrap { ProgressCalculator.distinctDoneDays(records: try await self.repository.allRecords()) }
     }

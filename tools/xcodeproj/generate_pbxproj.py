@@ -518,6 +518,9 @@ SCHEME = f"""<?xml version="1.0" encoding="UTF-8"?>
             </BuildableReference>
          </TestableReference>
       </Testables>
+      <StoreKitConfigurationFileReference
+         identifier = "../../{APP_NAME}/Resources/{APP_NAME}.storekit">
+      </StoreKitConfigurationFileReference>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -539,6 +542,9 @@ SCHEME = f"""<?xml version="1.0" encoding="UTF-8"?>
             ReferencedContainer = "container:{APP_NAME}.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference
+         identifier = "../../{APP_NAME}/Resources/{APP_NAME}.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

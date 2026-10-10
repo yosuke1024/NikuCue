@@ -1,0 +1,48 @@
+{
+  "identifier" : "9A2E6C3B-1D5F-4B7A-8C9D-0E1F2A3B4C5D",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "7F1A2B3C",
+      "localizations" : [
+        {
+          "description" : "A one-time purchase to remove banner ads.",
+          "displayName" : "Remove Ads",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "買い切りでバナー広告を削除します。",
+          "displayName" : "広告を削除",
+          "locale" : "ja"
+        },
+        {
+          "description" : "ซื้อครั้งเดียวเพื่อลบโฆษณาแบนเนอร์",
+          "displayName" : "ลบโฆษณา",
+          "locale" : "th"
+        }
+      ],
+      "productID" : "REPLACE_WITH_CONFIRMED_BUNDLE_ID.remove_ads",
+      "referenceName" : "Remove Ads (local StoreKit test configuration; product ID is a placeholder)",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

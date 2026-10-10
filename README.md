@@ -7,6 +7,8 @@
 - 実装ログ: `docs/IMPLEMENTATION_LOG.md`（決定・コマンド・結果・未実施項目）
 - 仕様からの差分: `docs/SPEC_REVISIONS.md`
 - モジュール契約: `docs/ARCHITECTURE_CONTRACTS.md`
+- QA シナリオの状態: `docs/QA_STATUS.md` / macOS での次の手順: `docs/OWNER_NEXT_STEPS.md`
+- 猫のブラウザプレビュー（開発用、iOS アプリではない）: https://claude.ai/artifact/S3rXqf6ReZcbdC3Nhamoqq
 
 ## 構成
 
