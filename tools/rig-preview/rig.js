@@ -70,7 +70,10 @@
   class Rig {
     constructor(spec, paths, anims, opts) {
       this.spec = spec; this.paths = paths; this.anims = anims;
-      this.opts = Object.assign({ reduceMotion: false, seed: 1 }, opts || {});
+      this.opts = Object.assign({ reduceMotion: false, seed: 1, texturePack: null, images: null }, opts || {});
+      // Optional production art: { manifest, images: { textureName: HTMLImageElement } } (docs/CHARACTER_ASSET_PIPELINE.md)
+      this.pack = this.opts.texturePack || null;
+      this.images = this.opts.images || null;
       this.palette = Object.assign({}, spec.palette, paths.palette);
       this.nodes = {};
       this.order = [];
@@ -198,12 +201,16 @@
       const id = n.spec.id;
       // children with z < own art draw first? In SpriteKit, a node's own content is drawn before children.
       const art = this.compiled[id];
-      if (art && n.spec.kind !== 'pivot') this._drawPart(ctx, id, art, alpha);
+      if (n.spec.kind !== 'pivot' && (art || (this.pack && this.pack.parts[id]))) this._drawPart(ctx, id, art || { layers: [] }, alpha);
       for (const c of n.children) this._drawNode(ctx, c, alpha);
       ctx.restore();
     }
 
     _drawPart(ctx, id, art, alpha) {
+      if (this.pack && this.images) {
+        const part = this.pack.parts[id];
+        if (part) { this._drawPackPart(ctx, id, part, alpha); return; }
+      }
       if (art.variants) {
         const cur = art.variants[this.expression] || art.variants.neutral;
         const blendT = Math.min(1, (this.time - this.expressionBlendStart) / EXPRESSION_BLEND_MS);
@@ -217,6 +224,22 @@
       this._drawLayers(ctx, art.layers, alpha);
     }
 
+    _drawPackPart(ctx, id, part, alpha) {
+      const pick = (expr) => part.variants ? (part.variants[expr] || part.variants.neutral) : part;
+      const draw = (d, a) => {
+        const img = this.images[d.texture]; if (!img || !d.bounds) return;
+        const [x0, y0, x1, y1] = d.bounds;
+        ctx.save(); ctx.globalAlpha = a; ctx.scale(1, -1); // image rows are y-down; flip back inside the y-up rig space
+        ctx.drawImage(img, x0, -y1, x1 - x0, y1 - y0);
+        ctx.restore();
+      };
+      if (part.variants) {
+        const blendT = Math.min(1, (this.time - this.expressionBlendStart) / EXPRESSION_BLEND_MS);
+        if (this.prevExpression && blendT < 1) { draw(pick(this.prevExpression), alpha * (1 - blendT)); draw(pick(this.expression), alpha * blendT); }
+        else draw(pick(this.expression), alpha);
+      } else draw(part, alpha);
+    }
+
     _drawLayers(ctx, layers, alpha) {
       for (const l of layers) {
         ctx.globalAlpha = alpha * (l.opacity == null ? 1 : l.opacity);
@@ -227,7 +250,7 @@
     }
 
     _drawHearts(ctx) {
-      const art = this.compiled.heart; if (!art) return;
+      const art = this.compiled.heart; if (!art && !(this.pack && this.pack.parts.heart)) return;
       for (const h of this.hearts) {
         const age = this.time - h.born; if (age < 0) continue;
         const life = h.life || 900; if (!h.static && age > life) continue;
@@ -236,7 +259,8 @@
         const a = h.static ? 1 : (u < 0.15 ? u / 0.15 : 1 - (u - 0.15) / 0.85);
         const s = (h.scale || 1) * (h.static ? 1 : 0.6 + 0.4 * Math.min(1, u * 3));
         ctx.save(); ctx.translate(this.root.rest.x + h.x, y); ctx.scale(s, s);
-        this._drawLayers(ctx, art.layers, Math.max(0, a));
+        if (this.pack && this.images && this.pack.parts.heart) this._drawPackPart(ctx, 'heart', this.pack.parts.heart, Math.max(0, a));
+        else this._drawLayers(ctx, art.layers, Math.max(0, a));
         ctx.restore();
       }
     }

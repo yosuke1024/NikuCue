@@ -99,6 +99,8 @@
 <script id="spec" type="application/json">__CHARACTER_SPEC__</script>
 <script id="paths" type="application/json">__MALI_PATHS__</script>
 <script id="anims" type="application/json">__ANIMATIONS__</script>
+<script id="pack" type="application/json">__TEXTURE_PACK__</script>
+<script id="packImages" type="application/json">__PACK_IMAGES__</script>
 <script>__RIG_JS__</script>
 <script>
 (function () {
@@ -107,7 +109,10 @@
   const anims = JSON.parse(document.getElementById('anims').textContent);
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-  const rig = new MaliRig.Rig(spec, paths, anims, { reduceMotion: false, seed: 7 });
+  const pack = JSON.parse(document.getElementById('pack').textContent);
+  const packImages = {};
+  if (pack) { const src = JSON.parse(document.getElementById('packImages').textContent); for (const k in src) { const im = new Image(); im.src = src[k]; packImages[k] = im; } }
+  const rig = new MaliRig.Rig(spec, paths, anims, { reduceMotion: false, seed: 7, texturePack: pack, images: pack ? packImages : null });
   const bubble = document.getElementById('bubble');
   const status = document.getElementById('status');
   const room = document.getElementById('room');

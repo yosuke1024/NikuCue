@@ -109,7 +109,7 @@ AppContainer
 
 ## 6. 任意の補助
 
-- `tools/rig-preview/rig.js` に manifest + PNG の `drawImage` モードを追加すると、Xcode を使わずブラウザで原画のアニメを確認できる（S4 を前倒しできる）。
+- `tools/rig-preview/rig.js` は manifest + PNG の `drawImage` モードを持つ（実装済み）。`mali_texture_pack.json` が `NikuCue/Resources/Character/` にあれば `build.py` / `build_artifact.py` が PNG を data URI で埋め込み、Xcode を使わずブラウザで原画のアニメを確認できる（ダミー画像で動作確認済み）。
 - Gallery に provider 切替（placeholder ↔ texture pack）を置き、同じクリップで見比べられるようにする。
 
 ## 7. リスクと対策
