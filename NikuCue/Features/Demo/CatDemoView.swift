@@ -8,13 +8,20 @@ struct CatDemoView: View {
     @EnvironmentObject private var localizer: Localizer
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("demo.reduceMotion") private var appReduceMotion = false
     @State private var timeOfDay: TimeOfDay = .day
     @State private var showGallery = false
     @ObservedObject private var controller: CatSceneController
+    @ObservedObject private var appState: AppState
 
-    init(controller: CatSceneController) {
+    init(controller: CatSceneController, appState: AppState) {
         self.controller = controller
+        self.appState = appState
+    }
+
+    /// The one app-level Reduce Motion preference (docs/03 §7), not a demo-only switch.
+    private var reduceMotionBinding: Binding<Bool> {
+        Binding(get: { appState.preferences.reduceMotion },
+                set: { value in Task { try? await appState.updatePreferences { $0.reduceMotion = value } } })
     }
 
     var body: some View {
@@ -56,7 +63,7 @@ struct CatDemoView: View {
             container.dispatchDemo(kind: .sceneEntered)
         }
         .onDisappear { controller.leaveScene(owner: "demo") }
-        .onChange(of: appReduceMotion) { _, _ in applyReduceMotion() }
+        .onChange(of: appState.preferences.reduceMotion) { _, _ in applyReduceMotion() }
         .onChange(of: systemReduceMotion) { _, _ in applyReduceMotion() }
     }
 
@@ -92,7 +99,7 @@ struct CatDemoView: View {
                 }
                 .buttonStyle(.bordered)
             }
-            Toggle(localizer.t("settings.reduceMotion"), isOn: $appReduceMotion)
+            Toggle(localizer.t("settings.reduceMotion"), isOn: reduceMotionBinding)
             #if DEBUG
             // Development-only room override (raw values, not user-facing copy); the room normally follows the clock.
             Picker("Room", selection: $timeOfDay) {
@@ -106,6 +113,6 @@ struct CatDemoView: View {
 
     private func applyReduceMotion() {
         // App setting OR OS setting (docs/03 §7)
-        controller.reduceMotion = appReduceMotion || systemReduceMotion
+        controller.reduceMotion = appState.preferences.reduceMotion || systemReduceMotion
     }
 }

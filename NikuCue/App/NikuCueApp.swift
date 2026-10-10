@@ -10,7 +10,8 @@ struct NikuCueApp: App {
     var body: some Scene {
         WindowGroup {
             if let container = root.container {
-                RootView(container: container, startupError: nil)
+                RootView(container: container, startupError: nil, onRetry: { root.retry() })
+                    .id(ObjectIdentifier(container)) // a rebuilt container gets a fresh view tree
                     .environmentObject(container)
                     .environmentObject(container.localizer)
                     .onChange(of: scenePhase) { _, phase in
@@ -31,13 +32,18 @@ struct NikuCueApp: App {
     }
 }
 
-/// Builds the container once; keeps the failure message when the bundled resources cannot be loaded.
+/// Builds the container; keeps the failure message when the bundled resources cannot be loaded.
+/// `retry()` rebuilds the whole composition (re-opens the store). Nothing on disk is ever deleted (docs/03 §6).
 @MainActor
 final class AppRoot: ObservableObject {
-    let container: AppContainer?
-    let startupError: String?
+    @Published private(set) var container: AppContainer?
+    @Published private(set) var startupError: String?
 
-    init() {
+    init() { build() }
+
+    func retry() { build() }
+
+    private func build() {
         do {
             container = try AppContainer()
             startupError = nil

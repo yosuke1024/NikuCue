@@ -209,3 +209,23 @@ cd Packages/NikuCueDomain && swift test   （Swift 6.0.3, Linux x86_64）
 検証担当の結論が揃った時点で残りの指摘（scheme の StoreKit 構成ファイルの相対パス等）を反映する。これらは静的レビューであり、Xcode での型検査・実行の代わりではない。
 
 **レビューの検証結果（Workflow 完了）**: 生の指摘 29 件 → 重複除去後 27 件を各 3 名で反証。確定 3 件（sandbox 化 Run Script がスクリプトを読めない／`Localizer.loadBundled()` の MainActor 隔離／`try!` fallback）はいずれも上記の先行修正で解消済み。却下 24 件の大半は、検証時点で既に修正されたコードを読んだため「再現しない」と判定されたもの。先行修正の対象外で却下されたのは scheme の StoreKit 構成ファイルの相対パス（Xcode の慣例どおり `../../<folder>/<file>.storekit` のまま維持。macOS で要確認）と `UIScreen.main` によるテクスチャ密度（iOS 17 では利用可。将来 trait から取得に変更可）。
+
+### 第 2 回レビュー（2026-10-10, Workflow `review-nikucue-screens-compile`、静的レビュー）
+
+対象: 画面 22 ファイル、Services / Data / App、`CatSceneController` 以降の変更。3 観点 → 16 件 → 各 2 名の反証で確定 14 件（重複を含む）、却下 2 件。確定分はすべて反映した:
+
+| 指摘 | 対応 |
+|---|---|
+| Home の表示/非表示で広告ゲートを再評価していない（docs/08 §2–§3） | `homeAppeared / homeDisappeared` で `reevaluateAdGate()` |
+| UMP の同意確認 `gatherConsentIfNeeded()` に呼び出し元がない、同意変更でゲートが再評価されない | Home 表示時に起動ごと 1 回（権利 unknown では消費しない）、`adConsent.addObserver` でゲート再評価 |
+| 初回セッション終了判定が「background 時に Home が画面上」に限定され、設定画面から background すると保存されない | `hasShownHome`（起動内で一度でも Home を表示）で判定 |
+| 通知時刻を変えても identifier と文言が同じなら OS に反映されない | trigger の weekday / hour / minute も比較して再登録 |
+| DB エラー画面の「再試行」が `exit(0)` | `AppRoot.retry()` でコンテナを再構築（ストアは削除しない）、サポート連絡先は実値設定後に表示 |
+| 設定の読込失敗を「初回」とみなしてオンボーディングへ戻す | `AppState.loadError` を保持し再試行画面へ |
+| 日跨ぎ処理が Home 非表示中に挨拶を消費する | 非表示中はデータ再読込のみ |
+| アーカイブ済み習慣の曜日変更が保存されない | `!isArchived` 条件を削除（版は inactive のまま） |
+| デモ画面の「動きを減らす」が別設定（`@AppStorage`） | アプリ設定（`UserPreferences.reduceMotion`）に束縛 |
+| 時間帯の変化で部屋の色が更新されない | 毎分の tick で `refreshTimeOfDay()` |
+| オンボーディングの曜日チップが 375pt 幅で 44pt 未満 | 間隔 6 → 4 |
+
+却下（反証成立）: 編集シート表示中に猫を pause しない（モーダルは短時間で演出継続が仕様上問題なし）、`.inactive` でバナーを破棄する（仕様どおり）。

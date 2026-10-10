@@ -117,7 +117,10 @@ struct HomeContent: View {
                 }
             }
             .onReceive(dayTimer) { _ in
-                Task { await vm.checkDayChange() }
+                Task {
+                    await vm.checkDayChange()
+                    vm.refreshTimeOfDay() // no-op unless the morning/day/night band changed (docs/05 §6)
+                }
             }
             .onChange(of: vm.editorTarget) { _, target in
                 appState.isModalPresented = target != nil || vm.showLimitExplanation

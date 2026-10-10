@@ -36,8 +36,13 @@ final class LocalNotificationService: NotificationScheduling, @unchecked Sendabl
         let existingById = Dictionary(uniqueKeysWithValues: (await center.pendingNotificationRequests()).map { ($0.identifier, $0) })
         var added = 0
         for spec in desired {
+            // Same identifier, same text and same calendar trigger: nothing to do. A changed hour/minute re-adds in place.
             if let existing = existingById[spec.identifier],
-               existing.content.title == title, existing.content.body == body, !diff.toAdd.contains(spec) {
+               existing.content.title == title, existing.content.body == body,
+               let trigger = existing.trigger as? UNCalendarNotificationTrigger,
+               trigger.dateComponents.weekday == spec.appleWeekday,
+               trigger.dateComponents.hour == spec.hour,
+               trigger.dateComponents.minute == spec.minute {
                 continue
             }
             let content = UNMutableNotificationContent()

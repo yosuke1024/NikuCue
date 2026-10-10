@@ -120,6 +120,8 @@ final class AppContainer: ObservableObject {
             self.banner.evaluate(appState: self.appState)
         }
         purchase.start()
+        // Consent changes (form, privacy options withdrawal) re-evaluate the gate immediately (docs/08 §3).
+        adConsent.addObserver { [weak self] in self?.reevaluateAdGate() }
         UNUserNotificationCenter.current().delegate = notificationDelegate
         // A reminder tap only brings the app to Home (the root); nothing is marked done (docs/07 §1, QA Q20).
         notificationDelegate.onReminderTapped = { [weak self] in
@@ -132,14 +134,23 @@ final class AppContainer: ObservableObject {
         banner.evaluate(appState: appState)
     }
 
-    /// Free users only, after the first real session: update consent info (shows the UMP form if required).
+    private var didGatherConsentThisLaunch = false
+    private var isGatheringConsent = false
+
+    /// Free users only, once per launch after the first real session: update consent info (shows the UMP form if
+    /// required). Unknown entitlement does not consume the launch; a failed update is retried on the next Home visit.
     func gatherConsentIfNeeded() async {
-        guard appState.entitlement == .notOwned, appState.preferences.hasFinishedFirstSession else { return }
+        guard !didGatherConsentThisLaunch, !isGatheringConsent, appState.hasLoaded,
+              appState.entitlement == .notOwned,
+              appState.preferences.isOnboardingComplete, appState.preferences.hasFinishedFirstSession else { return }
+        isGatheringConsent = true
         appState.isModalPresented = true
         scene.controller.pause(.modal)
         await adConsent.gatherConsent()
+        didGatherConsentThisLaunch = adConsent.status != .unknown
         appState.isModalPresented = false
         scene.controller.resume(.modal)
+        isGatheringConsent = false
         reevaluateAdGate()
     }
 

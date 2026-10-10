@@ -51,12 +51,16 @@ final class HomeViewModel: ObservableObject {
 
     func homeAppeared() async {
         container.appState.isHomeVisible = true
+        container.reevaluateAdGate()
         await load()
         await coordinator.sceneEntered(timeOfDay: container.currentTimeOfDay)
+        // Free users: consent info is refreshed once per launch after the first real session (docs/08 §3).
+        await container.gatherConsentIfNeeded()
     }
 
     func homeDisappeared() {
         container.appState.isHomeVisible = false
+        container.reevaluateAdGate()
         coordinator.sceneLeft()
     }
 
@@ -76,6 +80,12 @@ final class HomeViewModel: ObservableObject {
     func checkDayChange() async {
         let today = await habitService.today()
         guard let shown = snapshot?.dayKey, shown != today else { return }
+        // Off-screen (History/Settings pushed): refresh the data only; the greeting waits until Home is visible again.
+        guard container.appState.isHomeVisible else {
+            undoCandidate = nil
+            await load()
+            return
+        }
         coordinator.controller.leaveScene()
         undoCandidate = nil
         await load()

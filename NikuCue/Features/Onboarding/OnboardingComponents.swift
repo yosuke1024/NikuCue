@@ -50,7 +50,7 @@ struct OnboardingWeekdayChips: View {
                 }
             }
         } else {
-            HStack(spacing: 6) {
+            HStack(spacing: 4) // (375 − 32 − 6×4) / 7 ≈ 45.6pt per chip ≥ 44pt (docs/03 §7) {
                 ForEach(1...7, id: \.self) { iso in
                     chip(iso)
                 }

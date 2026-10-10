@@ -96,8 +96,10 @@ final class HabitEditorViewModel: ObservableObject {
                 return try await service.createHabit(name: cleanName, category: category, weekdays: effectiveWeekdays)
             case .edit(let habit):
                 try await service.updateHabit(id: habit.id, name: cleanName, category: category)
-                if let current = currentWeekdays, current != effectiveWeekdays, !isArchived {
+                // Archived habits keep isActive == false in the new version; the days apply when resumed (docs/02 §2).
+                if let current = currentWeekdays, current != effectiveWeekdays {
                     try await service.changeWeekdays(id: habit.id, weekdays: effectiveWeekdays)
+                    currentWeekdays = effectiveWeekdays
                 }
                 var updated = habit
                 updated.name = cleanName

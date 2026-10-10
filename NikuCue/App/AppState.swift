@@ -10,7 +10,13 @@ final class AppState: ObservableObject {
     @Published private(set) var preferences = UserPreferences()
     @Published private(set) var companion = CompanionProfile()
     @Published var entitlement: EntitlementState = .unknown
-    @Published var isHomeVisible = false
+    @Published var isHomeVisible = false {
+        didSet { if isHomeVisible { hasShownHome = true } }
+    }
+    /// Home has been displayed at least once this launch (docs/08 §2 first-session rule); not persisted.
+    @Published private(set) var hasShownHome = false
+    /// Set when preferences/companion could not be read; RootView offers retry instead of restarting onboarding.
+    @Published private(set) var loadError: String?
     @Published var isModalPresented = false
     @Published var isSceneActive = true
     @Published private(set) var hasLoaded = false
@@ -26,15 +32,17 @@ final class AppState: ObservableObject {
     }
 
     func load() async {
+        loadError = nil
         do {
             preferences = try await habitService.preferences()
             companion = try await habitService.companionProfile()
             localizer.setPreference(preferences.language)
             localizer.setNickname(companion.nickname)
-            hasLoaded = true
         } catch {
-            hasLoaded = true
+            // Never treat a read failure as a fresh install (docs/03 §6): keep the error and let the user retry.
+            loadError = String(describing: error)
         }
+        hasLoaded = true
     }
 
     func updatePreferences(_ mutate: (inout UserPreferences) -> Void) async throws {
@@ -63,7 +71,7 @@ final class AppState: ObservableObject {
 
     /// Only a backgrounding after onboarding completed and Home was shown ends the first real session (docs/08 §2).
     func markFirstSessionFinishedIfNeeded() async {
-        guard preferences.isOnboardingComplete, !preferences.hasFinishedFirstSession, isHomeVisible else { return }
+        guard preferences.isOnboardingComplete, !preferences.hasFinishedFirstSession, hasShownHome else { return }
         try? await updatePreferences { $0.hasFinishedFirstSession = true }
     }
 
