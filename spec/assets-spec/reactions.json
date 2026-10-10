@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "selection": "See docs/05; when entries are declarations, not an executable evaluator. Choose one winner, never every matching reaction.",
+  "excludeHistoryCorrections": true,
+  "excludeDemo": true,
+  "items": [
+    {
+      "id": "greeting",
+      "event": "sceneEntered",
+      "clipId": "greet",
+      "priority": 40,
+      "when": {},
+      "messageKeys": [
+        "reaction.greet.1",
+        "reaction.greet.2"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "returning",
+      "event": "welcomeBack",
+      "clipId": "greet",
+      "priority": 45,
+      "when": {},
+      "messageKeys": [
+        "reaction.return.1",
+        "reaction.return.2"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "pet",
+      "event": "petTapped",
+      "clipId": "pet",
+      "priority": 30,
+      "when": {
+        "cooldownMs": 2000
+      },
+      "messageKeys": [
+        "reaction.pet.1",
+        "reaction.pet.2",
+        "reaction.pet.3"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "complete_generic",
+      "event": "completionCommitted",
+      "clipId": "celebrate",
+      "priority": 60,
+      "when": {
+        "category": "custom"
+      },
+      "messageKeys": [
+        "reaction.complete.1",
+        "reaction.complete.2",
+        "reaction.complete.3",
+        "reaction.complete.4"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "complete_water",
+      "event": "completionCommitted",
+      "clipId": "celebrate",
+      "priority": 60,
+      "when": {
+        "category": "water"
+      },
+      "messageKeys": [
+        "reaction.water.1",
+        "reaction.water.2"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "complete_stretch",
+      "event": "completionCommitted",
+      "clipId": "celebrate",
+      "priority": 60,
+      "when": {
+        "category": "stretch"
+      },
+      "messageKeys": [
+        "reaction.stretch.1",
+        "reaction.stretch.2"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "complete_read",
+      "event": "completionCommitted",
+      "clipId": "celebrate",
+      "priority": 60,
+      "when": {
+        "category": "read"
+      },
+      "messageKeys": [
+        "reaction.read.1",
+        "reaction.read.2"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "complete_tidy",
+      "event": "completionCommitted",
+      "clipId": "celebrate",
+      "priority": 60,
+      "when": {
+        "category": "tidy"
+      },
+      "messageKeys": [
+        "reaction.tidy.1",
+        "reaction.tidy.2"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "rest",
+      "event": "skipCommitted",
+      "clipId": "settle",
+      "priority": 35,
+      "when": {},
+      "messageKeys": [
+        "reaction.rest.1",
+        "reaction.rest.2",
+        "reaction.rest.3"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "all_done",
+      "event": "completionCommitted",
+      "clipId": "celebrate",
+      "priority": 80,
+      "when": {
+        "allScheduledDone": true,
+        "oncePerDay": true
+      },
+      "messageKeys": [
+        "reaction.allDone.1",
+        "reaction.allDone.2"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "all_resolved",
+      "event": "completionCommitted",
+      "clipId": "settle",
+      "priority": 55,
+      "when": {
+        "allResolved": true,
+        "hasSkipped": true,
+        "hasDone": true
+      },
+      "messageKeys": [
+        "reaction.resolved.1"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "cheer",
+      "event": "userRequestedEncouragement",
+      "clipId": "cheer",
+      "priority": 20,
+      "when": {
+        "galleryOnlyInV1": true
+      },
+      "messageKeys": [
+        "reaction.cheer.1",
+        "reaction.cheer.2"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "doze",
+      "event": "nightAmbient",
+      "clipId": "doze",
+      "priority": 10,
+      "when": {},
+      "messageKeys": [
+        "reaction.doze.1"
+      ],
+      "textDwellMs": 4000
+    },
+    {
+      "id": "milestone_3",
+      "event": "completionCommitted",
+      "clipId": "milestone",
+      "priority": 100,
+      "when": {
+        "distinctDoneDaysReached": 3,
+        "notPreviouslyShown": true
+      },
+      "messageKeys": [
+        "reaction.milestone.3"
+      ],
+      "textDwellMs": 5000
+    },
+    {
+      "id": "milestone_7",
+      "event": "completionCommitted",
+      "clipId": "milestone",
+      "priority": 100,
+      "when": {
+        "distinctDoneDaysReached": 7,
+        "notPreviouslyShown": true
+      },
+      "messageKeys": [
+        "reaction.milestone.7"
+      ],
+      "textDwellMs": 5000
+    },
+    {
+      "id": "milestone_14",
+      "event": "completionCommitted",
+      "clipId": "milestone",
+      "priority": 100,
+      "when": {
+        "distinctDoneDaysReached": 14,
+        "notPreviouslyShown": true
+      },
+      "messageKeys": [
+        "reaction.milestone.14"
+      ],
+      "textDwellMs": 5000
+    }
+  ]
+}

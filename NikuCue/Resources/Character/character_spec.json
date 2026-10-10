@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "characterId": "mali_v1",
+  "isProductionArt": false,
+  "status": "Original-art specification with repository revisions; prototype art; requires visual approval",
+  "canvas": {
+    "width": 1024,
+    "height": 1024,
+    "coordinateOrigin": "bottomLeft",
+    "units": "designUnits",
+    "transparent": true,
+    "rootGroundY": 180
+  },
+  "palette": {
+    "cream": "#F4E2C8",
+    "caramel": "#C98E62",
+    "white": "#FFF8EF",
+    "blush": "#DC9292",
+    "ink": "#403633",
+    "shadow": "#D7C9B8"
+  },
+  "expressions": [
+    "neutral",
+    "softSmile",
+    "closedHappy",
+    "curious",
+    "sleepy"
+  ],
+  "nodes": [
+    {
+      "id": "root",
+      "parent": null,
+      "position": [
+        512,
+        180
+      ],
+      "z": 0,
+      "kind": "pivot"
+    },
+    {
+      "id": "shadow",
+      "parent": "root",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "ellipse",
+      "size": [
+        360,
+        44
+      ],
+      "fill": "shadow"
+    },
+    {
+      "id": "bodyPivot",
+      "parent": "root",
+      "position": [
+        0,
+        180
+      ],
+      "z": 1,
+      "kind": "pivot"
+    },
+    {
+      "id": "tailPivot",
+      "parent": "bodyPivot",
+      "position": [
+        165,
+        -115
+      ],
+      "z": 0,
+      "kind": "pivot"
+    },
+    {
+      "id": "tail",
+      "parent": "tailPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "curvedTail",
+      "size": [
+        120,
+        250
+      ],
+      "anchor": [
+        0.35,
+        0.05
+      ],
+      "fill": "cream",
+      "tipFill": "caramel"
+    },
+    {
+      "id": "body",
+      "parent": "bodyPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 2,
+      "kind": "oval",
+      "size": [
+        440,
+        360
+      ],
+      "fill": "cream"
+    },
+    {
+      "id": "hindPawL",
+      "parent": "bodyPivot",
+      "position": [
+        -166,
+        -160
+      ],
+      "z": 3,
+      "kind": "oval",
+      "size": [
+        112,
+        62
+      ],
+      "fill": "cream"
+    },
+    {
+      "id": "hindPawR",
+      "parent": "bodyPivot",
+      "position": [
+        166,
+        -160
+      ],
+      "z": 3,
+      "kind": "oval",
+      "size": [
+        112,
+        62
+      ],
+      "fill": "cream"
+    },
+    {
+      "id": "forePawLPivot",
+      "parent": "bodyPivot",
+      "position": [
+        -76,
+        -30
+      ],
+      "z": 4,
+      "kind": "pivot"
+    },
+    {
+      "id": "forePawL",
+      "parent": "forePawLPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "roundedPaw",
+      "size": [
+        100,
+        160
+      ],
+      "fill": "cream",
+      "anchor": [
+        0.5,
+        0.9
+      ]
+    },
+    {
+      "id": "forePawRPivot",
+      "parent": "bodyPivot",
+      "position": [
+        76,
+        -30
+      ],
+      "z": 4,
+      "kind": "pivot"
+    },
+    {
+      "id": "forePawR",
+      "parent": "forePawRPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "roundedPaw",
+      "size": [
+        100,
+        160
+      ],
+      "fill": "cream",
+      "anchor": [
+        0.5,
+        0.9
+      ]
+    },
+    {
+      "id": "headPivot",
+      "parent": "bodyPivot",
+      "position": [
+        0,
+        90
+      ],
+      "z": 5,
+      "kind": "pivot"
+    },
+    {
+      "id": "earLPivot",
+      "parent": "headPivot",
+      "position": [
+        -170,
+        318
+      ],
+      "z": 0,
+      "kind": "pivot"
+    },
+    {
+      "id": "earL",
+      "parent": "earLPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "roundedTriangle",
+      "size": [
+        150,
+        150
+      ],
+      "anchor": [
+        0.5,
+        0.12
+      ],
+      "fill": "caramel",
+      "innerFill": "blush"
+    },
+    {
+      "id": "earRPivot",
+      "parent": "headPivot",
+      "position": [
+        170,
+        318
+      ],
+      "z": 0,
+      "kind": "pivot"
+    },
+    {
+      "id": "earR",
+      "parent": "earRPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "roundedTriangle",
+      "size": [
+        150,
+        150
+      ],
+      "anchor": [
+        0.5,
+        0.12
+      ],
+      "fill": "caramel",
+      "innerFill": "blush"
+    },
+    {
+      "id": "head",
+      "parent": "headPivot",
+      "position": [
+        0,
+        170
+      ],
+      "z": 1,
+      "kind": "squircleOval",
+      "size": [
+        510,
+        400
+      ],
+      "fill": "cream"
+    },
+    {
+      "id": "face",
+      "parent": "headPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 2,
+      "kind": "pivot"
+    },
+    {
+      "id": "muzzle",
+      "parent": "face",
+      "position": [
+        0,
+        88
+      ],
+      "z": 0,
+      "kind": "oval",
+      "size": [
+        146,
+        84
+      ],
+      "fill": "white"
+    },
+    {
+      "id": "eyeL",
+      "parent": "face",
+      "position": [
+        -98,
+        142
+      ],
+      "z": 1,
+      "kind": "expressionEye",
+      "size": [
+        64,
+        80
+      ],
+      "fill": "ink"
+    },
+    {
+      "id": "eyeR",
+      "parent": "face",
+      "position": [
+        98,
+        142
+      ],
+      "z": 1,
+      "kind": "expressionEye",
+      "size": [
+        64,
+        80
+      ],
+      "fill": "ink"
+    },
+    {
+      "id": "nose",
+      "parent": "face",
+      "position": [
+        0,
+        100
+      ],
+      "z": 2,
+      "kind": "roundedTriangle",
+      "size": [
+        26,
+        18
+      ],
+      "fill": "blush"
+    },
+    {
+      "id": "mouth",
+      "parent": "face",
+      "position": [
+        0,
+        76
+      ],
+      "z": 2,
+      "kind": "expressionMouth",
+      "size": [
+        60,
+        26
+      ],
+      "fill": "ink"
+    },
+    {
+      "id": "cheekL",
+      "parent": "face",
+      "position": [
+        -166,
+        108
+      ],
+      "z": 1,
+      "kind": "ellipse",
+      "size": [
+        84,
+        36
+      ],
+      "fill": "blush",
+      "opacity": 0.5
+    },
+    {
+      "id": "cheekR",
+      "parent": "face",
+      "position": [
+        166,
+        108
+      ],
+      "z": 1,
+      "kind": "ellipse",
+      "size": [
+        84,
+        36
+      ],
+      "fill": "blush",
+      "opacity": 0.5
+    }
+  ],
+  "note": "Approximate rig contract for first prototype. Validate silhouette and seams visually. Shapes are authoring intentions, not built-in SKShapeNode primitives.",
+  "constraints": {
+    "maxVisibleCats": 1,
+    "runtimeAI": false,
+    "externalAssets": false,
+    "physicsRequired": false,
+    "humanArtApprovalRequired": true
+  },
+  "revisions": [
+    {
+      "id": "REV-001",
+      "date": "2026-10-10",
+      "nodes": [
+        "forePawL",
+        "forePawR"
+      ],
+      "change": "forePawL/forePawR position relative to their pivots is the shoulder point.",
+      "reason": "With anchor [0.5,0.87/0.9] the node position is the shoulder; the pack value [0,-84] put the paw below the ground."
+    },
+    {
+      "id": "REV-007",
+      "date": "2026-10-10",
+      "nodes": [
+        "shadow",
+        "bodyPivot",
+        "tailPivot",
+        "tail",
+        "body",
+        "hindPawL",
+        "hindPawR",
+        "forePawLPivot",
+        "forePawRPivot",
+        "forePawL",
+        "forePawR",
+        "headPivot",
+        "earLPivot",
+        "earRPivot",
+        "earL",
+        "earR",
+        "head",
+        "muzzle",
+        "eyeL",
+        "eyeR",
+        "nose",
+        "mouth",
+        "cheekL",
+        "cheekR"
+      ],
+      "change": "Rounder chibi proportions: larger head overlapping a short wide body, stubby fore paws, larger eyes set lower on the face, bigger cheeks and shorter rounded ears.",
+      "reason": "Owner review of the first prototype render: 'not cute at all'. docs/04 §4 allows tuning the starting values; the hierarchy, ids and z-order are unchanged."
+    }
+  ]
+}

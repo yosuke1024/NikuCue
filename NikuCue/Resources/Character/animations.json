@@ -1,0 +1,1621 @@
+{
+  "schemaVersion": 1,
+  "characterId": "mali_v1",
+  "coordinateUnits": "1024-design-units, not display pixels",
+  "fpsTarget": 30,
+  "maxQueuedInteractions": 1,
+  "clips": [
+    {
+      "id": "idle",
+      "durationMs": 3600,
+      "loop": true,
+      "expression": "neutral",
+      "controls": [
+        "bodyPivot",
+        "headPivot",
+        "tailPivot",
+        "eyeL",
+        "eyeR"
+      ],
+      "description": "Breathing scaleY ±0.01; tail ±5deg; blink intervals 4000–7000ms, seeded for tests. Pause conflicting channels during interactions.",
+      "reducedMotion": "Static neutral with optional gentle expression crossfade",
+      "tracks": [
+        {
+          "node": "bodyPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 900,
+              "v": 1.01,
+              "ease": "sine"
+            },
+            {
+              "t": 2700,
+              "v": 0.99,
+              "ease": "sine"
+            },
+            {
+              "t": 3600,
+              "v": 1.0,
+              "ease": "sine"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 900,
+              "v": 3,
+              "ease": "sine"
+            },
+            {
+              "t": 2700,
+              "v": -3,
+              "ease": "sine"
+            },
+            {
+              "t": 3600,
+              "v": 0,
+              "ease": "sine"
+            }
+          ]
+        },
+        {
+          "node": "tailPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 900,
+              "v": 5,
+              "ease": "sine"
+            },
+            {
+              "t": 2700,
+              "v": -5,
+              "ease": "sine"
+            },
+            {
+              "t": 3600,
+              "v": 0,
+              "ease": "sine"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": []
+    },
+    {
+      "id": "greet",
+      "durationMs": 1100,
+      "loop": false,
+      "expression": "softSmile",
+      "controls": [
+        "headPivot",
+        "forePawRPivot"
+      ],
+      "description": "Look up, one small double paw wave. Not a full-body walk.",
+      "reducedMotion": "softSmile crossfade",
+      "tracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "softSmile"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 250,
+              "v": 12,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 12,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1100,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 250,
+              "v": -3,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": -3,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1100,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawRPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 180,
+              "v": 26,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 330,
+              "v": 12,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 480,
+              "v": 26,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 640,
+              "v": 12,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 820,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1100,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawRPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 180,
+              "v": 8,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 820,
+              "v": 8,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1100,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "softSmile"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pet",
+      "durationMs": 900,
+      "loop": false,
+      "expression": "closedHappy",
+      "controls": [
+        "headPivot",
+        "tailPivot"
+      ],
+      "description": "Lean head 7deg towards touch, soft eyes, small tail curve.",
+      "reducedMotion": "closedHappy crossfade",
+      "tracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "closedHappy"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 250,
+              "v": 7,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": 7,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "offsetX",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 250,
+              "v": 6,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": 6,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 250,
+              "v": -4,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": -4,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "tailPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 300,
+              "v": 9,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 700,
+              "v": 9,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "closedHappy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "celebrate",
+      "durationMs": 1600,
+      "loop": false,
+      "expression": "closedHappy",
+      "controls": [
+        "bodyPivot",
+        "headPivot",
+        "forePawLPivot",
+        "forePawRPivot",
+        "tailPivot",
+        "shadow"
+      ],
+      "timeline": [
+        {
+          "endMs": 140,
+          "label": "anticipation",
+          "bodyScale": [
+            1.03,
+            0.96
+          ],
+          "bodyOffsetY": 0
+        },
+        {
+          "endMs": 420,
+          "label": "lift",
+          "bodyScale": [
+            1.0,
+            1.025
+          ],
+          "bodyOffsetY": 34
+        },
+        {
+          "endMs": 680,
+          "label": "land",
+          "bodyScale": [
+            1.035,
+            0.96
+          ],
+          "bodyOffsetY": 0
+        },
+        {
+          "endMs": 1050,
+          "label": "settle",
+          "bodyScale": [
+            1,
+            1
+          ],
+          "bodyOffsetY": 0
+        },
+        {
+          "endMs": 1600,
+          "label": "smile-and-blend-to-ambient",
+          "bodyScale": [
+            1,
+            1
+          ],
+          "bodyOffsetY": 0
+        }
+      ],
+      "note": "Animate bodyPivot position relative to its rest transform. Keep root and ground shadow position fixed. Shadow opacity/scale may change. Restore all transforms on cancel.",
+      "reducedMotion": "softSmile→closedHappy 100ms crossfade, no jump or particles",
+      "tracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "softSmile"
+            },
+            {
+              "t": 680,
+              "v": "closedHappy"
+            },
+            {
+              "t": 1250,
+              "v": "softSmile"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "scaleX",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 140,
+              "v": 1.03,
+              "ease": "easeOut"
+            },
+            {
+              "t": 420,
+              "v": 1.0,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 1.035,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1050,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1600,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 140,
+              "v": 0.96,
+              "ease": "easeOut"
+            },
+            {
+              "t": 420,
+              "v": 1.025,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 0.96,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1050,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1600,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 140,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 420,
+              "v": 34,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1600,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 140,
+              "v": -8,
+              "ease": "easeOut"
+            },
+            {
+              "t": 420,
+              "v": 6,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": -6,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1050,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1600,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 680,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1050,
+              "v": 5,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1600,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawLPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 140,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 420,
+              "v": -18,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1600,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawRPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 140,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 420,
+              "v": 18,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1600,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "tailPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 1050,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1200,
+              "v": 10,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1400,
+              "v": -8,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1600,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "shadow",
+          "property": "scale",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 140,
+              "v": 1.02,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 420,
+              "v": 0.88,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 1.02,
+              "ease": "easeIn"
+            },
+            {
+              "t": 900,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1600,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "shadow",
+          "property": "alpha",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 140,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 420,
+              "v": 0.7,
+              "ease": "easeOut"
+            },
+            {
+              "t": 680,
+              "v": 1.0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1600,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "softSmile"
+            },
+            {
+              "t": 300,
+              "v": "closedHappy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cheer",
+      "durationMs": 1200,
+      "loop": false,
+      "expression": "curious",
+      "controls": [
+        "headPivot",
+        "forePawLPivot",
+        "forePawRPivot"
+      ],
+      "description": "Gently raise forepaws and look attentive. No repeated urging.",
+      "reducedMotion": "curious crossfade",
+      "tracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "curious"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 300,
+              "v": 8,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 900,
+              "v": 8,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawLPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 350,
+              "v": 14,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 850,
+              "v": 14,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawLPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 350,
+              "v": 30,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 850,
+              "v": 30,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawLPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 350,
+              "v": 0.7,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 850,
+              "v": 0.7,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1200,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawRPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 350,
+              "v": -14,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 850,
+              "v": -14,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawRPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 350,
+              "v": 30,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 850,
+              "v": 30,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawRPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 350,
+              "v": 0.7,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 850,
+              "v": 0.7,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1200,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "curious"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "settle",
+      "durationMs": 1300,
+      "loop": false,
+      "expression": "softSmile",
+      "controls": [
+        "bodyPivot",
+        "headPivot",
+        "eyeL",
+        "eyeR"
+      ],
+      "description": "Slow blink, relaxed posture. Never sadness, tears, or loss of affection.",
+      "reducedMotion": "softSmile crossfade",
+      "tracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "softSmile"
+            }
+          ]
+        },
+        {
+          "node": "eyeL",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 350,
+              "v": 0.08,
+              "ease": "easeIn"
+            },
+            {
+              "t": 700,
+              "v": 0.08,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1000,
+              "v": 1.0,
+              "ease": "easeOut"
+            },
+            {
+              "t": 1300,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "eyeR",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 350,
+              "v": 0.08,
+              "ease": "easeIn"
+            },
+            {
+              "t": 700,
+              "v": 0.08,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1000,
+              "v": 1.0,
+              "ease": "easeOut"
+            },
+            {
+              "t": 1300,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 500,
+              "v": 0.985,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1300,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 500,
+              "v": -8,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1300,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "softSmile"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doze",
+      "durationMs": 4800,
+      "loop": true,
+      "expression": "sleepy",
+      "controls": [
+        "bodyPivot",
+        "headPivot"
+      ],
+      "description": "Slow breathing and slight head tilt; interruption allowed.",
+      "reducedMotion": "Static sleepy pose",
+      "tracks": [
+        {
+          "node": "bodyPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 1200,
+              "v": 1.01,
+              "ease": "sine"
+            },
+            {
+              "t": 3600,
+              "v": 0.99,
+              "ease": "sine"
+            },
+            {
+              "t": 4800,
+              "v": 1.0,
+              "ease": "sine"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": -14
+            },
+            {
+              "t": 4800,
+              "v": -14,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 3
+            },
+            {
+              "t": 4800,
+              "v": 3,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "headPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": -14
+            },
+            {
+              "t": 4800,
+              "v": -14,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 3
+            },
+            {
+              "t": 4800,
+              "v": 3,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "milestone",
+      "durationMs": 2200,
+      "loop": false,
+      "expression": "closedHappy",
+      "controls": [
+        "bodyPivot",
+        "headPivot",
+        "forePawLPivot",
+        "forePawRPivot",
+        "tailPivot"
+      ],
+      "description": "Two gentle celebration beats and max three hearts; never full-screen.",
+      "reducedMotion": "Happy expression with static small heart; no motion",
+      "tracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "softSmile"
+            },
+            {
+              "t": 400,
+              "v": "closedHappy"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 150,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 400,
+              "v": 26,
+              "ease": "easeOut"
+            },
+            {
+              "t": 650,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 800,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 1050,
+              "v": 22,
+              "ease": "easeOut"
+            },
+            {
+              "t": 1300,
+              "v": 0,
+              "ease": "easeIn"
+            },
+            {
+              "t": 2200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 150,
+              "v": 0.96,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 400,
+              "v": 1.02,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": 0.97,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 800,
+              "v": 0.97,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1050,
+              "v": 1.02,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1300,
+              "v": 0.97,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1500,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 2200,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "scaleX",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 150,
+              "v": 1.03,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 400,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": 1.03,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 800,
+              "v": 1.03,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1050,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1300,
+              "v": 1.03,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1500,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 2200,
+              "v": 1.0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "headPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 400,
+              "v": -4,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1050,
+              "v": 4,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1500,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 2200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawLPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 400,
+              "v": -14,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1050,
+              "v": -14,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1300,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 2200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "forePawRPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 400,
+              "v": 14,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 650,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1050,
+              "v": 14,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1300,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 2200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        },
+        {
+          "node": "tailPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 1300,
+              "v": 0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1500,
+              "v": 10,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1700,
+              "v": -10,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1900,
+              "v": 8,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 2200,
+              "v": 0,
+              "ease": "easeInOut"
+            }
+          ]
+        }
+      ],
+      "reducedMotionTracks": [
+        {
+          "node": "face",
+          "property": "expression",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": "closedHappy"
+            }
+          ]
+        }
+      ],
+      "hearts": {
+        "spawnAtMs": [
+          250,
+          510,
+          770
+        ],
+        "lifeMs": 900,
+        "riseUnits": 90,
+        "max": 3,
+        "positions": [
+          [
+            -268,
+            600
+          ],
+          [
+            0,
+            760
+          ],
+          [
+            268,
+            600
+          ]
+        ],
+        "scale": 1.3,
+        "reducedMotion": {
+          "position": [
+            268,
+            600
+          ],
+          "scale": 1.3
+        }
+      }
+    }
+  ],
+  "ambient": {
+    "blink": {
+      "intervalMs": [
+        4000,
+        7000
+      ],
+      "durationMs": 160,
+      "closedScaleY": 0.08
+    }
+  },
+  "expressionBlendMs": 100,
+  "trackFormat": "keyframes per node/property; rotation=deg added to rest, offsetX/Y=design units added to rest, scale*=multiplied with rest, alpha=multiplied, expression=string on node 'face'"
+}

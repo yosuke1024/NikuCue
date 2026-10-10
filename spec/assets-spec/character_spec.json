@@ -1,0 +1,409 @@
+{
+  "schemaVersion": 1,
+  "characterId": "mali_v1",
+  "isProductionArt": false,
+  "status": "Original-art specification; not delivered image assets; requires visual approval",
+  "canvas": {
+    "width": 1024,
+    "height": 1024,
+    "coordinateOrigin": "bottomLeft",
+    "units": "designUnits",
+    "transparent": true,
+    "rootGroundY": 180
+  },
+  "palette": {
+    "cream": "#F4E2C8",
+    "caramel": "#C98E62",
+    "white": "#FFF8EF",
+    "blush": "#DC9292",
+    "ink": "#403633",
+    "shadow": "#D7C9B8"
+  },
+  "expressions": [
+    "neutral",
+    "softSmile",
+    "closedHappy",
+    "curious",
+    "sleepy"
+  ],
+  "nodes": [
+    {
+      "id": "root",
+      "parent": null,
+      "position": [
+        512,
+        180
+      ],
+      "z": 0,
+      "kind": "pivot"
+    },
+    {
+      "id": "shadow",
+      "parent": "root",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "ellipse",
+      "size": [
+        330,
+        40
+      ],
+      "fill": "shadow"
+    },
+    {
+      "id": "bodyPivot",
+      "parent": "root",
+      "position": [
+        0,
+        220
+      ],
+      "z": 1,
+      "kind": "pivot"
+    },
+    {
+      "id": "tailPivot",
+      "parent": "bodyPivot",
+      "position": [
+        155,
+        -110
+      ],
+      "z": 0,
+      "kind": "pivot"
+    },
+    {
+      "id": "tail",
+      "parent": "tailPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "curvedTail",
+      "size": [
+        115,
+        280
+      ],
+      "anchor": [
+        0.35,
+        0.05
+      ],
+      "fill": "cream",
+      "tipFill": "caramel"
+    },
+    {
+      "id": "body",
+      "parent": "bodyPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 2,
+      "kind": "oval",
+      "size": [
+        365,
+        410
+      ],
+      "fill": "cream"
+    },
+    {
+      "id": "hindPawL",
+      "parent": "bodyPivot",
+      "position": [
+        -126,
+        -194
+      ],
+      "z": 3,
+      "kind": "oval",
+      "size": [
+        123,
+        68
+      ],
+      "fill": "cream"
+    },
+    {
+      "id": "hindPawR",
+      "parent": "bodyPivot",
+      "position": [
+        126,
+        -194
+      ],
+      "z": 3,
+      "kind": "oval",
+      "size": [
+        123,
+        68
+      ],
+      "fill": "cream"
+    },
+    {
+      "id": "forePawLPivot",
+      "parent": "bodyPivot",
+      "position": [
+        -92,
+        -32
+      ],
+      "z": 4,
+      "kind": "pivot"
+    },
+    {
+      "id": "forePawL",
+      "parent": "forePawLPivot",
+      "position": [
+        0,
+        -84
+      ],
+      "z": 0,
+      "kind": "roundedPaw",
+      "size": [
+        92,
+        225
+      ],
+      "fill": "cream",
+      "anchor": [
+        0.5,
+        0.87
+      ]
+    },
+    {
+      "id": "forePawRPivot",
+      "parent": "bodyPivot",
+      "position": [
+        92,
+        -32
+      ],
+      "z": 4,
+      "kind": "pivot"
+    },
+    {
+      "id": "forePawR",
+      "parent": "forePawRPivot",
+      "position": [
+        0,
+        -84
+      ],
+      "z": 0,
+      "kind": "roundedPaw",
+      "size": [
+        92,
+        225
+      ],
+      "fill": "cream",
+      "anchor": [
+        0.5,
+        0.87
+      ]
+    },
+    {
+      "id": "headPivot",
+      "parent": "bodyPivot",
+      "position": [
+        0,
+        190
+      ],
+      "z": 5,
+      "kind": "pivot"
+    },
+    {
+      "id": "earLPivot",
+      "parent": "headPivot",
+      "position": [
+        -151,
+        195
+      ],
+      "z": 0,
+      "kind": "pivot"
+    },
+    {
+      "id": "earL",
+      "parent": "earLPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "roundedTriangle",
+      "size": [
+        137,
+        163
+      ],
+      "anchor": [
+        0.5,
+        0.12
+      ],
+      "fill": "caramel",
+      "innerFill": "blush"
+    },
+    {
+      "id": "earRPivot",
+      "parent": "headPivot",
+      "position": [
+        151,
+        195
+      ],
+      "z": 0,
+      "kind": "pivot"
+    },
+    {
+      "id": "earR",
+      "parent": "earRPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "roundedTriangle",
+      "size": [
+        137,
+        163
+      ],
+      "anchor": [
+        0.5,
+        0.12
+      ],
+      "fill": "caramel",
+      "innerFill": "blush"
+    },
+    {
+      "id": "head",
+      "parent": "headPivot",
+      "position": [
+        0,
+        72
+      ],
+      "z": 1,
+      "kind": "squircleOval",
+      "size": [
+        470,
+        361
+      ],
+      "fill": "cream"
+    },
+    {
+      "id": "face",
+      "parent": "headPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 2,
+      "kind": "pivot"
+    },
+    {
+      "id": "muzzle",
+      "parent": "face",
+      "position": [
+        0,
+        27
+      ],
+      "z": 0,
+      "kind": "oval",
+      "size": [
+        186,
+        120
+      ],
+      "fill": "white"
+    },
+    {
+      "id": "eyeL",
+      "parent": "face",
+      "position": [
+        -86,
+        106
+      ],
+      "z": 1,
+      "kind": "expressionEye",
+      "size": [
+        29,
+        39
+      ],
+      "fill": "ink"
+    },
+    {
+      "id": "eyeR",
+      "parent": "face",
+      "position": [
+        86,
+        106
+      ],
+      "z": 1,
+      "kind": "expressionEye",
+      "size": [
+        29,
+        39
+      ],
+      "fill": "ink"
+    },
+    {
+      "id": "nose",
+      "parent": "face",
+      "position": [
+        0,
+        53
+      ],
+      "z": 2,
+      "kind": "roundedTriangle",
+      "size": [
+        28,
+        21
+      ],
+      "fill": "blush"
+    },
+    {
+      "id": "mouth",
+      "parent": "face",
+      "position": [
+        0,
+        29
+      ],
+      "z": 2,
+      "kind": "expressionMouth",
+      "size": [
+        56,
+        28
+      ],
+      "fill": "ink"
+    },
+    {
+      "id": "cheekL",
+      "parent": "face",
+      "position": [
+        -136,
+        45
+      ],
+      "z": 1,
+      "kind": "ellipse",
+      "size": [
+        51,
+        23
+      ],
+      "fill": "blush",
+      "opacity": 0.5
+    },
+    {
+      "id": "cheekR",
+      "parent": "face",
+      "position": [
+        136,
+        45
+      ],
+      "z": 1,
+      "kind": "ellipse",
+      "size": [
+        51,
+        23
+      ],
+      "fill": "blush",
+      "opacity": 0.5
+    }
+  ],
+  "note": "Approximate rig contract for first prototype. Validate silhouette and seams visually. Shapes are authoring intentions, not built-in SKShapeNode primitives.",
+  "constraints": {
+    "maxVisibleCats": 1,
+    "runtimeAI": false,
+    "externalAssets": false,
+    "physicsRequired": false,
+    "humanArtApprovalRequired": true
+  }
+}

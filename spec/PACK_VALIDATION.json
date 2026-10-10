@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "scope": "Specification consistency only; no iOS build or runtime tests",
+  "localization_keys_per_language": 169,
+  "languages": [
+    "ja",
+    "en",
+    "th"
+  ],
+  "rig_nodes": 26,
+  "animation_clips": 8,
+  "reaction_rules": 16,
+  "qa_scenarios_not_run": 40,
+  "source_entries": 18
+}

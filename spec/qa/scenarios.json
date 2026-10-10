@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "status": "Acceptance specifications only; not executed iOS tests",
+  "cases": [
+    {
+      "id": "Q01",
+      "area": "offline",
+      "givenWhen": "Fresh install in airplane mode",
+      "then": "Onboarding, cat and first habit work with no ads and no account",
+      "status": "not_run"
+    },
+    {
+      "id": "Q02",
+      "area": "storage",
+      "givenWhen": "Double-tap Done 10 times on one habit today",
+      "then": "One record and one increment only",
+      "status": "not_run"
+    },
+    {
+      "id": "Q03",
+      "area": "storage",
+      "givenWhen": "Inject a persistence failure",
+      "then": "No success animation; record unchanged; error and retry available",
+      "status": "not_run"
+    },
+    {
+      "id": "Q04",
+      "area": "state",
+      "givenWhen": "Done then undo while celebrating",
+      "then": "Stored record removed; celebration cancelled; no sad reaction",
+      "status": "not_run"
+    },
+    {
+      "id": "Q05",
+      "area": "progress",
+      "givenWhen": "Two done and one skipped",
+      "then": "done count=2, scheduled=3, skipped=1; not allDone",
+      "status": "not_run"
+    },
+    {
+      "id": "Q06",
+      "area": "progress",
+      "givenWhen": "Zero habits due today",
+      "then": "No 0/0, no allDone and no milestone",
+      "status": "not_run"
+    },
+    {
+      "id": "Q07",
+      "area": "progress",
+      "givenWhen": "Complete five habits on one day",
+      "then": "distinctDoneDays increases by one",
+      "status": "not_run"
+    },
+    {
+      "id": "Q08",
+      "area": "progress",
+      "givenWhen": "Reach seven distinct done days and complete all today",
+      "then": "Only milestone7; allDone display token also consumed",
+      "status": "not_run"
+    },
+    {
+      "id": "Q09",
+      "area": "queue",
+      "givenWhen": "Complete three distinct habits during first animation",
+      "then": "All saved; current+one queued max; final response matches latest state",
+      "status": "not_run"
+    },
+    {
+      "id": "Q10",
+      "area": "time",
+      "givenWhen": "Thai locale and Buddhist calendar",
+      "then": "Gregorian ASCII day keys; natural Thai presentation",
+      "status": "not_run"
+    },
+    {
+      "id": "Q11",
+      "area": "time",
+      "givenWhen": "Cross midnight while Home remains foreground",
+      "then": "Today reloads once, old interaction discarded, no punishment",
+      "status": "not_run"
+    },
+    {
+      "id": "Q12",
+      "area": "time",
+      "givenWhen": "Travel Bangkok to Tokyo/India",
+      "then": "Existing day keys stable; new check uses current local day",
+      "status": "not_run"
+    },
+    {
+      "id": "Q13",
+      "area": "time",
+      "givenWhen": "DST transition and repeated hour",
+      "then": "No 86400-based day bug; notification behavior recorded",
+      "status": "not_run"
+    },
+    {
+      "id": "Q14",
+      "area": "schedule",
+      "givenWhen": "Change weekdays today",
+      "then": "New weekdays effective tomorrow; today and history unchanged",
+      "status": "not_run"
+    },
+    {
+      "id": "Q15",
+      "area": "schedule",
+      "givenWhen": "Archive today and resume on later date",
+      "then": "Today remains due; inactive period creates no missed entries",
+      "status": "not_run"
+    },
+    {
+      "id": "Q16",
+      "area": "history",
+      "givenWhen": "Correct a record 6 days ago then 7 days ago",
+      "then": "First allowed if scheduled; second rejected; no celebration for history correction",
+      "status": "not_run"
+    },
+    {
+      "id": "Q17",
+      "area": "notification",
+      "givenWhen": "Deny notification permission",
+      "then": "Core app still fully works; settings explanation offered",
+      "status": "not_run"
+    },
+    {
+      "id": "Q18",
+      "area": "notification",
+      "givenWhen": "Two slots all seven weekdays; reconcile 20 times",
+      "then": "At most 14 stable pending requests; no duplicates",
+      "status": "not_run"
+    },
+    {
+      "id": "Q19",
+      "area": "notification",
+      "givenWhen": "Finish all habits before daily check-in reminder",
+      "then": "Reminder stays generic; no false assertion of unfinished habits",
+      "status": "not_run"
+    },
+    {
+      "id": "Q20",
+      "area": "notification",
+      "givenWhen": "Tap notification from killed app",
+      "then": "Home opens after DB ready; no automatic completion",
+      "status": "not_run"
+    },
+    {
+      "id": "Q21",
+      "area": "notification",
+      "givenWhen": "Switch app language",
+      "then": "Pending text replaced without duplicate scheduling",
+      "status": "not_run"
+    },
+    {
+      "id": "Q22",
+      "area": "animation",
+      "givenWhen": "Navigate away, background, return",
+      "then": "No background rendering or growing actions; stale queue not replayed",
+      "status": "not_run"
+    },
+    {
+      "id": "Q23",
+      "area": "accessibility",
+      "givenWhen": "Reduce Motion + largest Dynamic Type + VoiceOver",
+      "then": "No jump/particles; labels and checks usable; Thai glyphs not clipped",
+      "status": "not_run"
+    },
+    {
+      "id": "Q24",
+      "area": "purchase",
+      "givenWhen": "Verified purchase succeeds while ad visible",
+      "then": "Ad removed immediately; future requests stop; transaction finished",
+      "status": "not_run"
+    },
+    {
+      "id": "Q25",
+      "area": "purchase",
+      "givenWhen": "Cancel, pending, unverified and network errors",
+      "then": "No false unlock; no forced purchase retry; app usable",
+      "status": "not_run"
+    },
+    {
+      "id": "Q26",
+      "area": "purchase",
+      "givenWhen": "Owned then offline restart",
+      "then": "No reappearance of ads solely due to network failure",
+      "status": "not_run"
+    },
+    {
+      "id": "Q27",
+      "area": "purchase",
+      "givenWhen": "Restore on another installation and verified revocation",
+      "then": "Correct ownership restored/revoked; old cache cannot override revocation",
+      "status": "not_run"
+    },
+    {
+      "id": "Q28",
+      "area": "ads",
+      "givenWhen": "Unknown ownership or canRequestAds=false",
+      "then": "No GMA initialization/ad request",
+      "status": "not_run"
+    },
+    {
+      "id": "Q29",
+      "area": "ads",
+      "givenWhen": "Delayed banner load with finger on Done area",
+      "then": "Buttons never move under the finger; no overlap",
+      "status": "not_run"
+    },
+    {
+      "id": "Q30",
+      "area": "ads",
+      "givenWhen": "Consent withdrawn or app backgrounded",
+      "then": "Stop ad requests; core app unchanged",
+      "status": "not_run"
+    },
+    {
+      "id": "Q31",
+      "area": "privacy",
+      "givenWhen": "Inspect free/owned/consent states network traffic",
+      "then": "No habit names, categories, cat names or history in requests",
+      "status": "not_run"
+    },
+    {
+      "id": "Q32",
+      "area": "backup",
+      "givenWhen": "Import malformed, oversized, unsupported or duplicate records",
+      "then": "Fail safely without changing DB",
+      "status": "not_run"
+    },
+    {
+      "id": "Q33",
+      "area": "backup",
+      "givenWhen": "Valid full backup overwrite",
+      "then": "Counts and settings restored; notifications OFF; entitlements/consent untouched",
+      "status": "not_run"
+    },
+    {
+      "id": "Q34",
+      "area": "deletion",
+      "givenWhen": "Delete all local app records while ad-free",
+      "then": "Habits/cat/diagnostics removed and notifications cancelled; purchase remains",
+      "status": "not_run"
+    },
+    {
+      "id": "Q35",
+      "area": "art",
+      "givenWhen": "Compare neutral, happy, sleepy and all clips",
+      "then": "Same original cat; no seams, extra limbs, sliding facial features",
+      "status": "not_run"
+    },
+    {
+      "id": "Q36",
+      "area": "launch",
+      "givenWhen": "Production configuration still contains REPLACE_WITH",
+      "then": "Release validation fails explicitly, Debug remains usable with mocks",
+      "status": "not_run"
+    },
+    {
+      "id": "Q37",
+      "area": "localization",
+      "givenWhen": "Rename cat then switch language",
+      "then": "Custom name retained, keys/placeholders complete in all languages",
+      "status": "not_run"
+    },
+    {
+      "id": "Q38",
+      "area": "lifecycle",
+      "givenWhen": "Present purchase/consent sheet during interaction",
+      "then": "Cat pauses, purchase/consent state remains correct on resume",
+      "status": "not_run"
+    },
+    {
+      "id": "Q39",
+      "area": "restore",
+      "givenWhen": "Inject failure during full data replacement",
+      "then": "Entire original dataset intact; no partial import",
+      "status": "not_run"
+    },
+    {
+      "id": "Q40",
+      "area": "art",
+      "givenWhen": "One minute of rapid cat taps and ten-minute Home session",
+      "then": "Stable node/action counts; no obvious memory leak or persistent background work",
+      "status": "not_run"
+    }
+  ]
+}

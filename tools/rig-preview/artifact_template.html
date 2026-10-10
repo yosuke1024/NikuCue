@@ -1,0 +1,175 @@
+<title>Mali Rig Preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+  /* Layout: one review stage (cat room) with the controls beside it on wide screens, stacked on phones. */
+  :root {
+    --bg: #FFF8EF; --surface: #F6E9D6; --ink: #403633; --muted: #8C7A6B; --accent: #C98E62; --accent-ink: #FFF8EF;
+    --line: rgba(64, 54, 51, 0.14); --room: #FBEFD9;
+    --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Noto Sans Thai", -apple-system, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans Thai", "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #241E1B; --surface: #332A26; --ink: #F4E2C8; --muted: #BBA996; --accent: #D9A071; --accent-ink: #241E1B; --line: rgba(244, 226, 200, 0.16); color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg: #241E1B; --surface: #332A26; --ink: #F4E2C8; --muted: #BBA996; --accent: #D9A071; --accent-ink: #241E1B; --line: rgba(244, 226, 200, 0.16); color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; padding-inline: 16px; padding-block: 20px 40px; }
+  main { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; margin: 0; text-wrap: balance; }
+  h2 { font-family: var(--font-display); font-weight: 500; font-size: 1.05rem; margin: 0; letter-spacing: 0.02em; }
+  p { margin: 0; }
+  .lede { color: var(--muted); font-size: 0.95rem; max-width: 65ch; }
+  .notice { border-left: 3px solid var(--accent); padding: 8px 12px; background: var(--surface); border-radius: 0 10px 10px 0; font-size: 0.9rem; max-width: 70ch; }
+  .stage { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 760px) { .stage { grid-template-columns: 1fr; } }
+  .room { position: relative; width: 100%; aspect-ratio: 1 / 1; max-width: 100%; border-radius: 24px; background: var(--room); overflow: hidden; }
+  .room canvas { width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; }
+  .bubble { position: absolute; left: 16px; right: 16px; top: 14px; background: #FFFFFF; color: #403633; border-radius: 16px; padding: 10px 14px; font-size: 0.95rem; line-height: 1.45; box-shadow: 0 2px 8px rgba(64,54,51,0.12); opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .bubble.show { opacity: 1; }
+  .panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .group { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; font-size: 0.92rem; min-height: 44px; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.on { outline: 2px solid var(--accent); outline-offset: -2px; }
+  label { display: inline-flex; gap: 8px; align-items: center; font-size: 0.92rem; min-height: 44px; }
+  select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  .status { font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sheet { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .thumb { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--muted); }
+  .thumb canvas { width: 64px; height: 64px; border-radius: 12px; background: var(--room); }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 0.88rem; margin: 0; }
+  dt { color: var(--muted); } dd { margin: 0; }
+</style>
+<main>
+  <header class="group">
+    <h1>Mali（マリ）リグ・プレビュー</h1>
+    <p class="lede">NikuCue の猫キャラクター Mali を、iOS アプリと同じ JSON 契約（character_spec / mali_paths / animations）からブラウザで描画した確認用ページです。猫をタップすると「なでる」反応、ボタンで各クリップと表情を再生できます。</p>
+    <p class="notice">これは開発用プレビューで、iOS アプリや Simulator の録画ではありません。絵はコード描画の試作（承認待ち R02）です。</p>
+  </header>
+  <section class="stage">
+    <div class="room" id="room">
+      <canvas id="c" width="840" height="840" aria-label="猫の Mali。タップでなでる。"></canvas>
+      <div class="bubble" id="bubble" aria-live="polite"></div>
+    </div>
+    <div class="panel">
+      <div class="group">
+        <h2>反応（デモ）</h2>
+        <div class="row">
+          <button class="primary" id="demoDone">できた → celebrate</button>
+          <button id="pet">なでる（pet）</button>
+          <button id="rest">今日は休む → settle</button>
+          <button id="stop">待機に戻す</button>
+        </div>
+      </div>
+      <div class="group">
+        <h2>全クリップ（8）</h2>
+        <div class="row" id="clips"></div>
+      </div>
+      <div class="group">
+        <h2>表情（5）</h2>
+        <div class="row" id="expressions"></div>
+      </div>
+      <div class="group">
+        <h2>表示設定</h2>
+        <div class="row">
+          <label><input type="checkbox" id="rm"> 動きを減らす（Reduce Motion）</label>
+          <label>部屋 <select id="roomSel"><option value="morning">朝</option><option value="day" selected>昼</option><option value="night">夜</option></select></label>
+          <label>速度 <select id="speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label>
+        </div>
+        <div class="status" id="status"></div>
+      </div>
+      <div class="group">
+        <h2>64px での見え方（静止画）</h2>
+        <div class="sheet" id="sheet"></div>
+      </div>
+      <div class="group">
+        <h2>仕様との対応</h2>
+        <dl>
+          <dt>idle</dt><dd>呼吸 3.6 秒・胴 ±1%・しっぽ ±5°・瞬き 4〜7 秒</dd>
+          <dt>celebrate</dt><dd>1.6 秒：予備動作 → 小さく跳ぶ（+34）→ 着地 → 嬉しい顔</dd>
+          <dt>pet</dt><dd>0.9 秒：頭を 7° 傾け目を細める。2 秒間は連打無視</dd>
+          <dt>milestone</dt><dd>2.2 秒：2 段階の喜び + ハート最大 3 つ。全画面演出なし</dd>
+          <dt>Reduce Motion</dt><dd>跳躍・ハートの動きを止め、表情のクロスフェードのみ</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+</main>
+<script id="spec" type="application/json">__CHARACTER_SPEC__</script>
+<script id="paths" type="application/json">__MALI_PATHS__</script>
+<script id="anims" type="application/json">__ANIMATIONS__</script>
+<script>__RIG_JS__</script>
+<script>
+(function () {
+  const spec = JSON.parse(document.getElementById('spec').textContent);
+  const paths = JSON.parse(document.getElementById('paths').textContent);
+  const anims = JSON.parse(document.getElementById('anims').textContent);
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const rig = new MaliRig.Rig(spec, paths, anims, { reduceMotion: false, seed: 7 });
+  const bubble = document.getElementById('bubble');
+  const status = document.getElementById('status');
+  const room = document.getElementById('room');
+  const ROOM = { morning: '#FFF1D6', day: '#FBEFD9', night: '#D3C6D4' };
+  const MESSAGES = {
+    greet: '会えてうれしい。今日も、自分のペースでね。', pet: 'そのなで方、好き。', celebrate: '一つできたね。うれしいな。',
+    cheer: '小さく始めてもいいよ。', settle: '今日は休んでも大丈夫。', milestone: '一緒にできた日が3日になったね。', doze: 'うとうと……。そばにいるね。'
+  };
+  let speed = 1, virtual = 0, last = null, lastPet = -1e9, bubbleTimer = null;
+  const PET_COOLDOWN = 2000;
+  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced) { rig.opts.reduceMotion = true; document.getElementById('rm').checked = true; }
+
+  function fit() { const w = canvas.width, h = canvas.height; const s = Math.min(w / 1024, h / 1024) * 1.08; return { scale: s, ox: (w - 1024 * s) / 2, oy: h - (h - 1024 * s) / 2 - 20 }; }
+  function frame(ts) {
+    if (last == null) last = ts;
+    virtual += (ts - last) * speed; last = ts;
+    rig.update(virtual);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const { scale, ox, oy } = fit();
+    rig.draw(ctx, scale, ox, oy);
+    status.textContent = `clip: ${rig.clip ? rig.clip.id : rig.ambientId}   expression: ${rig.expression}   reduceMotion: ${rig.opts.reduceMotion}`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function say(text, dwell) {
+    clearTimeout(bubbleTimer);
+    if (!text) { bubble.classList.remove('show'); return; }
+    bubble.textContent = text; bubble.classList.add('show');
+    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), (dwell || 4000) / speed);
+  }
+  function play(id) {
+    rig.play(id, virtual);
+    if (id === 'idle') { say(''); return; }
+    say(MESSAGES[id] || id, id === 'milestone' ? 5000 : 4000);
+  }
+  const clipsEl = document.getElementById('clips');
+  for (const c of anims.clips) { const b = document.createElement('button'); b.textContent = c.id; b.onclick = () => play(c.id); clipsEl.appendChild(b); }
+  const exEl = document.getElementById('expressions');
+  for (const e of spec.expressions) { const b = document.createElement('button'); b.textContent = e; b.onclick = () => rig.setExpression(e, virtual); exEl.appendChild(b); }
+  function pet() { if (virtual - lastPet < PET_COOLDOWN || rig.clip) return; lastPet = virtual; play('pet'); }
+  document.getElementById('pet').onclick = pet;
+  canvas.addEventListener('pointerdown', pet);
+  document.getElementById('demoDone').onclick = () => play('celebrate');
+  document.getElementById('rest').onclick = () => play('settle');
+  document.getElementById('stop').onclick = () => { rig.clip = null; rig.hearts = []; rig.play('idle', virtual); say(''); };
+  document.getElementById('rm').onchange = e => { rig.opts.reduceMotion = e.target.checked; rig.play(rig.ambientId, virtual); };
+  document.getElementById('roomSel').onchange = e => { room.style.background = ROOM[e.target.value]; if (e.target.value === 'night') play('doze'); else if (rig.ambientId === 'doze') play('idle'); };
+  document.getElementById('speed').onchange = e => { speed = parseFloat(e.target.value); };
+
+  // 64px contact sheet: one static rig per expression
+  const sheet = document.getElementById('sheet');
+  for (const e of spec.expressions) {
+    const wrap = document.createElement('div'); wrap.className = 'thumb';
+    const cv = document.createElement('canvas'); cv.width = 128; cv.height = 128;
+    const r = new MaliRig.Rig(spec, paths, anims, { reduceMotion: true, seed: 1 });
+    r.setExpression(e, 0); r.prevExpression = null; r.update(0);
+    const s = 128 / 1024 * 1.25;
+    r.draw(cv.getContext('2d'), s, (128 - 1024 * s) / 2, 128 - (128 - 1024 * s) / 2 - 2);
+    const cap = document.createElement('span'); cap.textContent = e;
+    wrap.appendChild(cv); wrap.appendChild(cap); sheet.appendChild(wrap);
+  }
+})();
+</script>

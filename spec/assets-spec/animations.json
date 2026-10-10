@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "characterId": "mali_v1",
+  "coordinateUnits": "1024-design-units, not display pixels",
+  "fpsTarget": 30,
+  "maxQueuedInteractions": 1,
+  "clips": [
+    {
+      "id": "idle",
+      "durationMs": 3600,
+      "loop": true,
+      "expression": "neutral",
+      "controls": [
+        "bodyPivot",
+        "headPivot",
+        "tailPivot",
+        "eyeL",
+        "eyeR"
+      ],
+      "description": "Breathing scaleY ±0.01; tail ±5deg; blink intervals 4000–7000ms, seeded for tests. Pause conflicting channels during interactions.",
+      "reducedMotion": "Static neutral with optional gentle expression crossfade"
+    },
+    {
+      "id": "greet",
+      "durationMs": 1100,
+      "loop": false,
+      "expression": "softSmile",
+      "controls": [
+        "headPivot",
+        "forePawRPivot"
+      ],
+      "description": "Look up, one small double paw wave. Not a full-body walk.",
+      "reducedMotion": "softSmile crossfade"
+    },
+    {
+      "id": "pet",
+      "durationMs": 900,
+      "loop": false,
+      "expression": "closedHappy",
+      "controls": [
+        "headPivot",
+        "tailPivot"
+      ],
+      "description": "Lean head 7deg towards touch, soft eyes, small tail curve.",
+      "reducedMotion": "closedHappy crossfade"
+    },
+    {
+      "id": "celebrate",
+      "durationMs": 1600,
+      "loop": false,
+      "expression": "closedHappy",
+      "controls": [
+        "bodyPivot",
+        "headPivot",
+        "forePawLPivot",
+        "forePawRPivot",
+        "tailPivot",
+        "shadow"
+      ],
+      "timeline": [
+        {
+          "endMs": 140,
+          "label": "anticipation",
+          "bodyScale": [
+            1.03,
+            0.96
+          ],
+          "bodyOffsetY": 0
+        },
+        {
+          "endMs": 420,
+          "label": "lift",
+          "bodyScale": [
+            1.0,
+            1.025
+          ],
+          "bodyOffsetY": 34
+        },
+        {
+          "endMs": 680,
+          "label": "land",
+          "bodyScale": [
+            1.035,
+            0.96
+          ],
+          "bodyOffsetY": 0
+        },
+        {
+          "endMs": 1050,
+          "label": "settle",
+          "bodyScale": [
+            1,
+            1
+          ],
+          "bodyOffsetY": 0
+        },
+        {
+          "endMs": 1600,
+          "label": "smile-and-blend-to-ambient",
+          "bodyScale": [
+            1,
+            1
+          ],
+          "bodyOffsetY": 0
+        }
+      ],
+      "note": "Animate bodyPivot position relative to its rest transform. Keep root and ground shadow position fixed. Shadow opacity/scale may change. Restore all transforms on cancel.",
+      "reducedMotion": "softSmile→closedHappy 100ms crossfade, no jump or particles"
+    },
+    {
+      "id": "cheer",
+      "durationMs": 1200,
+      "loop": false,
+      "expression": "curious",
+      "controls": [
+        "headPivot",
+        "forePawLPivot",
+        "forePawRPivot"
+      ],
+      "description": "Gently raise forepaws and look attentive. No repeated urging.",
+      "reducedMotion": "curious crossfade"
+    },
+    {
+      "id": "settle",
+      "durationMs": 1300,
+      "loop": false,
+      "expression": "softSmile",
+      "controls": [
+        "bodyPivot",
+        "headPivot",
+        "eyeL",
+        "eyeR"
+      ],
+      "description": "Slow blink, relaxed posture. Never sadness, tears, or loss of affection.",
+      "reducedMotion": "softSmile crossfade"
+    },
+    {
+      "id": "doze",
+      "durationMs": 4800,
+      "loop": true,
+      "expression": "sleepy",
+      "controls": [
+        "bodyPivot",
+        "headPivot"
+      ],
+      "description": "Slow breathing and slight head tilt; interruption allowed.",
+      "reducedMotion": "Static sleepy pose"
+    },
+    {
+      "id": "milestone",
+      "durationMs": 2200,
+      "loop": false,
+      "expression": "closedHappy",
+      "controls": [
+        "bodyPivot",
+        "headPivot",
+        "forePawLPivot",
+        "forePawRPivot",
+        "tailPivot"
+      ],
+      "description": "Two gentle celebration beats and max three hearts; never full-screen.",
+      "reducedMotion": "Happy expression with static small heart; no motion"
+    }
+  ]
+}

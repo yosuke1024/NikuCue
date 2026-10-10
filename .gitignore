@@ -1,0 +1,21 @@
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+.swiftpm/
+Packages/NikuCueDomain/.build/
+.build/
+
+# Tools (development only)
+tools/rig-preview/node_modules/
+tools/rig-preview/dist/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store

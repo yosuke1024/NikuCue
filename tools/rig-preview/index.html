@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mali Rig Preview</title>
+<meta name="description" content="Development preview of the NikuCue cat rig (Mali) rendered from the shared JSON contracts. Not the iOS app.">
+<style>
+  :root { --bg:#FFF8EF; --panel:#F4E2C8; --ink:#403633; --accent:#C98E62; --muted:#8a7a6c; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#2a2320; --panel:#3a302b; --ink:#f4e2c8; --muted:#b9a897; } }
+  :root[data-theme="dark"] { --bg:#2a2320; --panel:#3a302b; --ink:#f4e2c8; --muted:#b9a897; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.4 -apple-system, "Helvetica Neue", "Noto Sans Thai", "Hiragino Sans", sans-serif; padding:16px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .note { color:var(--muted); font-size:13px; margin:0 0 12px; }
+  .stage { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; }
+  canvas { background:var(--room, #FBEFD9); border-radius:18px; max-width:100%; height:auto; display:block; touch-action:manipulation; }
+  .controls { display:flex; flex-direction:column; gap:10px; min-width:240px; flex:1; }
+  .row { display:flex; flex-wrap:wrap; gap:6px; }
+  button { font:inherit; padding:8px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.12); background:var(--panel); color:var(--ink); cursor:pointer; min-height:44px; }
+  button.on { outline:2px solid var(--accent); }
+  label { display:flex; gap:8px; align-items:center; font-size:14px; }
+  .bubble { background:#fff; color:#403633; border-radius:14px; padding:8px 12px; min-height:44px; font-size:15px; border:1px solid rgba(0,0,0,.08); }
+  .status { font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  select { font:inherit; padding:6px; border-radius:8px; }
+</style>
+</head>
+<body>
+<h1>Mali rig preview (development tool)</h1>
+<p class="note">Rendered in the browser from <code>character_spec.json</code>, <code>mali_paths.json</code> and <code>animations.json</code>. This is a review aid for the code-drawn prototype art and timing — it is <strong>not</strong> the iOS app and not a Simulator recording. Human art approval (R02) is still open.</p>
+<div class="stage">
+  <canvas id="c" width="720" height="720" aria-label="Mali the cat. Tap to pet."></canvas>
+  <div class="controls">
+    <div class="bubble" id="bubble" aria-live="polite">…</div>
+    <div class="row" id="clips"></div>
+    <div class="row" id="expressions"></div>
+    <div class="row">
+      <button id="pet">Pet (tap cat)</button>
+      <button id="demoDone">Demo: できた → celebrate</button>
+      <button id="stop">Back to idle</button>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="rm"> Reduce Motion</label>
+      <label>Room <select id="room"><option value="morning">morning</option><option value="day" selected>day</option><option value="night">night</option></select></label>
+      <label>Speed <select id="speed"><option>1</option><option>0.5</option><option>0.25</option></select></label>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+<script id="spec" type="application/json">__CHARACTER_SPEC__</script>
+<script id="paths" type="application/json">__MALI_PATHS__</script>
+<script id="anims" type="application/json">__ANIMATIONS__</script>
+<script>__RIG_JS__</script>
+<script>
+(function () {
+  const spec = JSON.parse(document.getElementById('spec').textContent);
+  const paths = JSON.parse(document.getElementById('paths').textContent);
+  const anims = JSON.parse(document.getElementById('anims').textContent);
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const rig = new MaliRig.Rig(spec, paths, anims, { reduceMotion: false, seed: 7 });
+  const bubble = document.getElementById('bubble');
+  const status = document.getElementById('status');
+  const ROOM = { morning: '#FFF1D6', day: '#FBEFD9', night: '#D3C6D4' };
+  const MESSAGES = { greet: "I'm glad you're here. Your pace is just fine.", pet: 'That feels lovely.', celebrate: "One little win. I'm happy with you.", cheer: 'A small start is welcome.', settle: "It's okay to rest today.", milestone: 'Three days with little wins together.', doze: 'A little sleepy… still here with you.', idle: '' };
+  let speed = 1, virtual = 0, last = null, lastPet = -1e9, paused = false;
+  const PET_COOLDOWN = 2000;
+  let currentClip = 'idle';
+
+  function fit() {
+    const w = canvas.width, h = canvas.height;
+    const scale = Math.min(w / 1024, h / 1024);
+    return { scale, ox: (w - 1024 * scale) / 2, oy: h - (h - 1024 * scale) / 2 };
+  }
+  function frame(ts) {
+    if (last == null) last = ts;
+    if (!paused) virtual += (ts - last) * speed;
+    last = ts;
+    rig.update(virtual);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const { scale, ox, oy } = fit();
+    rig.draw(ctx, scale, ox, oy);
+    status.textContent = `t=${(virtual/1000).toFixed(1)}s  clip=${rig.clip ? rig.clip.id : rig.ambientId}  expression=${rig.expression}  reduceMotion=${rig.opts.reduceMotion}`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function play(id) {
+    if (id === 'idle' || id === 'doze') { rig.play(id, virtual); bubble.textContent = MESSAGES[id] || ''; currentClip = id; return; }
+    rig.play(id, virtual); bubble.textContent = MESSAGES[id] || id;
+  }
+  rig.on(ev => { if (ev.type === 'clipFinished') { setTimeout(() => { if (!rig.clip) bubble.textContent = ''; }, 2500 / speed); } });
+
+  const clipsEl = document.getElementById('clips');
+  for (const c of anims.clips) {
+    const b = document.createElement('button'); b.textContent = c.id; b.dataset.clip = c.id;
+    b.onclick = () => play(c.id); clipsEl.appendChild(b);
+  }
+  const exEl = document.getElementById('expressions');
+  for (const e of spec.expressions) {
+    const b = document.createElement('button'); b.textContent = e; b.dataset.expression = e;
+    b.onclick = () => rig.setExpression(e, virtual); exEl.appendChild(b);
+  }
+  document.getElementById('pet').onclick = () => { if (virtual - lastPet < PET_COOLDOWN || rig.clip) return; lastPet = virtual; play('pet'); };
+  canvas.addEventListener('pointerdown', () => document.getElementById('pet').click());
+  document.getElementById('demoDone').onclick = () => play('celebrate');
+  document.getElementById('stop').onclick = () => { rig.clip = null; rig.hearts = []; rig.play('idle', virtual); bubble.textContent = ''; };
+  document.getElementById('rm').onchange = e => { rig.opts.reduceMotion = e.target.checked; rig.play(rig.ambientId, virtual); };
+  document.getElementById('room').onchange = e => canvas.style.setProperty('--room', ROOM[e.target.value]);
+  document.getElementById('speed').onchange = e => { speed = parseFloat(e.target.value); };
+  window.__mali = { rig, play, setVirtual: t => { virtual = t; }, getVirtual: () => virtual, pause: p => { paused = p; }, setExpression: e => rig.setExpression(e, virtual), setRoom: r => canvas.style.setProperty('--room', ROOM[r]) };
+})();
+</script>
+</body>
+</html>

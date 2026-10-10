@@ -1,0 +1,32 @@
+{
+  "status": "Draft; name availability, implementation match, Thai review and App Store Connect field validation required",
+  "locales": {
+    "ja": {
+      "title": "NikuCue - 猫と習慣づくり",
+      "subtitle": "小さな「できた」を、一緒に喜ぼう",
+      "promo": "猫のマリと、小さな習慣を一つずつ。記録した「できた」を一緒に喜び、休む日もそっと見守ります。",
+      "keywords": "記録,日課,目標,カレンダー,リマインダー,かわいい,ルーティン",
+      "description": "小さな「できた」を、猫といっしょに。\n\nNikuCueは、猫のマリが毎日の習慣を見守るアプリです。水を飲む、少し読む、体を動かす。自分で選んだ小さな習慣を記録すると、マリがうれしそうに反応します。\n\n頑張れない日は、休んでも大丈夫。数日空いても、猫のごはんや愛情が減ることはありません。また会いに来てくれたことを喜びます。\n\n・最大5つの習慣を、毎日または曜日指定で管理\n・「できた」「今日は休む」を簡単に記録\n・なでると反応する、小さな猫の相棒\n・履歴カレンダーと、一緒にできた日数\n・任意の時刻に設定できるローカル通知\n・タイ語、英語、日本語に対応\n\nアカウント登録は不要です。習慣と記録は端末に保存され、基本機能はオフラインでも使えます。手動バックアップにも対応しています。\n\n無料版にはバナー広告があります。広告削除は買い切りで、月額料金はありません。広告表示、購入、購入の復元には通信を利用します。\n\n猫が動くのはアプリ内です。自由会話やAIチャット、他アプリ上での常駐表示はありません。",
+      "iapName": "広告を削除",
+      "iapDescription": "買い切りでバナー広告を削除します。"
+    },
+    "en": {
+      "title": "NikuCue: Cat Habit Companion",
+      "subtitle": "Small habits, warm company",
+      "promo": "Meet Mali, a little cat who celebrates your small wins. Make room for the habits you choose, with gentle reminders and no pet-care chores.",
+      "keywords": "routine,tracker,daily,calendar,reminder,goals,cute,checklist,offline",
+      "description": "Small wins, with a little cat.\n\nMeet Mali, a gentle companion for the small habits you want to make time for. Drink some water, read a little, or move a little. Record a habit, and your cat celebrates with you.\n\nNeed a rest? That is okay. Missing a day does not leave your cat hungry or make you lose affection. When you return, Mali welcomes you back.\n\n• Up to five active habits, every day or on chosen weekdays\n• Simple Done and Rest today check-ins\n• A cat who responds when you pet them\n• A history calendar and days with little wins\n• Optional local reminders\n• Thai, English and Japanese\n\nNo account is required. Habits and records are stored on your device, and core features work offline. You can export a manual backup.\n\nThe free version includes banner ads. A one-time purchase removes ads; there is no subscription. Advertising, purchasing and restoring purchases use network services.\n\nCat animations appear inside the app. There is no AI chat or character overlay on other apps.",
+      "iapName": "Remove Ads",
+      "iapDescription": "A one-time purchase to remove banner ads."
+    },
+    "th": {
+      "title": "NikuCue: แมวเพื่อนคู่ใจ",
+      "subtitle": "สร้างนิสัยไปกับแมวน้อย",
+      "promo": "พบกับมะลิ แมวน้อยที่ดีใจกับสิ่งเล็ก ๆ ที่คุณทำได้ ค่อย ๆ สร้างนิสัยในจังหวะของตัวเอง วันไหนอยากพักก็พักได้",
+      "keywords": "นิสัย,บันทึก,เตือน,กิจวัตร",
+      "description": "ดีใจกับสิ่งเล็ก ๆ ที่ทำได้ไปด้วยกัน\n\nมะลิเป็นแมวน้อยที่จะอยู่เป็นเพื่อนขณะที่คุณสร้างนิสัยเล็ก ๆ ในแต่ละวัน ไม่ว่าจะดื่มน้ำ อ่านหนังสือสักนิด หรือขยับร่างกาย เมื่อบันทึกว่าทำได้แล้ว มะลิก็จะดีใจไปด้วย\n\nวันไหนอยากพักก็พักได้ แมวจะไม่หิวหรือรักคุณน้อยลงเพราะเว้นไปบางวัน เมื่อกลับมา มะลิก็พร้อมต้อนรับเสมอ\n\n• เพิ่มนิสัยที่ใช้งานได้สูงสุด 5 อย่าง เลือกทำทุกวันหรือเฉพาะบางวัน\n• บันทึกได้ง่าย ๆ ว่าทำได้แล้วหรือวันนี้พักก่อน\n• ลูบแมวแล้วแมวจะตอบสนอง\n• ดูประวัติในปฏิทินและจำนวนวันที่ทำสิ่งเล็ก ๆ ได้\n• ตั้งการแจ้งเตือนบนเครื่องได้ตามต้องการ\n• รองรับภาษาไทย อังกฤษ และญี่ปุ่น\n\nไม่ต้องสมัครบัญชี นิสัยและประวัติเก็บไว้ในเครื่อง ฟีเจอร์หลักใช้ได้โดยไม่ต้องเชื่อมต่ออินเทอร์เน็ต และส่งออกข้อมูลสำรองด้วยตนเองได้\n\nเวอร์ชันฟรีมีโฆษณาแบนเนอร์ ลบโฆษณาได้ด้วยการซื้อครั้งเดียว ไม่มีค่าสมาชิกรายเดือน การแสดงโฆษณา การซื้อ และการกู้คืนการซื้อใช้อินเทอร์เน็ต\n\nแมวเคลื่อนไหวอยู่ภายในแอป ไม่มีแชต AI และไม่มีแมวลอยทับแอปอื่น",
+      "iapName": "ลบโฆษณา",
+      "iapDescription": "ซื้อครั้งเดียวเพื่อลบโฆษณาแบนเนอร์"
+    }
+  }
+}

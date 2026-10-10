@@ -1,0 +1,126 @@
+import NikuCueDomain
+import SwiftUI
+
+/// P01 vertical slice: the cat breathes, reacts to a tap, and celebrates a demo "done".
+/// Nothing here writes a habit record (demo events live in their own namespace, docs/05 §2).
+struct CatDemoView: View {
+    @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject private var localizer: Localizer
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("demo.reduceMotion") private var appReduceMotion = false
+    @State private var timeOfDay: TimeOfDay = .day
+    @State private var showGallery = false
+
+    private var controller: CatSceneController { container.scene.controller }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                CatRoom(height: 260)
+                bubble
+                controls
+                Text(localizer.t("onboarding.demoNote"))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                if AppConfiguration.isDebugBuild, !container.contractProblems.isEmpty {
+                    Text(container.contractProblems.joined(separator: "\n"))
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.red)
+                }
+            }
+            .padding(16)
+        }
+        .navigationTitle(localizer.t("app.name"))
+        .toolbar {
+            #if DEBUG
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Gallery") { showGallery = true }
+            }
+            #endif
+        }
+        .navigationDestination(isPresented: $showGallery) { CharacterGalleryView() }
+        .onAppear {
+            timeOfDay = container.currentTimeOfDay
+            container.scene.setTimeOfDay(timeOfDay, animated: false)
+            applyReduceMotion()
+            controller.enterScene(ambient: timeOfDay.ambient)
+            container.dispatchDemo(kind: .sceneEntered)
+        }
+        .onDisappear { controller.leaveScene() }
+        .onChange(of: appReduceMotion) { _, _ in applyReduceMotion() }
+        .onChange(of: systemReduceMotion) { _, _ in applyReduceMotion() }
+    }
+
+    private var bubble: some View {
+        // SwiftUI text, never baked into the scene (docs/03 §2)
+        Text(controller.messageKey.map { localizer.t($0) } ?? " ")
+            .font(.body)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.quaternary))
+            .animation(.easeInOut(duration: 0.2), value: controller.messageKey)
+            .accessibilityHidden(controller.messageKey == nil)
+    }
+
+    private var controls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Button {
+                    container.dispatchDemo(kind: .completionCommitted, category: .custom)
+                } label: {
+                    Label(localizer.t("common.done"), systemImage: "checkmark.circle.fill")
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.borderedProminent)
+                Button {
+                    container.dispatchDemo(kind: .skipCommitted, category: .custom)
+                } label: {
+                    Label(localizer.t("common.rest"), systemImage: "moon.zzz")
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.bordered)
+            }
+            Toggle(localizer.t("settings.reduceMotion"), isOn: $appReduceMotion)
+            Picker("Room", selection: $timeOfDay) {
+                ForEach(TimeOfDay.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: timeOfDay) { _, value in container.scene.setTimeOfDay(value, animated: true) }
+        }
+    }
+
+    private func applyReduceMotion() {
+        // App setting OR OS setting (docs/03 §7)
+        controller.reduceMotion = appReduceMotion || systemReduceMotion
+    }
+}
+
+/// The cat room: fixed-height scene with the pet tap wired to the reaction engine.
+struct CatRoom: View {
+    @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject private var localizer: Localizer
+    @Environment(\.scenePhase) private var scenePhase
+    var height: CGFloat
+
+    var body: some View {
+        CatSceneView(scene: container.scene,
+                     isPaused: scenePhase != .active,
+                     accessibilityLabel: localizer.t("home.petAccessibility"),
+                     accessibilityValue: accessibilityValue,
+                     onPet: { container.dispatchDemo(kind: .petTapped) })
+            .frame(height: height)
+            .frame(maxWidth: .infinity)
+    }
+
+    private var accessibilityValue: String {
+        switch container.scene.controller.currentClip {
+        case .celebrate, .milestone, .pet: return localizer.t("home.catHappy")
+        case .greet: return localizer.t("home.catGreeting")
+        default: return localizer.t("home.catResting")
+        }
+    }
+}
