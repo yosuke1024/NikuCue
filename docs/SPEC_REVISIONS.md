@@ -18,3 +18,5 @@ README の方針「勝手に片方を無視せず修正して根拠を記録す�
 - `character_spec.json` の `anchor` は、`mali_paths.json` の各パーツがノード原点（pivot）を基準に描かれているため、描画時には使わない（原点＝anchor の位置になるようパスを生成している）。`anchor` は制作意図の記録として残す。
 
 補足（2026-10-10 方針変更）: REV-003〜REV-007 はコード描画の**開発用プレースホルダー**に関する記録。製品用の猫は画像アセット方式（`docs/CHARACTER_ASSET_PIPELINE.md`）で制作し、原画取り込み時に `character_spec.json` の position / size を `tools/character/build_texture_pack.py` が再生成する（REV-ART-n として JSON 内に記録）。
+
+| REV-L10N-1 | `localization/{en,ja,th}.json` | 追加キー: `habit.moveUp`, `habit.moveDown`, `common.more`, `history.previousMonth`, `history.nextMonth`, `home.otherHabits`, `home.archivedHabits`（パックの 169 キーは値も含めて無変更） | docs/02 §2「並び替えは有効な習慣内で可能」の操作ラベル、履歴の月送りボタンの VoiceOver ラベル、Home で今日以外の曜日の習慣とアーカイブ済み習慣の編集導線に必要。タイ語は他のキーと同様にネイティブ確認（R03）の対象 |

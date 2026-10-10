@@ -167,5 +167,12 @@
   "reaction.milestone.14": "มีวันที่ทำสิ่งเล็ก ๆ ได้ด้วยกัน 14 วันแล้ว ดีใจจัง",
   "reaction.cheer.1": "เริ่มจากนิดเดียวก็ได้นะ",
   "reaction.cheer.2": "ทำเท่าที่ไหว ตามจังหวะของตัวเองนะ",
-  "reaction.doze.1": "ง่วงนิดหน่อย… ยังอยู่ข้าง ๆ นะ"
+  "reaction.doze.1": "ง่วงนิดหน่อย… ยังอยู่ข้าง ๆ นะ",
+  "habit.moveUp": "เลื่อนขึ้น",
+  "habit.moveDown": "เลื่อนลง",
+  "common.more": "เพิ่มเติม",
+  "history.previousMonth": "เดือนก่อนหน้า",
+  "history.nextMonth": "เดือนถัดไป",
+  "home.otherHabits": "นิสัยของวันอื่น",
+  "home.archivedHabits": "นิสัยที่เก็บไว้"
 }

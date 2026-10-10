@@ -37,8 +37,15 @@ def main() -> None:
     # 1. localization: identical to the pack and internally consistent
     langs = {c: load(RES / "Localization" / f"{c}.json") for c in ("ja", "en", "th")}
     for c in langs:
-        require(langs[c] == load(SPEC / "localization" / f"{c}.json"), f"localization/{c}.json drifted from spec/")
+        pack = load(SPEC / "localization" / f"{c}.json")
+        for k, v in pack.items():
+            require(langs[c].get(k) == v, f"localization/{c}.json: pack key {k} changed")
     keys = set(langs["en"])
+    extra = keys - set(load(SPEC / "localization" / "en.json"))
+    # additions beyond the pack are allowed only when documented in docs/SPEC_REVISIONS.md
+    revisions = (ROOT / "docs" / "SPEC_REVISIONS.md").read_text(encoding="utf-8")
+    for k in sorted(extra):
+        require(k in revisions, f"localization key {k} added without a SPEC_REVISIONS entry")
     for c, data in langs.items():
         require(set(data) == keys, f"keys differ: {c}")
         for k, v in data.items():

@@ -167,3 +167,22 @@ cd Packages/NikuCueDomain && swift test   （Swift 6.0.3, Linux x86_64）
 現時点では texture pack を同梱していないため、起動時は placeholder が選ばれる（`check_resources.py`: "texturePack": "absent"）。
 
 **未実施**: 原画の制作（オーナー）、取り込み（S3）、Gallery / 実機での継ぎ目確認（S4）、キーフレーム調整（S5）。
+
+### P05 / P07 / P08 画面（2026-10-10, 並行実装 + 整合性レビュー, 実装のみ）
+
+4 つの実装エージェントが担当フォルダ内だけにファイルを作成し、1 つのレビューエージェントがシンボル・API・文言キー・仕様の整合性を確認した（Workflow `implement-nikucue-screens`、計 22 ファイル）。
+
+| 画面 | ファイル | 要点 |
+|---|---|---|
+| Onboarding O01–O05 | `Features/Onboarding/*`（4） | 猫の自己紹介 → デモ（記録なし）→ 呼び名（16 書記素）→ 最初の習慣（テンプレート 5 種）→ 通知（OS 許諾は「設定する」のみ、拒否時は設定への導線）→ 完了。各ステップで `onboardingStep` を保存し、クラッシュ後に再開 |
+| Home | `Features/Home/*`（6） | 日付・履歴/設定ボタン（44pt）・猫の部屋（220/160pt）・SwiftUI 吹き出し・今日の行（Done ボタンのみ書込、行タップは何もしない）・休む/編集/並び替えメニュー・進捗行・予定なし表示・追加ボタンと 5 件上限説明・10 秒 Undo トースト・予約バナー領域（高さ 0） |
+| 習慣編集 | `Features/HabitEditor/HabitEditorSheet.swift` | 名前/カテゴリ（アイコン + ラベル）/毎日・曜日チップ、「曜日の変更は明日から」常時表示、アーカイブ/再開、二段階削除。版を `HabitService.scheduleVersions()` から読み現在の曜日と archived を表示 |
+| 履歴 | `Features/History/*`（4） | 月カレンダー（形と記号で状態区別、赤の失敗表示なし、未来日は不可）、日別内訳（直近 7 日のみ訂正可、訂正は保存表示のみで猫は反応しない） |
+| 設定 | `Features/Settings/*`（6） | 呼び名、言語（切替後に通知文言を reconcile）、触覚、動きを減らす、通知設定（2 枠・曜日・重複拒否・拒否時導線）、バックアップ（書き出し / 取り込みプレビュー / 二重確認 / 復元後通知 OFF）、プライバシー文、ヘルプ（placeholder URL は非表示）、診断トグル、全削除（二段階、購入は保持） |
+| 購入 | `Features/Purchase/PurchaseView.swift` | `PurchaseViewModel` 駆動。価格は StoreKit、復元は明示操作、価格取得失敗時は再読み込み |
+
+**整合性レビューの指摘と対応（8 件、すべて反映）**: 編集シートが版を読まず常に「毎日」表示 → `scheduleVersions()` を読む／今日の予定にない習慣とアーカイブ済み習慣に編集導線がない → Home に編集専用の行を追加／購入画面が無効のプレースホルダー → 実装に置換／並び替え未実装 → メニューに上へ/下へ（`habit.moveUp/moveDown` キー追加、REV-L10N-1）／カテゴリアイコンが onboarding と Home で不一致 → 共通化／Undo トーストが最下行を隠す → 余白 88pt／履歴の読み込み中に未来日がタップ可能 → 日付キーでも判定／Undo ボタンの幅 44pt 未満 → 修正。
+
+**追加した文言キー**（3 言語、REV-L10N-1）: `habit.moveUp`, `habit.moveDown`, `common.more`, `history.previousMonth`, `history.nextMonth`, `home.otherHabits`, `home.archivedHabits`。タイ語はネイティブ確認対象（R03）。
+
+**未実施**: アプリターゲットのコンパイル、Simulator 表示、XCUITest、タイ語レイアウト確認、通知の実機確認。レビューは静的（エージェントによる読み合わせ）であり、型検査の代わりにはならない。

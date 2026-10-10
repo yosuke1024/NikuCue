@@ -159,6 +159,29 @@ final class HomeViewModel: ObservableObject {
         await load()
     }
 
+    /// Moves a habit one step within the active habits (docs/02 §2). Reaction priority is unaffected.
+    func move(_ habitId: UUID, by offset: Int) async {
+        guard let snapshot else { return }
+        var ids = snapshot.activeHabits.map(\.id)
+        guard let index = ids.firstIndex(of: habitId) else { return }
+        let target = index + offset
+        guard target >= 0, target < ids.count else { return }
+        ids.swapAt(index, target)
+        errorKey = nil
+        do {
+            try await habitService.reorder(ids: ids)
+            await load()
+        } catch {
+            errorKey = "error.save"
+        }
+    }
+
+    func canMove(_ habitId: UUID, by offset: Int) -> Bool {
+        guard let ids = snapshot?.activeHabits.map(\.id), let index = ids.firstIndex(of: habitId) else { return false }
+        let target = index + offset
+        return target >= 0 && target < ids.count
+    }
+
     func petTapped() {
         coordinator.petTapped()
     }

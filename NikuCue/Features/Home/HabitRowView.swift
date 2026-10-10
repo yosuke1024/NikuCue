@@ -30,6 +30,10 @@ struct HabitRowView: View {
     let onUndo: () -> Void
     let onRest: () -> Void
     let onEdit: () -> Void
+    var canMoveUp: Bool = false
+    var canMoveDown: Bool = false
+    var onMoveUp: () -> Void = {}
+    var onMoveDown: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -96,7 +100,7 @@ struct HabitRowView: View {
         } label: {
             Text(localizer.t("common.undo"))
                 .font(.subheadline.weight(.semibold))
-                .frame(minHeight: 44)
+                .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
@@ -150,6 +154,12 @@ struct HabitRowView: View {
             } label: {
                 Label(localizer.t("common.edit"), systemImage: "pencil")
             }
+            if canMoveUp {
+                Button { onMoveUp() } label: { Label(localizer.t("habit.moveUp"), systemImage: "arrow.up") }
+            }
+            if canMoveDown {
+                Button { onMoveDown() } label: { Label(localizer.t("habit.moveDown"), systemImage: "arrow.down") }
+            }
         } label: {
             Image(systemName: "ellipsis.circle")
                 .font(.title3)
@@ -157,7 +167,7 @@ struct HabitRowView: View {
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
         }
-        .accessibilityLabel(localizer.t("common.edit"))
+        .accessibilityLabel(localizer.t("common.more"))
         .accessibilityHint(row.habit.name)
     }
 }

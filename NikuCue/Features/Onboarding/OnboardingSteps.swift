@@ -259,13 +259,7 @@ struct OnboardingHabitStep: View {
     }
 
     static func symbol(for category: HabitCategory) -> String {
-        switch category {
-        case .water: return "drop"
-        case .stretch: return "figure.walk"
-        case .read: return "book"
-        case .tidy: return "sparkles"
-        case .custom: return "pencil"
-        }
+        HabitCategoryIcon.symbol(for: category) // one category → icon map for onboarding, Home and History
     }
 }
 

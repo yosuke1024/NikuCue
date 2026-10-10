@@ -167,5 +167,12 @@
   "reaction.milestone.14": "Fourteen days with little wins together. That makes me happy.",
   "reaction.cheer.1": "A small start is welcome.",
   "reaction.cheer.2": "Whatever feels possible, at your own pace.",
-  "reaction.doze.1": "A little sleepy… still here with you."
+  "reaction.doze.1": "A little sleepy… still here with you.",
+  "habit.moveUp": "Move up",
+  "habit.moveDown": "Move down",
+  "common.more": "More",
+  "history.previousMonth": "Previous month",
+  "history.nextMonth": "Next month",
+  "home.otherHabits": "Other days",
+  "home.archivedHabits": "Archived habits"
 }

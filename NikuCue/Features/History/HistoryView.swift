@@ -150,7 +150,8 @@ struct HistoryContent: View {
 
     /// Future days are dimmed and not tappable (docs/02 §4: never editable); every other day opens its breakdown.
     private func dayCell(day: DayKey, kind: DayKind?, isToday: Bool) -> some View {
-        let isFuture = kind == .future
+        // The kind map is empty while loading, so the day key decides too (future days are never editable, docs/02 §4).
+        let isFuture = kind == .future || day > vm.today
         return NavigationLink {
             DayDetailView(day: day)
         } label: {

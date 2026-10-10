@@ -10,9 +10,21 @@ import SwiftUI
 struct HabitEditorSheet: View {
     @EnvironmentObject private var container: AppContainer
     let target: HomeViewModel.EditorTarget
+    @State private var versions: [HabitScheduleVersion]?
 
     var body: some View {
-        HabitEditorContent(container: container, target: target)
+        Group {
+            if let versions {
+                HabitEditorContent(container: container, target: target, versions: versions)
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity, minHeight: 120)
+            }
+        }
+        .task {
+            // Current weekdays / archived state come from the schedule versions (docs/02 §2).
+            versions = (try? await container.habitService.scheduleVersions()) ?? []
+        }
     }
 }
 
@@ -21,7 +33,7 @@ struct HabitEditorContent: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm: HabitEditorViewModel
 
-    init(container: AppContainer, target: HomeViewModel.EditorTarget) {
+    init(container: AppContainer, target: HomeViewModel.EditorTarget, versions: [HabitScheduleVersion]) {
         let mode: HabitEditorViewModel.Mode
         switch target {
         case .new: mode = .create
@@ -29,10 +41,7 @@ struct HabitEditorContent: View {
         }
         // Same day key the service would compute; never parsed back from a displayed date.
         let today = CalendarService(clock: container.clock).dayKey(for: container.clock.now)
-        // HOOK (listed in the task result): `HabitService` has no `scheduleVersions()` accessor yet, and views must not
-        // read the repository. With `versions: []` an edited habit is shown as "every day" and never as archived until
-        // that accessor exists; weekday changes are still written correctly through `changeWeekdays`.
-        _vm = StateObject(wrappedValue: HabitEditorViewModel(mode: mode, service: container.habitService, today: today, versions: []))
+        _vm = StateObject(wrappedValue: HabitEditorViewModel(mode: mode, service: container.habitService, today: today, versions: versions))
     }
 
     private var editedHabit: Habit? {

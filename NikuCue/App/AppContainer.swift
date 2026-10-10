@@ -121,6 +121,10 @@ final class AppContainer: ObservableObject {
         }
         purchase.start()
         UNUserNotificationCenter.current().delegate = notificationDelegate
+        // A reminder tap only brings the app to Home (the root); nothing is marked done (docs/07 §1, QA Q20).
+        notificationDelegate.onReminderTapped = { [weak self] in
+            self?.appState.isModalPresented = false
+        }
     }
 
     /// Call when Home visibility, scene activity, consent or preferences change.

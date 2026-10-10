@@ -32,7 +32,7 @@ final class StringCatalogTests: XCTestCase {
         for lang in StringCatalog.supportedLanguages {
             XCTAssertEqual(catalog.missingKeys(in: lang), [], lang)
             XCTAssertEqual(catalog.placeholderMismatches(in: lang), [], lang)
-            XCTAssertEqual(catalog.tables[lang]?.count, 169)
+            XCTAssertGreaterThanOrEqual(catalog.tables[lang]?.count ?? 0, 169)
             XCTAssertEqual(catalog.string("app.name", language: lang), "NikuCue")
         }
         XCTAssertEqual(catalog.string("cat.defaultName", language: "th"), "มะลิ")
