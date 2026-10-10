@@ -207,3 +207,5 @@ cd Packages/NikuCueDomain && swift test   （Swift 6.0.3, Linux x86_64）
 | `RigSpec.validate()` が重複 ID で trap | `uniquingKeysWith` |
 
 検証担当の結論が揃った時点で残りの指摘（scheme の StoreKit 構成ファイルの相対パス等）を反映する。これらは静的レビューであり、Xcode での型検査・実行の代わりではない。
+
+**レビューの検証結果（Workflow 完了）**: 生の指摘 29 件 → 重複除去後 27 件を各 3 名で反証。確定 3 件（sandbox 化 Run Script がスクリプトを読めない／`Localizer.loadBundled()` の MainActor 隔離／`try!` fallback）はいずれも上記の先行修正で解消済み。却下 24 件の大半は、検証時点で既に修正されたコードを読んだため「再現しない」と判定されたもの。先行修正の対象外で却下されたのは scheme の StoreKit 構成ファイルの相対パス（Xcode の慣例どおり `../../<folder>/<file>.storekit` のまま維持。macOS で要確認）と `UIScreen.main` によるテクスチャ密度（iOS 17 では利用可。将来 trait から取得に変更可）。
