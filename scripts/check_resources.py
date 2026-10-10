@@ -117,6 +117,39 @@ def main() -> None:
                 require(colour in paths["palette"], f"{part_id}/{vid}: unknown palette colour {colour}")
     require(paths["isProductionArt"] is False, "prototype art must not be flagged as production")
 
+    # 5b. texture pack (production art), only when bundled
+    pack_path = RES / "Character" / "mali_texture_pack.json"
+    pack_parts = 0
+    if pack_path.exists():
+        pack = load(pack_path)
+        require(pack.get("pixelsPerUnit", 0) > 0, "texture pack: pixelsPerUnit")
+        atlas_dir = RES / "Assets.xcassets" / f"{pack.get('atlas', 'MaliParts')}.spriteatlas"
+        folder = RES / "Character" / pack["folder"] if pack.get("folder") else None
+        for n in nodes:
+            if n["kind"] == "pivot":
+                continue
+            require(n["id"] in pack["parts"], f"texture pack: no part for node {n['id']}")
+        require("heart" in pack["parts"], "texture pack: heart missing")
+        for part_id, part in pack["parts"].items():
+            drawings = part["variants"] if "variants" in part else {"_": part}
+            if "variants" in part:
+                require(set(drawings) >= set(character["expressions"]), f"texture pack: {part_id} lacks expression variants")
+            for vid, d in drawings.items():
+                b = d["bounds"]
+                require(len(b) == 4 and b[0] < b[2] and b[1] < b[3], f"texture pack: {part_id}/{vid} bounds")
+                png = (atlas_dir if pack.get("atlas") else folder) / f"{d['texture']}.png"
+                require(png.exists(), f"texture pack: missing {png.name}")
+                try:
+                    import struct
+                    with png.open("rb") as fh:
+                        head = fh.read(24)
+                    w, h = struct.unpack(">II", head[16:24])
+                    ew, eh = (b[2] - b[0]) * pack["pixelsPerUnit"], (b[3] - b[1]) * pack["pixelsPerUnit"]
+                    require(abs(w - ew) <= 1 and abs(h - eh) <= 1, f"texture pack: {png.name} is {w}x{h}, manifest expects {ew:.0f}x{eh:.0f}")
+                except struct.error:
+                    raise ValueError(f"texture pack: {png.name} is not a PNG")
+            pack_parts += 1
+
     # 6. reactions reference existing clips and strings
     clip_ids = {c["id"] for c in anims["clips"]}
     for r in reactions["items"]:
@@ -125,7 +158,8 @@ def main() -> None:
 
     print(json.dumps({"status": "PASS", "scope": "bundled resource contracts only; not an iOS build",
                       "localizationKeys": len(keys), "rigNodes": len(nodes), "clips": len(anims["clips"]),
-                      "artParts": len(parts), "reactions": len(reactions["items"])}, indent=2))
+                      "artParts": len(parts), "reactions": len(reactions["items"]),
+                      "texturePack": "present (%d parts)" % pack_parts if pack_path.exists() else "absent (placeholder art active)"}, indent=2))
 
 
 if __name__ == "__main__":

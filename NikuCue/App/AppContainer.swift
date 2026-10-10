@@ -31,7 +31,8 @@ final class AppContainer: ObservableObject {
     let rigSpec: RigSpec
     let artPaths: ArtPaths
     let animationSpec: AnimationSpec
-    let artProvider: VectorArtProvider
+    let artSelection: CharacterArtSelection
+    var artProvider: CharacterArtProvider { artSelection.provider }
     let rig: CatRig
     let scene: CatScene
     let catCoordinator: CatCoordinator
@@ -96,13 +97,17 @@ final class AppContainer: ObservableObject {
         var problems = rigSpec.validate()
         problems += animationSpec.validate(against: rigSpec)
         problems += reactionCatalog.validate(knownMessageKeys: Set(localizer.catalog.tables["en"]?.keys.map { $0 } ?? []))
-        contractProblems = problems
 
-        artProvider = VectorArtProvider(paths: artPaths)
-        // Textures are rendered for a ≈300 pt room at the device scale; the rig is scaled as a whole.
+        // Production art = bundled texture pack (docs/CHARACTER_ASSET_PIPELINE.md); otherwise the code-drawn placeholder.
+        artSelection = CharacterArtSelection.resolve(paths: artPaths)
+        if case .texturePack(let pack) = artSelection {
+            problems += pack.manifest.validate(against: rigSpec)
+        }
+        // Placeholder textures are rendered for a ≈300 pt room at the device scale; the rig is scaled as a whole.
         let unitsPerPoint = rigSpec.canvas.height / 300
         let pixelsPerUnit = CGFloat(1 / unitsPerPoint) * UIScreen.main.scale
-        rig = CatRig(spec: rigSpec, art: artProvider, pixelsPerUnit: pixelsPerUnit)
+        rig = CatRig(spec: rigSpec, art: artSelection.provider, pixelsPerUnit: pixelsPerUnit)
+        contractProblems = problems
         let library = AnimationLibrary(spec: animationSpec)
         scene = CatScene(size: CGSize(width: 390, height: 260), rig: rig, library: library, seed: UInt64.random(in: 0...UInt64.max))
         appState = AppState(habitService: habitService, localizer: localizer)

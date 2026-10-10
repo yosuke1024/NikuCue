@@ -18,6 +18,8 @@ struct PartArt {
 protocol CharacterArtProvider: AnyObject {
     var palette: [String: UIColor] { get }
     var isProductionArt: Bool { get }
+    /// Shown in the Debug gallery so placeholder and production art are never confused.
+    var artLabel: String { get }
     /// `expression` is only meaningful for parts that have expression variants (eyes, mouth).
     func art(for partId: String, expression: Expression?, pixelsPerUnit: CGFloat) -> PartArt?
     func hasVariants(_ partId: String) -> Bool
@@ -73,12 +75,14 @@ extension UIColor {
     }
 }
 
-/// Renders `mali_paths.json` layers into textures once per (part, expression, density) and caches them.
-/// Paths are never rebuilt per frame (docs/04 §2).
+/// DEVELOPMENT PLACEHOLDER (owner decision 2026-10-10, docs/CHARACTER_ASSET_PIPELINE.md): renders the code-drawn
+/// `mali_paths.json` layers into textures once per (part, expression, density). Used only while no texture pack
+/// is bundled; it is not product art and is not developed further.
 final class VectorArtProvider: CharacterArtProvider {
     let paths: ArtPaths
     let palette: [String: UIColor]
-    var isProductionArt: Bool { paths.isProductionArt }
+    var isProductionArt: Bool { false }
+    var artLabel: String { "placeholder (code-drawn)" }
 
     private var compiled: [String: [CGPath]] = [:]   // "part/variant" → one CGPath per layer
     private var cache: [String: PartArt] = [:]

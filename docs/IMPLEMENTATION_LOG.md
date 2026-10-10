@@ -152,3 +152,18 @@ cd Packages/NikuCueDomain && swift test   （Swift 6.0.3, Linux x86_64）
 ### P12 肉球 App アイコン（2026-10-10, 暫定）
 
 `tools/icon/generate_app_icon.py`（編集可能な元データ、幾何は Python 定数）→ `AppIcon-1024.png`（1024×1024 sRGB 不透明、角丸なし）、`artifacts/icon/app_icon_source.svg`、`preview_sizes.png`（180/120/60/40）、`preview_home_light/dark.png`。文字・カメラモチーフなし、パッド 1 + 指球 4。**R14 未完了**（Yoh の視覚承認待ち）。
+
+### 方針変更: 猫のビジュアルは画像アセット方式へ（2026-10-10, オーナー指示）
+
+| ID | 決定 | 理由 |
+|---|---|---|
+| D-ART-1 | コード描画の猫（`VectorArtProvider` + `mali_paths.json`）は**開発用プレースホルダー**に限定し、これ以上作り込まない | オーナー判断: 動作検証には十分だがビジュアル品質が製品水準ではない |
+| D-ART-2 | 製品用の猫は高品質 2D イラストの原画をパーツ分けした画像を SpriteKit で動かす。rig / キーフレーム / 状態遷移 / 習慣ロジックは維持 | docs/04 §2 の「絵を差し替える時は同じ node ID と pivot を保ち `CharacterArtProvider` を差し替える」に沿う |
+| D-ART-3 | 正式な原画がオーナーから提供され Gallery で承認されるまで、猫のビジュアルは未完成（R02 継続）。manifest の `isProductionArt` が承認の印 | 「完成扱いしない」指示 |
+
+設計: `docs/CHARACTER_ASSET_PIPELINE.md`（再利用できる部品の仕分け、座標系と原画の契約、イラストレーター向け制作仕様、ランタイム設計、移行手順、リスク、確認事項）。
+
+実装した骨組み（S1）: `NikuCue/Character/TexturePackArtProvider.swift`（manifest デコード・検証・`SKTextureAtlas` / PNG からの `PartArt`・preload）、`CharacterArtSelection`（同梱 manifest があれば texture pack、なければ placeholder）、`CharacterArtProvider.artLabel`（Gallery / Demo に表示）、`tools/character/build_texture_pack.py`（原画の書き出し → manifest・atlas・`character_spec.json` の position 更新・合成チェック画像）、`tools/character/examples/layers_export.example.json`（納品形式の例）、`scripts/check_resources.py` の texture pack 検証、`NikuCueTests/TexturePackArtProviderTests.swift`（未実行）。
+現時点では texture pack を同梱していないため、起動時は placeholder が選ばれる（`check_resources.py`: "texturePack": "absent"）。
+
+**未実施**: 原画の制作（オーナー）、取り込み（S3）、Gallery / 実機での継ぎ目確認（S4）、キーフレーム調整（S5）。

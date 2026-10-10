@@ -16,3 +16,5 @@ README の方針「勝手に片方を無視せず修正して根拠を記録す�
 未変更で読み替えたもの:
 
 - `character_spec.json` の `anchor` は、`mali_paths.json` の各パーツがノード原点（pivot）を基準に描かれているため、描画時には使わない（原点＝anchor の位置になるようパスを生成している）。`anchor` は制作意図の記録として残す。
+
+補足（2026-10-10 方針変更）: REV-003〜REV-007 はコード描画の**開発用プレースホルダー**に関する記録。製品用の猫は画像アセット方式（`docs/CHARACTER_ASSET_PIPELINE.md`）で制作し、原画取り込み時に `character_spec.json` の position / size を `tools/character/build_texture_pack.py` が再生成する（REV-ART-n として JSON 内に記録）。

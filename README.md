@@ -8,7 +8,8 @@
 - 仕様からの差分: `docs/SPEC_REVISIONS.md`
 - モジュール契約: `docs/ARCHITECTURE_CONTRACTS.md`
 - QA シナリオの状態: `docs/QA_STATUS.md` / macOS での次の手順: `docs/OWNER_NEXT_STEPS.md`
-- 猫のブラウザプレビュー（開発用、iOS アプリではない）: https://claude.ai/artifact/S3rXqf6ReZcbdC3Nhamoqq
+- 猫の画像アセット方式への移行設計: `docs/CHARACTER_ASSET_PIPELINE.md`（コード描画の猫は開発用プレースホルダー）
+- プレースホルダーのブラウザプレビュー（開発用、iOS アプリではない）: https://claude.ai/artifact/S3rXqf6ReZcbdC3Nhamoqq
 
 ## 構成
 
@@ -19,7 +20,7 @@
 | `NikuCue/Resources/` | 同梱する JSON 契約（文言 3 言語、反応、キャラクター rig / パス / アニメーション）、PrivacyInfo |
 | `Packages/NikuCueDomain/` | 純粋な Domain（Foundation のみ）。`swift test` で macOS / Linux で実行できる |
 | `NikuCueTests/` | アプリ側の XCTest（Simulator で実行） |
-| `tools/character/` | Mali のベクター絵とアニメーション track の生成スクリプト（編集可能な元データ） |
+| `tools/character/` | 開発用プレースホルダー絵の生成、アニメーション track の生成、**原画の取り込み（`build_texture_pack.py`）** |
 | `tools/rig-preview/` | 同じ JSON をブラウザで描画する開発用プレビューと Playwright キャプチャ |
 | `artifacts/` | 記録した画像・動画（`artifacts/P01` はブラウザ描画。Simulator の記録ではない） |
 | `scripts/` | `check_resources.py`（同梱 JSON の検証）、`check_release_config.sh`（Release ビルドの placeholder 検査） |

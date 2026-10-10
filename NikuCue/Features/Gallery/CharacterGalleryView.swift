@@ -37,10 +37,10 @@ struct CharacterGalleryView: View {
                     }
                 }
                 Toggle("Reduce Motion", isOn: Binding(get: { controller.reduceMotion }, set: { controller.reduceMotion = $0 }))
-                Text("Active actions: \(actionCount)  ·  nodes: \(container.rig.nodes.count)  ·  art: \(container.artProvider.isProductionArt ? "production" : "prototype")")
+                Text("Active actions: \(actionCount)  ·  nodes: \(container.rig.nodes.count)  ·  art: \(container.artProvider.artLabel)")
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
-                Text("Prototype art. Not approved production art (R02).")
+                Text(container.artProvider.isProductionArt ? "Production art (approved pack)." : "Development placeholder art, not the product cat (R02 open).")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

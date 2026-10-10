@@ -23,6 +23,11 @@ struct CatDemoView: View {
                 Text(localizer.t("onboarding.demoNote"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                if AppConfiguration.isDebugBuild {
+                    Text("art: \(container.artProvider.artLabel)")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                }
                 if AppConfiguration.isDebugBuild, !container.contractProblems.isEmpty {
                     Text(container.contractProblems.joined(separator: "\n"))
                         .font(.caption.monospaced())
