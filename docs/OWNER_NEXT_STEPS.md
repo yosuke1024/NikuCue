@@ -36,7 +36,7 @@ xcodebuild test -project NikuCue.xcodeproj -scheme NikuCue \
 
 ## 5. StoreKit / 広告（Mock → 公式テスト設定）
 
-- `NikuCue/Resources/NikuCue.storekit` は scheme に添付済み。product ID は placeholder。App Store Connect で製品を作ったら `AppConfiguration.swift` と `.storekit` の ID を置き換える。
+- `NikuCue/Resources/NikuCue.storekit` は scheme に添付済み（相対パスは Xcode で「Edit Scheme → Run → Options → StoreKit Configuration」から実ファイルが選ばれているか確認し、違っていれば選び直す）。product ID は placeholder。App Store Connect で製品を作ったら `AppConfiguration.swift` と `.storekit` の ID を置き換える。
 - Google Mobile Ads SDK: 公式 Quick Start で現行の安定版と SPM の追加方法を確認し、パッケージを追加 → `Package.resolved` をコミット → `GADApplicationIdentifier` を `INFOPLIST_KEY_GADApplicationIdentifier` としてビルド設定に追加 → `GoogleMobileAdsAdapter.swift` が `#if canImport(GoogleMobileAds)` で有効化される → SDK の privacy manifest を確認して `AppContainer` の `sdkPrivacyConfigurationVerified` を true にする。確認するまで広告は出ない。
 - テストは必ず公式テスト広告 ID / 登録済みテスト端末で行う。
 

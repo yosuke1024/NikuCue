@@ -186,3 +186,24 @@ cd Packages/NikuCueDomain && swift test   （Swift 6.0.3, Linux x86_64）
 **追加した文言キー**（3 言語、REV-L10N-1）: `habit.moveUp`, `habit.moveDown`, `common.more`, `history.previousMonth`, `history.nextMonth`, `home.otherHabits`, `home.archivedHabits`。タイ語はネイティブ確認対象（R03）。
 
 **未実施**: アプリターゲットのコンパイル、Simulator 表示、XCUITest、タイ語レイアウト確認、通知の実機確認。レビューは静的（エージェントによる読み合わせ）であり、型検査の代わりにはならない。
+
+### アプリ側コードのレビュー（2026-10-10, Workflow `review-nikucue-app-swift`、静的レビュー）
+
+4 つの観点（コンパイル可否・猫仕様準拠・ライフサイクル/並行性・Xcode プロジェクト）で読み合わせ、各指摘を 3 名の反証担当が検証する構成。検証完了前に、コードを読んで明白だった指摘を先に修正した（コミット `e972780`）:
+
+| 指摘 | 対応 |
+|---|---|
+| `CatRig.resetToRest()` が root ノードまで戻し、最初のクリップ後に scene のレイアウト（scale / 位置）が壊れる | root を除外 |
+| Demo / Gallery / Onboarding / Home が同じ controller を onAppear / onDisappear で奪い合い、NavigationStack の順序で猫が止まる | scene の所有者（owner）を導入。他画面からの leave は無視 |
+| pause が 1 つの bool で、モーダル中に background → foreground すると再開してしまう | pause 理由の集合（inactive / modal / sceneLeft）に変更 |
+| undo で実行中の演出を止めると、待機中の有効な反応が取り残される | キャンセル後に待機を再検証して開始 |
+| 吹き出し / VoiceOver 値が controller を observe していない（Demo / CatRoom / Gallery） | `@ObservedObject` に変更 |
+| `SKAction.colorize` は SKScene には効かない | 背景色を補間する customAction |
+| リソース読込失敗時の fallback が `try!` で同じ init を再実行し起動時にクラッシュ | `AppRoot` が失敗を保持し、エラー画面を表示 |
+| `Localizer.loadBundled()` が MainActor 隔離で非同期でないテストから呼べない | `nonisolated static` |
+| Release ゲートが `placeholderMarker` 定数自身に反応し、本番値を入れても失敗する | `REPLACE_WITH_[A-Z]` に変更 |
+| sandbox 化された Run Script が宣言していない `.sh` を読めずビルドが失敗する | ゲートを shellScript に inline、入力は `AppConfiguration.swift` のみ |
+| `.storekit` がアプリの Resources にコピーされる可能性 | `PBXFileSystemSynchronizedBuildFileExceptionSet` で除外 |
+| `RigSpec.validate()` が重複 ID で trap | `uniquingKeysWith` |
+
+検証担当の結論が揃った時点で残りの指摘（scheme の StoreKit 構成ファイルの相対パス等）を反映する。これらは静的レビューであり、Xcode での型検査・実行の代わりではない。
