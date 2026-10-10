@@ -56,7 +56,7 @@ final class CatCoordinator {
     /// Home appeared in the foreground: greeting / welcome back and the ambient state for the hour.
     func sceneEntered(timeOfDay: TimeOfDay) async {
         scene.setTimeOfDay(timeOfDay, animated: false)
-        controller.enterScene(ambient: timeOfDay.ambient)
+        controller.enterScene(ambient: timeOfDay.ambient, owner: "home")
         if let (event, snapshot) = try? await habitService.sceneEntered() {
             latestDay = snapshot.dayKey
             dispatch(event, snapshot: snapshot)
@@ -64,7 +64,7 @@ final class CatCoordinator {
     }
 
     func sceneLeft() {
-        controller.leaveScene()
+        controller.leaveScene(owner: "home")
     }
 
     func dispatchDemo(kind: CatEventKind, category: HabitCategory? = nil) {

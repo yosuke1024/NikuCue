@@ -7,9 +7,12 @@ struct CharacterGalleryView: View {
     @EnvironmentObject private var container: AppContainer
     @EnvironmentObject private var localizer: Localizer
     @State private var actionCount = 0
-    @State private var timer: Timer?
+    @ObservedObject private var controller: CatSceneController
+    private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    private var controller: CatSceneController { container.scene.controller }
+    init(controller: CatSceneController) {
+        self.controller = controller
+    }
 
     private let messageKeys: [ClipID: String] = [
         .greet: "reaction.greet.1", .pet: "reaction.pet.1", .celebrate: "reaction.complete.1", .cheer: "reaction.cheer.1",
@@ -47,17 +50,9 @@ struct CharacterGalleryView: View {
             .padding(16)
         }
         .navigationTitle("Character Gallery")
-        .onAppear {
-            controller.enterScene(ambient: .idle)
-            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-                Task { @MainActor in actionCount = controller.activeActionCount }
-            }
-        }
-        .onDisappear {
-            timer?.invalidate()
-            timer = nil
-            controller.leaveScene()
-        }
+        .onAppear { controller.enterScene(ambient: .idle, owner: "gallery") }
+        .onReceive(ticker) { _ in actionCount = controller.activeActionCount }
+        .onDisappear { controller.leaveScene(owner: "gallery") }
     }
 
     @ViewBuilder

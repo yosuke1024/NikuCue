@@ -18,7 +18,17 @@ final class CatSceneController: ObservableObject {
     @Published var reduceMotion: Bool = false {
         didSet { if reduceMotion != oldValue { restartAmbient() } }
     }
-    private(set) var isPaused = false
+    /// Independent reasons to pause; the controller runs only while none is active (docs/04 §5).
+    enum PauseReason: Hashable {
+        case sceneInactive   // app not active (scenePhase)
+        case modal           // purchase / consent sheet in front of the cat
+        case sceneLeft       // Home (or the demo) is not on screen
+    }
+    private var pauseReasons: Set<PauseReason> = []
+    var isPaused: Bool { !pauseReasons.isEmpty }
+    /// Which screen currently drives the scene ("home", "demo", "gallery", "onboarding"). Leaves from another
+    /// owner are ignored, so NavigationStack appear/disappear ordering cannot pause the newly shown screen.
+    private(set) var sceneOwner: String?
 
     /// Called when a reaction actually starts (used to record milestone / all-done tokens).
     var onReactionStarted: ((ReactionIntent) -> Void)?
@@ -43,27 +53,44 @@ final class CatSceneController: ObservableObject {
 
     // MARK: Scene lifecycle
 
-    /// Home became visible: ambient restarts; nothing stale is replayed (docs/05 §3).
-    func enterScene(ambient state: CatAmbientState) {
+    /// A screen became visible: it takes ownership, ambient restarts; nothing stale is replayed (docs/05 §3).
+    func enterScene(ambient state: CatAmbientState, owner: String = "home") {
+        sceneOwner = owner
+        pauseReasons.remove(.sceneLeft)
         queue.discardAll()
         stopInteraction()
         ambient = state
-        isPaused = false
-        startAmbient()
+        clearMessage()
+        if !isPaused { startAmbient() }
     }
 
-    /// Home left / modal presented / app backgrounded: drop queued reactions, stop actions.
-    func leaveScene() {
+    /// The owning screen left: drop queued reactions, stop actions. Ignored when another screen already took over.
+    func leaveScene(owner: String = "home") {
+        guard sceneOwner == nil || sceneOwner == owner else { return }
+        sceneOwner = nil
+        pause(.sceneLeft)
+    }
+
+    func pause(_ reason: PauseReason) {
+        let wasPaused = isPaused
+        pauseReasons.insert(reason)
+        guard !wasPaused else { return }
         queue.discardAll()
         stopInteraction()
         stopAmbient()
-        isPaused = true
         clearMessage()
     }
 
+    func resume(_ reason: PauseReason) {
+        guard pauseReasons.contains(reason) else { return }
+        pauseReasons.remove(reason)
+        guard !isPaused else { return }
+        startAmbient()
+    }
+
+    /// App activity (scenePhase). Other pause reasons (modal, scene left) stay in force independently.
     func setPaused(_ paused: Bool) {
-        guard paused != isPaused else { return }
-        if paused { leaveScene() } else { enterScene(ambient: ambient) }
+        if paused { pause(.sceneInactive) } else { resume(.sceneInactive) }
     }
 
     /// Time-of-day changed (night → doze). Never interrupts a running interaction.
@@ -83,13 +110,18 @@ final class CatSceneController: ObservableObject {
         }
     }
 
-    /// An undo arrived: cancel the celebration for that habit/day and return to ambient quietly.
+    /// An undo arrived: cancel the celebration for that habit/day and return to ambient quietly. A still-valid
+    /// waiting reaction (another habit) starts next instead of being stranded.
     func cancelReactions(habitId: UUID, dayKey: DayKey) {
         let cancelledRunning = queue.cancel { $0.event.habitId == habitId && $0.event.dayKey == dayKey }
         if cancelledRunning {
             stopInteraction()
             clearMessage()
-            startAmbient()
+            if let next = queue.finishCurrent(isStillValid: { [weak self] intent in self?.isStillValid?(intent) ?? true }) {
+                start(next)
+            } else {
+                startAmbient()
+            }
         }
     }
 
@@ -120,7 +152,11 @@ final class CatSceneController: ObservableObject {
         stopInteraction()
         rig.resetToRest()
         currentClip = intent.clip
-        rig.setExpression(clip.defaultExpression, blend: library.spec.expressionBlend)
+        // Clips with an expression track set their own expression on the first frame; avoid a double crossfade.
+        let tracks = reduceMotion ? clip.reducedMotionTracks : clip.tracks
+        if !tracks.contains(where: { $0.property == "expression" }) {
+            rig.setExpression(clip.defaultExpression, blend: library.spec.expressionBlend)
+        }
         running = library.actions(for: clip, reducedMotion: reduceMotion, rig: rig)
         for item in running { item.node.run(item.action, withKey: item.key) }
         if intent.clip == .milestone, let hearts = clip.hearts { spawnHearts(hearts) }
@@ -135,6 +171,7 @@ final class CatSceneController: ObservableObject {
     private func finishCurrent() {
         finishWork = nil
         stopInteraction()
+        guard !isPaused else { queue.discardAll(); return }
         let next = queue.finishCurrent { [weak self] intent in self?.isStillValid?(intent) ?? true }
         if let next {
             start(next)

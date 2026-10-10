@@ -53,7 +53,7 @@ struct RigSpec: Decodable, Sendable {
         let ids = nodes.map(\.id)
         if Set(ids).count != ids.count { problems.append("duplicate node ids") }
         if nodes.filter({ $0.parent == nil }).count != 1 { problems.append("rig must have exactly one root") }
-        let byId = Dictionary(uniqueKeysWithValues: nodes.map { ($0.id, $0) })
+        let byId = Dictionary(nodes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         for n in nodes {
             var seen: Set<String> = [n.id]
             var p = n.parent

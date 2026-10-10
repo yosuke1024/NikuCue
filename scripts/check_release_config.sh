@@ -7,7 +7,7 @@ if [ "${CONFIGURATION:-Debug}" != "Release" ]; then
   exit 0
 fi
 SRC="${SRCROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-if grep -q "REPLACE_WITH_" "$SRC/NikuCue/App/AppConfiguration.swift"; then
+if grep -Eq "REPLACE_WITH_[A-Z]" "$SRC/NikuCue/App/AppConfiguration.swift"; then
   echo "error: AppConfiguration.swift still contains REPLACE_WITH_ placeholders; Release builds are blocked until the owner sets real identifiers (R05–R09)."
   exit 1
 fi

@@ -11,8 +11,11 @@ struct CatDemoView: View {
     @AppStorage("demo.reduceMotion") private var appReduceMotion = false
     @State private var timeOfDay: TimeOfDay = .day
     @State private var showGallery = false
+    @ObservedObject private var controller: CatSceneController
 
-    private var controller: CatSceneController { container.scene.controller }
+    init(controller: CatSceneController) {
+        self.controller = controller
+    }
 
     var body: some View {
         ScrollView {
@@ -44,15 +47,15 @@ struct CatDemoView: View {
             }
             #endif
         }
-        .navigationDestination(isPresented: $showGallery) { CharacterGalleryView() }
+        .navigationDestination(isPresented: $showGallery) { CharacterGalleryView(controller: container.scene.controller) }
         .onAppear {
             timeOfDay = container.currentTimeOfDay
             container.scene.setTimeOfDay(timeOfDay, animated: false)
             applyReduceMotion()
-            controller.enterScene(ambient: timeOfDay.ambient)
+            controller.enterScene(ambient: timeOfDay.ambient, owner: "demo")
             container.dispatchDemo(kind: .sceneEntered)
         }
-        .onDisappear { controller.leaveScene() }
+        .onDisappear { controller.leaveScene(owner: "demo") }
         .onChange(of: appReduceMotion) { _, _ in applyReduceMotion() }
         .onChange(of: systemReduceMotion) { _, _ in applyReduceMotion() }
     }
@@ -90,11 +93,14 @@ struct CatDemoView: View {
                 .buttonStyle(.bordered)
             }
             Toggle(localizer.t("settings.reduceMotion"), isOn: $appReduceMotion)
+            #if DEBUG
+            // Development-only room override (raw values, not user-facing copy); the room normally follows the clock.
             Picker("Room", selection: $timeOfDay) {
                 ForEach(TimeOfDay.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
             .onChange(of: timeOfDay) { _, value in container.scene.setTimeOfDay(value, animated: true) }
+            #endif
         }
     }
 

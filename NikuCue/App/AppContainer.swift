@@ -136,10 +136,10 @@ final class AppContainer: ObservableObject {
     func gatherConsentIfNeeded() async {
         guard appState.entitlement == .notOwned, appState.preferences.hasFinishedFirstSession else { return }
         appState.isModalPresented = true
-        scene.controller.setPaused(true)
+        scene.controller.pause(.modal)
         await adConsent.gatherConsent()
         appState.isModalPresented = false
-        scene.controller.setPaused(false)
+        scene.controller.resume(.modal)
         reevaluateAdGate()
     }
 

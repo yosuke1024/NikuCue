@@ -50,6 +50,7 @@ ID = {
     "localPackage": "4E1C0E0000000000000001B1",
     "packageProduct": "4E1C0E0000000000000001B2",
     "packageBuildFile": "4E1C0E0000000000000001B3",
+    "appExceptions": "4E1C0E0000000000000001C1",
 }
 
 APP_NAME = "NikuCue"
@@ -206,7 +207,13 @@ def config_list(ident: str, comment: str, debug: str, release: str) -> str:
 
 def generate() -> str:
     I = ID
-    script = '"\\"${SRCROOT}/scripts/check_release_config.sh\\"\\n"'
+    # The phase runs under ENABLE_USER_SCRIPT_SANDBOXING, so it may read only declared inputs: the gate is inlined
+    # here instead of executing scripts/check_release_config.sh (kept for local use). Keep both in sync.
+    script = ('"set -eu\\n'
+              'if [ \\"${CONFIGURATION:-Debug}\\" != \\"Release\\" ]; then echo \\"check_release_config: ${CONFIGURATION:-Debug} build, placeholders allowed\\"; exit 0; fi\\n'
+              'if grep -Eq \\"REPLACE_WITH_[A-Z]\\" \\"${SCRIPT_INPUT_FILE_0}\\"; then echo \\"error: AppConfiguration.swift still contains REPLACE_WITH_ placeholders; Release builds are blocked until the owner sets real identifiers (R05-R09).\\"; exit 1; fi\\n'
+              'case \\"${PRODUCT_BUNDLE_IDENTIFIER:-}\\" in *placeholder*) echo \\"error: PRODUCT_BUNDLE_IDENTIFIER is a placeholder (R05).\\"; exit 1;; esac\\n'
+              'echo \\"check_release_config: ok\\"\\n"')
     return f"""// !$*UTF8*$!
 {{
 	archiveVersion = 1;
@@ -235,9 +242,22 @@ def generate() -> str:
 		{I['packageFileRef']} /* NikuCueDomain */ = {{isa = PBXFileReference; lastKnownFileType = wrapper; name = NikuCueDomain; path = Packages/NikuCueDomain; sourceTree = "<group>"; }};
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		{I['appExceptions']} /* Exceptions for "{APP_NAME}" folder in "{APP_NAME}" target */ = {{
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/{APP_NAME}.storekit,
+			);
+			target = {I['appTarget']} /* {APP_NAME} */;
+		}};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		{I['appSync']} /* {APP_NAME} */ = {{
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				{I['appExceptions']} /* Exceptions for "{APP_NAME}" folder in "{APP_NAME}" target */,
+			);
 			path = {APP_NAME};
 			sourceTree = "<group>";
 		}};

@@ -64,11 +64,24 @@ final class CatScene: SKScene {
     func setTimeOfDay(_ value: TimeOfDay, animated: Bool) {
         guard value != timeOfDay else { return }
         timeOfDay = value
-        let color = RoomTheme.color(for: value)
+        let target = RoomTheme.color(for: value)
+        removeAction(forKey: "room.tint")
         if animated {
-            run(.colorize(with: color, colorBlendFactor: 1, duration: 0.6))
+            // SKAction.colorize only affects sprites; interpolate the scene background ourselves.
+            let from = backgroundColor
+            var f: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) = (0, 0, 0, 1)
+            var t: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) = (0, 0, 0, 1)
+            from.getRed(&f.r, green: &f.g, blue: &f.b, alpha: &f.a)
+            target.getRed(&t.r, green: &t.g, blue: &t.b, alpha: &t.a)
+            let tint = SKAction.customAction(withDuration: 0.6) { node, elapsed in
+                let u = min(1, max(0, elapsed / 0.6))
+                (node as? SKScene)?.backgroundColor = UIColor(red: f.r + (t.r - f.r) * u, green: f.g + (t.g - f.g) * u,
+                                                              blue: f.b + (t.b - f.b) * u, alpha: 1)
+            }
+            run(.sequence([tint, .run { [weak self] in self?.backgroundColor = target }]), withKey: "room.tint")
+        } else {
+            backgroundColor = target
         }
-        backgroundColor = color
         controller.setAmbient(value.ambient)
     }
 

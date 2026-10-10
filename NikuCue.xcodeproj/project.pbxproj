@@ -26,9 +26,22 @@
 		4E1C0E0000000000000000C3 /* NikuCueDomain */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = NikuCueDomain; path = Packages/NikuCueDomain; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4E1C0E0000000000000001C1 /* Exceptions for "NikuCue" folder in "NikuCue" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/NikuCue.storekit,
+			);
+			target = 4E1C0E0000000000000000D1 /* NikuCue */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4E1C0E0000000000000000B1 /* NikuCue */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4E1C0E0000000000000001C1 /* Exceptions for "NikuCue" folder in "NikuCue" target */,
+			);
 			path = NikuCue;
 			sourceTree = "<group>";
 		};
@@ -213,7 +226,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/scripts/check_release_config.sh\"\n";
+			shellScript = "set -eu\nif [ \"${CONFIGURATION:-Debug}\" != \"Release\" ]; then echo \"check_release_config: ${CONFIGURATION:-Debug} build, placeholders allowed\"; exit 0; fi\nif grep -Eq \"REPLACE_WITH_[A-Z]\" \"${SCRIPT_INPUT_FILE_0}\"; then echo \"error: AppConfiguration.swift still contains REPLACE_WITH_ placeholders; Release builds are blocked until the owner sets real identifiers (R05-R09).\"; exit 1; fi\ncase \"${PRODUCT_BUNDLE_IDENTIFIER:-}\" in *placeholder*) echo \"error: PRODUCT_BUNDLE_IDENTIFIER is a placeholder (R05).\"; exit 1;; esac\necho \"check_release_config: ok\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

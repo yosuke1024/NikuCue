@@ -39,7 +39,7 @@ struct OnboardingNavigator: View {
                     switch page {
                     case .demo:
                         // Existing demo: plays reactions in the demo namespace and shows onboarding.demoNote (no records).
-                        CatDemoView()
+                        CatDemoView(controller: container.scene.controller)
                     case .name:
                         OnboardingNameStep(model: model)
                     case .habit:

@@ -107,14 +107,14 @@ final class OnboardingViewModel: ObservableObject {
         let timeOfDay = container.currentTimeOfDay
         container.scene.setTimeOfDay(timeOfDay, animated: false)
         controller.reduceMotion = container.appState.effectiveReduceMotion
-        controller.enterScene(ambient: timeOfDay.ambient)
+        controller.enterScene(ambient: timeOfDay.ambient, owner: "onboarding")
     }
 
     /// The demo presents the same scene and manages its own lifecycle, and Home takes the scene over once onboarding
     /// is finished; pause only when the cat really leaves the screen for a cat-less step.
     func introDisappeared() {
         guard path.last != .demo, !container.appState.preferences.isOnboardingComplete else { return }
-        controller.leaveScene()
+        controller.leaveScene(owner: "onboarding")
     }
 
     /// `CatDemoView` pauses the shared scene in its `onDisappear`, which runs after the pop transition and therefore

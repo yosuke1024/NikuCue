@@ -94,9 +94,10 @@ final class CatRig {
 
     func node(_ id: String) -> SKNode? { nodes[id] }
 
-    /// Restores every node's rest transform. Actions are not removed here; callers remove them by key first.
+    /// Restores every rig node's rest transform. The root is owned by the scene (layout scale/position) and is
+    /// never reset here. Actions are not removed here; callers remove them by key first.
     func resetToRest() {
-        for (id, node) in nodes {
+        for (id, node) in nodes where node !== root {
             rest[id]?.apply(to: node)
         }
     }

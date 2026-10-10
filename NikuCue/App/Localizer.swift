@@ -17,7 +17,7 @@ final class Localizer: ObservableObject {
         self.languageCode = StringCatalog.resolveLanguage(preference: preference, preferredLanguages: preferredLanguages)
     }
 
-    static func loadBundled(bundle: Bundle = .main) throws -> StringCatalog {
+    nonisolated static func loadBundled(bundle: Bundle = .main) throws -> StringCatalog {
         var tables: [String: Data] = [:]
         for lang in StringCatalog.supportedLanguages {
             tables[lang] = try BundledResources.data(named: lang, extension: "json", subdirectory: "Localization", bundle: bundle)

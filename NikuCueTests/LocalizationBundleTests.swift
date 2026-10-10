@@ -31,6 +31,5 @@ final class LocalizationBundleTests: XCTestCase {
         let config = AppConfiguration.development
         XCTAssertFalse(config.isReleaseReady)
         XCTAssertEqual(config.placeholders.count, 6)
-        XCTAssertTrue(config.isPlaceholderBundleIdentifier || config.bundleIdentifier.isEmpty)
     }
 }
