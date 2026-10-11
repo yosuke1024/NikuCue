@@ -32,6 +32,7 @@ xcodebuild test -project NikuCue.xcodeproj -scheme NikuCue \
 1. Debug ビルドを Simulator / 実機で起動 → Home 右上「Gallery」（Debug のみ）。表示ラベルが「whole-body textures mali_v1_wholebody (review)」であること（placeholder ではない）。「Poses」の 6 ボタン（idle / happy / celebrate / pet / sleepy / sad）で cross-fade を、8 クリップで動きを確認する。
 2. 画面録画（15〜30 秒: 待機 → なでる → できた（celebrate）→ 休む（settle）→ 節目（milestone）→ 夜の部屋で doze）を `artifacts/mali-assets-v1/` に保存。ブラウザ描画のファイルと混同しないよう `simulator_` / `device_` を接頭辞にする。暗い面の確認は Gallery の夜の部屋（`#D3C6D4`）と、ブラウザ記録の `contact_sheet_dark.png` を併用する。
    - 見る点: 耳の先とハートが部屋の上端で切れない、床（前足の下端）が全ポーズで同じ高さ、celebrate の持ち上げが戻る、切替時に顔が歪まない（cross-fade だけ）、`sad` がクリップ中に出ない。
+   - 動作の間（2026-10-11 追加）: 反応の後に笑顔が少し残ってから idle に戻るか、吹き出しが動きの少し後に出るか、2 つ続けて「できた」を押すと 2 回目が一呼吸おいて始まるか、なでる → なでるで目がちらつかないか、取り消しで猫が瞬間移動しないか。同じ反応を 3 回続けて見ても煩わしくないか（docs/04 §6）。
    - 待機の生きている感じ（2026-10-11 追加）: 呼吸（約 3.6 秒）と尻尾の揺れ（約 4.8 秒、±5°）が見えること。尻尾の付け根（腰）に切り口や隙間が見えないか、揺れの途中で「なでる」「できた」を押しても尻尾が跳ねずに戻るか、sleepy（v1.1）が座り姿勢 + 半眼で、前足 2 本・後ろ足 2 本に見えるか（旧あくび画像が残っていないか。Xcode の Derived Data を消して再ビルドすると確実）。
 3. 設定の「動きを減らす」と iOS の「視差効果を減らす」で跳躍とハートが止まることを確認。
 4. 30 fps 設定で Instruments（Time Profiler / Allocations）10 分表示、なで続け 1 分で action 数が増えないこと（Gallery の Active actions 表示）。

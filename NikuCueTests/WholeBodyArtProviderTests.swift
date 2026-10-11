@@ -38,6 +38,14 @@ final class WholeBodyArtProviderTests: XCTestCase {
         for clip in anims.clips {
             for track in clip.tracks where track.node == "bodyPivot" && ["scale", "scaleX", "scaleY"].contains(track.property) {
                 for k in track.keyframes { XCTAssertLessThanOrEqual(abs((k.v.number ?? 1) - 1), 0.03, "\(clip.id) keeps the artwork undistorted") }
+                XCTAssertTrue(clip.loop, "\(clip.id): only ambient loops breathe; a reaction would snap the breath")
+            }
+            for track in clip.tracks where track.node == "tailPivot" {
+                XCTAssertTrue(clip.loop, "\(clip.id): only the idle loop moves the tail")
+            }
+            if clip.loop {
+                XCTAssertFalse((clip.tracks + clip.reducedMotionTracks).contains { $0.property == "expression" },
+                               "\(clip.id): an ambient pose track would cancel every linger")
             }
         }
     }
@@ -100,12 +108,14 @@ final class WholeBodyArtProviderTests: XCTestCase {
         let bodyPivot = try XCTUnwrap(catRig.node("bodyPivot"))
         tailPivot.zRotation = 0.08
         bodyPivot.yScale = 1.012
+        bodyPivot.position.y += 6
         scene.controller.playDemo(.greet, dayKey: DayKey(string: "2026-10-11")!)
         XCTAssertEqual(scene.controller.currentClip, .greet)
         XCTAssertEqual(tailPivot.zRotation, 0.08, accuracy: 0.0001, "not snapped: eases over the blend")
         XCTAssertNotNil(tailPivot.action(forKey: CatRig.restEaseKey), "eases back over the blend time")
-        XCTAssertEqual(bodyPivot.yScale, 1.0, accuracy: 0.0001, "greet drives bodyPivot.scale, so it snaps to rest")
-        XCTAssertNil(bodyPivot.action(forKey: CatRig.restEaseKey), "driven nodes snap instead")
+        XCTAssertEqual(bodyPivot.yScale, 1.012, accuracy: 0.0001, "reactions never drive the breathing scale: it eases")
+        XCTAssertNotNil(bodyPivot.action(forKey: CatRig.restEaseKey))
+        XCTAssertEqual(bodyPivot.position.y, catRig.rest["bodyPivot"]!.position.y, accuracy: 0.0001, "greet drives offsetY: that snaps to rest")
     }
 
     func testRigCrossFadesPosesWithoutTouchingTheStateMachine() throws {
@@ -202,6 +212,34 @@ final class WholeBodyArtProviderTests: XCTestCase {
         XCTAssertEqual(started, 1, "an undone completion never celebrates")
         XCTAssertFalse(controller.queue.isBusy)
         XCTAssertEqual(controller.currentClip, .idle)
+    }
+
+    func testUndoEasesTheCatBackInsteadOfSnapping() throws {
+        let (scene, catRig, _) = try makeScene()
+        let controller = scene.controller
+        let intent = completion(.celebrate, key: "reaction.complete.1")
+        controller.handle(intent)
+        let bodyPivot = try XCTUnwrap(catRig.node("bodyPivot"))
+        let restY = catRig.rest["bodyPivot"]!.position.y
+        bodyPivot.position.y = restY + 20                       // mid-hop
+        controller.cancelReactions(habitId: try XCTUnwrap(intent.event.habitId), dayKey: intent.event.dayKey)
+        XCTAssertEqual(controller.currentClip, .idle)
+        XCTAssertEqual(bodyPivot.position.y, restY + 20, accuracy: 0.0001, "no teleport to the floor")
+        XCTAssertNotNil(bodyPivot.action(forKey: CatRig.restEaseKey), "the hop eases back down over the blend")
+        XCTAssertEqual(catRig.look, "idle", "the face cross-fades back (no sad pose on undo)")
+    }
+
+    func testReturningToAFadingLookReversesTheFade() throws {
+        let (scene, catRig, _) = try makeScene()
+        _ = scene
+        let pose = try XCTUnwrap(catRig.node("pose"))
+        func front() -> SKSpriteNode? { pose.children.compactMap { $0 as? SKSpriteNode }.first { $0.zPosition > 0.005 } }
+        let idleTexture = front()?.texture
+        catRig.setLook("happy", blend: 0.18)                   // idle fades out on the back sprite
+        XCTAssertEqual(front()?.alpha ?? -1, 0, accuracy: 0.0001)
+        catRig.setLook("idle", blend: 0.18)                    // a tap/return lands during that fade
+        XCTAssertTrue(front()?.texture === idleTexture, "the fading idle sprite comes back to the front")
+        XCTAssertEqual(front()?.alpha ?? -1, 1, accuracy: 0.0001, "from where it was, not from transparent (no ghost blink)")
     }
 
     func testBubbleFollowsTheMotionExceptUnderReduceMotion() async throws {

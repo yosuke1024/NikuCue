@@ -117,9 +117,17 @@
 
     setExpression(e, now) {
       if (e === this.expression) return;
+      const t = now == null ? this.time : now;
+      const progress = this.prevExpression ? Math.max(0, Math.min(1, (t - this.expressionBlendStart) / this.blendMs)) : 1;
+      if (e === this.prevExpression && progress < 1) {
+        // CatRig.setLook: returning to the look that is still fading out reverses the fade from where it is
+        this.prevExpression = this.expression; this.expression = e;
+        this.expressionBlendStart = t - (1 - progress) * this.blendMs;
+        return;
+      }
       this.prevExpression = this.expression;
       this.expression = e;
-      this.expressionBlendStart = now == null ? this.time : now;
+      this.expressionBlendStart = t;
     }
 
     play(clipId, now) {
@@ -127,6 +135,7 @@
       if (!def) throw new Error('unknown clip ' + clipId);
       const t = now == null ? this.time : now;
       this.linger = null;     // any new clip (reaction or ambient) cancels a pending linger, like the controller
+      if (def.loop) this.settling = null;
       if (def.loop) { this.ambientId = clipId; this.ambientStart = t; this.clip = null; this.resetTransforms(); this.setExpression(def.expression, t); return; }
       this.clip = { id: clipId, def, start: t };
       // Mirrors CatRig.settle: properties the clip drives snap to rest, the rest (idle tail sway, breathing) ease back.
@@ -189,7 +198,7 @@
         else if (tr.property === 'alpha') n.alpha *= v;
       }
       if (this.settling) {
-        const u = Math.min(1, (t - this.settling.start) / this.blendMs);
+        const u = Math.max(0, Math.min(1, (t - this.settling.start) / this.blendMs));
         const k = 1 - EASE.easeInOut(u);
         for (const id in this.settling.from) {
           const n = this.nodes[id]; if (!n) continue;
@@ -244,7 +253,7 @@
       }
       if (art.variants) {
         const cur = art.variants[this.expression] || art.variants.neutral || art.variants[this.spec.expressions[0]];
-        const blendT = Math.min(1, (this.time - this.expressionBlendStart) / this.blendMs);
+        const blendT = Math.max(0, Math.min(1, (this.time - this.expressionBlendStart) / this.blendMs));
         if (this.prevExpression && blendT < 1) {
           const prev = art.variants[this.prevExpression] || art.variants.neutral;
           this._drawLayers(ctx, prev.layers, alpha * (1 - blendT));
@@ -267,7 +276,7 @@
         ctx.restore();
       };
       if (part.variants) {
-        const blendT = Math.min(1, (this.time - this.expressionBlendStart) / this.blendMs);
+        const blendT = Math.max(0, Math.min(1, (this.time - this.expressionBlendStart) / this.blendMs));
         if (this.prevExpression && blendT < 1) { draw(pick(this.prevExpression), alpha * (1 - blendT)); draw(pick(this.expression), alpha * blendT); }
         else draw(pick(this.expression), alpha);
       } else draw(part, alpha);

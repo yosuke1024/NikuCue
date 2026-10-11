@@ -30,6 +30,8 @@ final class CatRig {
     private(set) var rest: [String: RestTransform] = [:]
     /// Current look: an expression name (parts rig) or a pose name (whole-body rig).
     private(set) var look: String
+    /// The look currently fading out on the back sprites (nil until the first switch).
+    private(set) var outgoingLook: String?
     var expression: Expression { Expression(rawValue: look) ?? .neutral }
     private let art: CharacterArtProvider
     private let pixelsPerUnit: CGFloat
@@ -151,14 +153,28 @@ final class CatRig {
     /// the whole-body asset README for 120–220 ms. Faces are never morphed, only faded.
     func setLook(_ new: String, blend: TimeInterval) {
         guard new != look, spec.expressions.contains(new) else { return }
+        let returning = blend > 0 && new == outgoingLook
+        outgoingLook = look
         look = new
         for (partId, pair) in variantSprites {
+            pair.back.removeAllActions()
+            pair.front.removeAllActions()
+            if returning, pair.back.texture != nil, pair.back.alpha > 0.001 {
+                // Back to the look that is still fading out (e.g. a tap during a linger's return fade): reverse that
+                // fade from where it is, so the face never blinks through a half-faded ghost.
+                let front = pair.back, back = pair.front
+                front.zPosition = 0.01
+                back.zPosition = 0
+                variantSprites[partId] = (front, back)
+                front.run(.fadeAlpha(to: 1, duration: blend * Double(1 - front.alpha)), withKey: "expression.fade")
+                let release = SKAction.run { [weak back] in back?.texture = nil }
+                back.run(.sequence([.fadeAlpha(to: 0, duration: blend * Double(back.alpha)), release]), withKey: "expression.fade")
+                continue
+            }
             // the previous look moves to the back sprite and fades out while the new one fades in
             pair.back.texture = pair.front.texture
             pair.back.size = pair.front.size
             pair.back.anchorPoint = pair.front.anchorPoint
-            pair.back.removeAllActions()
-            pair.front.removeAllActions()
             apply(partId: partId, look: new, to: pair.front)
             if blend <= 0 {
                 pair.back.alpha = 0

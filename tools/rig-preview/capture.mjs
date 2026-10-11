@@ -62,8 +62,10 @@ await page.evaluate(() => window.__mali.setRoom('day'));
 // Timing filmstrips ("間"): each reaction from its start through the linger back to the ambient pose, one frame
 // every STEP ms, so pauses, holds, pose switches and the return to idle can be read at a glance.
 const STEP = 100;
+let stripBase = 1e6;   // the virtual clock only moves forward across strips (the rig keeps blend/settle start times)
 for (const id of ['greet', 'pet', 'celebrate', 'cheer', 'settle', 'milestone']) {
-  const dataUrl = await page.evaluate(({ id, STEP }) => {
+  stripBase += 1e5;
+  const dataUrl = await page.evaluate(({ id, STEP, T0 }) => {
     const m = window.__mali; m.pause(true);
     const def = m.rig.anims.clips.find(c => c.id === id);
     const end = def.durationMs + (def.lingerMs || 0) + 600;
@@ -71,11 +73,11 @@ for (const id of ['greet', 'pet', 'celebrate', 'cheer', 'settle', 'milestone']) 
     const cell = 132, cols = 12, rows = Math.ceil(times.length / cols), label = 16;
     const cv = document.createElement('canvas'); cv.width = cols * cell; cv.height = rows * (cell + label);
     const g = cv.getContext('2d'); g.fillStyle = '#FBEFD9'; g.fillRect(0, 0, cv.width, cv.height);
-    m.rig.clip = null; m.rig.hearts = []; m.rig.play('idle', 0); m.rig.prevExpression = null; m.rig.update(0);
-    m.rig.play(id, 0);
+    m.rig.clip = null; m.rig.hearts = []; m.rig.play('idle', T0); m.rig.prevExpression = null; m.rig.update(T0);
+    m.rig.play(id, T0);
     const design = m.rig.spec.designSize || [760, 760], root = m.rig.spec.nodes.find(n => n.id === 'root');
     times.forEach((t, i) => {
-      m.rig.update(t);
+      m.rig.update(T0 + t);
       const x = (i % cols) * cell, y = Math.floor(i / cols) * (cell + label);
       const s = Math.min(cell * 0.92 / design[1], cell * 0.92 / design[0]);
       g.save(); g.beginPath(); g.rect(x, y, cell, cell); g.clip();
@@ -85,9 +87,9 @@ for (const id of ['greet', 'pet', 'celebrate', 'cheer', 'settle', 'milestone']) 
       g.fillStyle = phase === id ? '#8a5a3c' : (phase === 'linger' ? '#b07a2a' : '#6f7f6a');
       g.font = '11px sans-serif'; g.fillText(`${t} ${phase === id ? '' : phase} ${m.rig.expression}`, x + 4, y + cell + 12);
     });
-    m.rig.play('idle', 0);
+    m.rig.play('idle', T0 + end);
     return cv.toDataURL('image/png');
-  }, { id, STEP });
+  }, { id, STEP, T0: stripBase });
   writeFileSync(resolve(outDir, `13_timing_${id}.png`), Buffer.from(dataUrl.split(',')[1], 'base64'));
   console.log('strip', id);
 }

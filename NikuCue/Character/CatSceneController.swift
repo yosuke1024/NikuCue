@@ -48,6 +48,8 @@ final class CatSceneController: ObservableObject {
     static let lingerKey = "ambient.linger"
     private var rng: SeededRandomNumberGenerator
     private var heartNodes: [SKNode] = []
+    /// Hearts fading out after their clip; removed at once if the scene pauses or another stop arrives.
+    private var fadingHearts: [SKNode] = []
     private let hostNode: SKNode
 
     init(rig: CatRig, library: AnimationLibrary, host: SKNode, seed: UInt64 = UInt64.random(in: 0...UInt64.max)) {
@@ -122,7 +124,8 @@ final class CatSceneController: ObservableObject {
     func cancelReactions(habitId: UUID, dayKey: DayKey) {
         let cancelledRunning = queue.cancel { $0.event.habitId == habitId && $0.event.dayKey == dayKey }
         if cancelledRunning {
-            stopInteraction()
+            // No snap: a cancelled hop eases back to the floor and the face cross-fades (start/startAmbient settle).
+            stopInteraction(resetting: false, heartFade: library.spec.expressionBlend)
             clearMessage()
             if let next = queue.finishCurrent(isStillValid: { [weak self] intent in self?.isStillValid?(intent) ?? true }) {
                 start(next)
@@ -193,8 +196,9 @@ final class CatSceneController: ObservableObject {
         let heldLook = rig.look
         let linger = runningLinger
         runningLinger = 0
-        stopInteraction()
-        guard !isPaused else { queue.discardAll(); return }
+        // No reset: tracks end at rest, and any residual (timer vs. frame drift) eases back in startAmbient's settle.
+        stopInteraction(resetting: false, heartFade: library.spec.expressionBlend)
+        guard !isPaused else { queue.discardAll(); rig.resetToRest(); return }
         let next = queue.finishCurrent { [weak self] intent in self?.isStillValid?(intent) ?? true }
         guard let next else {
             startAmbient(holding: heldLook, for: linger)
@@ -223,14 +227,14 @@ final class CatSceneController: ObservableObject {
         }
     }
 
-    private func stopInteraction(resetting: Bool = true) {
+    private func stopInteraction(resetting: Bool = true, heartFade: TimeInterval = 0) {
         finishWork?.cancel()
         finishWork = nil
         gapWork?.cancel()
         gapWork = nil
         for item in running { item.node.removeAction(forKey: item.key) }
         running = []
-        removeHearts()
+        removeHearts(fading: heartFade)
         if resetting { rig.resetToRest() }
     }
 
@@ -240,12 +244,16 @@ final class CatSceneController: ObservableObject {
     /// resumes, then cross-fades to the ambient look; the hold is an ambient action, so a new reaction, a pause or a
     /// time-of-day change cancels it.
     private func startAmbient(holding heldLook: String? = nil, for hold: TimeInterval = 0) {
-        stopAmbient()
+        stopAmbient(resetting: false)
         let clipId: ClipID = ambient == .dozing ? .doze : .idle
         currentClip = clipId
-        guard let clip = library.spec.clip(clipId) else { return }
-        rig.resetToRest()
+        guard let clip = library.spec.clip(clipId) else { rig.resetToRest(); return }
         let blend = library.spec.expressionBlend
+        // What the loop drives snaps to rest (its track starts there); anything else left over (a cancelled hop, a
+        // tilt, a few ms of timer drift) eases back over the blend instead of jumping.
+        var controlled: CatRig.ControlledProperties = [:]
+        for track in (reduceMotion ? clip.reducedMotionTracks : clip.tracks) { controlled[track.node, default: []].insert(track.property) }
+        rig.settle(toRestOver: blend, controlled: controlled)
         if let heldLook, hold > 0, heldLook != clip.defaultLook, rig.look == heldLook {
             let target = clip.defaultLook
             let release = SKAction.run { [weak self] in self?.rig.setLook(target, blend: blend) }
@@ -313,8 +321,19 @@ final class CatSceneController: ObservableObject {
         }
     }
 
-    private func removeHearts() {
-        for h in heartNodes { h.removeAllActions(); h.removeFromParent() }
+    /// Removes the milestone hearts; with `fading` > 0 they fade out first (the Reduce Motion heart no longer pops off).
+    private func removeHearts(fading: TimeInterval = 0) {
+        for h in fadingHearts { h.removeAllActions(); h.removeFromParent() }
+        fadingHearts = []
+        for h in heartNodes {
+            h.removeAllActions()
+            if fading > 0, h.parent != nil, h.alpha > 0.01 {
+                h.run(.sequence([.fadeOut(withDuration: fading), .removeFromParent()]), withKey: "heart")
+                fadingHearts.append(h)
+            } else {
+                h.removeFromParent()
+            }
+        }
         heartNodes = []
     }
 

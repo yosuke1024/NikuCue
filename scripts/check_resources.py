@@ -251,7 +251,20 @@ def main() -> None:
                     require(abs(tr["keyframes"][0]["v"] - tr["keyframes"][-1]["v"]) < 1e-6 and tr["keyframes"][-1]["t"] == dur,
                             f"whole-body: {cid} {tr['node']}.{tr['property']} must loop seamlessly")
                 if tr["node"] == "bodyPivot" and tr["property"] == "offsetY":
-                    require(all(-8 <= k["v"] <= 40 for k in tr["keyframes"]), f"whole-body: {cid} lift/dip out of range")
+                    require(all(-6 <= k["v"] <= 40 for k in tr["keyframes"]), f"whole-body: {cid} lift/dip out of range")
+                # A reaction never drives what the ambient loop drives (breathing scale, tail): starting it would snap
+                # those properties instead of easing them back over the blend.
+                if not clip.get("loop"):
+                    require(not (tr["node"] == "bodyPivot" and tr["property"] in ("scale", "scaleX", "scaleY")),
+                            f"whole-body: reaction {cid} must not drive the breathing scale")
+                    require(not (tr["node"] == "tailPivot"), f"whole-body: reaction {cid} must not drive the idle tail")
+            if clip.get("loop"):
+                # An expression track on an ambient loop would call setLook on its first frame and cancel every linger.
+                require(all(tr["property"] != "expression" for tr in clip["tracks"] + clip["reducedMotionTracks"]),
+                        f"whole-body: ambient loop {cid} must not carry an expression track")
+            if "hearts" in clip:
+                h = clip["hearts"]
+                require(all(at + h["lifeMs"] <= dur for at in h["spawnAtMs"]), f"whole-body: {cid} hearts must end inside the clip")
             for tr in clip["tracks"] + clip["reducedMotionTracks"]:
                 if tr["property"] != "expression":
                     continue
