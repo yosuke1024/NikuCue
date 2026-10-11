@@ -242,6 +242,22 @@ final class WholeBodyArtProviderTests: XCTestCase {
         XCTAssertEqual(front()?.alpha ?? -1, 1, accuracy: 0.0001, "from where it was, not from transparent (no ghost blink)")
     }
 
+    func testAThirdLookMidFadeKeepsTheVisibleLayer() throws {
+        let (scene, catRig, _) = try makeScene()
+        _ = scene
+        let pose = try XCTUnwrap(catRig.node("pose"))
+        func sprite(front: Bool) -> SKSpriteNode? {
+            pose.children.compactMap { $0 as? SKSpriteNode }.first { front ? $0.zPosition > 0.005 : $0.zPosition < 0.005 }
+        }
+        let idleTexture = sprite(front: true)?.texture
+        catRig.setLook("happy", blend: 0.18)                   // idle (alpha 1) now fades out on the back sprite
+        catRig.setLook("pet", blend: 0.18)                     // a tap lands at the very start of that fade
+        XCTAssertTrue(sprite(front: false)?.texture === idleTexture, "the still-visible idle layer keeps fading out")
+        XCTAssertEqual(sprite(front: false)?.alpha ?? -1, 1, accuracy: 0.0001, "the portrait never drops to the faint layer")
+        XCTAssertEqual(catRig.outgoingLook, "idle")
+        XCTAssertEqual(catRig.look, "pet")
+    }
+
     func testBubbleFollowsTheMotionExceptUnderReduceMotion() async throws {
         let (scene, _, anims) = try makeScene()
         let controller = scene.controller

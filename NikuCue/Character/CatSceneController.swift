@@ -161,7 +161,7 @@ final class CatSceneController: ObservableObject {
             return
         }
         stopAmbient(resetting: false)
-        stopInteraction(resetting: false)
+        stopInteraction(resetting: false, heartFade: library.spec.expressionBlend)
         currentClip = intent.clip
         let tracks = reduceMotion ? clip.reducedMotionTracks : clip.tracks
         // Driven properties snap to rest (their track takes over next frame); the rest (idle tail sway, breathing)
@@ -219,11 +219,12 @@ final class CatSceneController: ObservableObject {
             start(intent)
             return
         }
-        // Undone or stale during the beat: drop it quietly (the ambient loop is already running).
+        // Stale at the end of the beat (other day, newer revision): drop it quietly and return to the ambient loop,
+        // which also picks up a time-of-day or Reduce Motion change made during the beat.
         if let next = queue.finishCurrent(isStillValid: { [weak self] i in self?.isStillValid?(i) ?? true }) {
             start(next)
         } else {
-            currentClip = ambient == .dozing ? .doze : .idle
+            startAmbient()
         }
     }
 
@@ -232,6 +233,8 @@ final class CatSceneController: ObservableObject {
         finishWork = nil
         gapWork?.cancel()
         gapWork = nil
+        messageWork?.cancel()           // an interrupted reaction never speaks later
+        messageWork = nil
         for item in running { item.node.removeAction(forKey: item.key) }
         running = []
         removeHearts(fading: heartFade)
@@ -256,7 +259,12 @@ final class CatSceneController: ObservableObject {
         rig.settle(toRestOver: blend, controlled: controlled)
         if let heldLook, hold > 0, heldLook != clip.defaultLook, rig.look == heldLook {
             let target = clip.defaultLook
-            let release = SKAction.run { [weak self] in self?.rig.setLook(target, blend: blend) }
+            // While a queued reaction waits for its beat the held look stays: releasing it a frame before that reaction
+            // starts would cross-fade three looks at once (linger and gap can end on the same frame).
+            let release = SKAction.run { [weak self] in
+                guard let self, self.gapWork == nil else { return }
+                self.rig.setLook(target, blend: blend)
+            }
             hostNode.run(.sequence([.wait(forDuration: hold), release]), withKey: CatSceneController.lingerKey)
         } else {
             rig.setLook(clip.defaultLook, blend: blend)
@@ -323,8 +331,11 @@ final class CatSceneController: ObservableObject {
 
     /// Removes the milestone hearts; with `fading` > 0 they fade out first (the Reduce Motion heart no longer pops off).
     private func removeHearts(fading: TimeInterval = 0) {
-        for h in fadingHearts { h.removeAllActions(); h.removeFromParent() }
-        fadingHearts = []
+        if fading <= 0 {                // hard stop (pause, scene change): nothing may linger on screen
+            for h in fadingHearts { h.removeAllActions(); h.removeFromParent() }
+            fadingHearts = []
+        }
+        fadingHearts.removeAll { $0.parent == nil }
         for h in heartNodes {
             h.removeAllActions()
             if fading > 0, h.parent != nil, h.alpha > 0.01 {

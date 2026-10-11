@@ -154,7 +154,11 @@ final class CatRig {
     func setLook(_ new: String, blend: TimeInterval) {
         guard new != look, spec.expressions.contains(new) else { return }
         let returning = blend > 0 && new == outgoingLook
-        outgoingLook = look
+        // A third look arriving while the outgoing layer is still the more visible one (e.g. a tap early in a linger's
+        // return fade) keeps that layer fading out; otherwise the whole portrait would drop to the faint incoming alpha.
+        let keepOutgoing = !returning && blend > 0
+            && variantSprites.values.contains { $0.back.texture != nil && $0.back.alpha > $0.front.alpha }
+        if !keepOutgoing { outgoingLook = look }
         look = new
         for (partId, pair) in variantSprites {
             pair.back.removeAllActions()
@@ -172,9 +176,13 @@ final class CatRig {
                 continue
             }
             // the previous look moves to the back sprite and fades out while the new one fades in
-            pair.back.texture = pair.front.texture
-            pair.back.size = pair.front.size
-            pair.back.anchorPoint = pair.front.anchorPoint
+            let keepBack = keepOutgoing && pair.back.texture != nil && pair.back.alpha > pair.front.alpha
+            let outgoingAlpha = keepBack ? pair.back.alpha : pair.front.alpha
+            if !keepBack {
+                pair.back.texture = pair.front.texture
+                pair.back.size = pair.front.size
+                pair.back.anchorPoint = pair.front.anchorPoint
+            }
             apply(partId: partId, look: new, to: pair.front)
             if blend <= 0 {
                 pair.back.alpha = 0
@@ -183,7 +191,7 @@ final class CatRig {
             } else {
                 // A switch during a running fade carries the current alpha instead of snapping the half-faded
                 // texture to 1 (visible on whole-body portraits). The faded-out texture is released afterwards.
-                pair.back.alpha = pair.front.alpha
+                pair.back.alpha = outgoingAlpha
                 pair.front.alpha = 0
                 let release = SKAction.run { [weak back = pair.back] in back?.texture = nil }
                 pair.back.run(.sequence([.fadeOut(withDuration: blend), release]), withKey: "expression.fade")

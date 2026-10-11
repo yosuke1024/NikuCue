@@ -142,7 +142,7 @@
     const b = document.createElement('button'); b.textContent = e; b.dataset.expression = e;
     b.onclick = () => rig.setExpression(e, virtual); exEl.appendChild(b);
   }
-  document.getElementById('pet').onclick = () => { if (virtual - lastPet < PET_COOLDOWN || rig.clip) return; lastPet = virtual; play('pet'); };
+  document.getElementById('pet').onclick = () => { if (virtual - lastPet < PET_COOLDOWN || rig.clip || pendingStart) return; lastPet = virtual; play('pet'); };
   canvas.addEventListener('pointerdown', () => document.getElementById('pet').click());
   document.getElementById('demoDone').onclick = () => react('celebrate');
   document.getElementById('stop').onclick = () => { rig.clip = null; rig.hearts = []; waiting = null; pendingStart = null; rig.play('idle', virtual); say('', 0); };

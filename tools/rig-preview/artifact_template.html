@@ -182,7 +182,7 @@
   for (const c of anims.clips) { const b = document.createElement('button'); b.textContent = c.id; b.onclick = () => play(c.id); clipsEl.appendChild(b); }
   const exEl = document.getElementById('expressions');
   for (const e of spec.expressions) { const b = document.createElement('button'); b.textContent = e; b.onclick = () => rig.setExpression(e, virtual); exEl.appendChild(b); }
-  function pet() { if (virtual - lastPet < PET_COOLDOWN || rig.clip) return; lastPet = virtual; play('pet'); }
+  function pet() { if (virtual - lastPet < PET_COOLDOWN || rig.clip || pendingStart) return; lastPet = virtual; play('pet'); }
   document.getElementById('pet').onclick = pet;
   canvas.addEventListener('pointerdown', pet);
   document.getElementById('demoDone').onclick = () => react('celebrate');

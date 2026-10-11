@@ -19,19 +19,24 @@ await page.goto(html);
 await page.waitForFunction(() => window.__mali);
 const canvas = page.locator('#c');
 
+let stillBase = 0;     // forward-only virtual clock: the rig keeps blend/settle start times between stills
 async function still(name, setup, t) {
-  await page.evaluate(({ setup, t }) => {
+  stillBase += 1e5;
+  await page.evaluate(({ setup, t, T0 }) => {
     const m = window.__mali; m.pause(true);
-    m.rig.clip = null; m.rig.hearts = []; m.rig.play('idle', 0); m.rig.prevExpression = null;
-    m.setVirtual(0);
+    m.rig.clip = null; m.rig.hearts = []; m.rig.play('idle', T0); m.rig.prevExpression = null;
+    m.setVirtual(T0);
     if (setup.expression) m.setExpression(setup.expression);
-    if (setup.idleLead) { m.rig.update(setup.idleLead); m.setVirtual(setup.idleLead); }   // run the ambient loop first
+    const start = T0 + (setup.idleLead || 0), target = start + t;
+    if (setup.idleLead) { for (let x = T0; x < start; x += 16) m.rig.update(x); m.rig.update(start); m.setVirtual(start); }
     if (setup.clip) m.play(setup.clip);
     if (setup.room) m.setRoom(setup.room);
-    // t is relative to the clip start; with an idle lead the cross-fade (and the fading tail layer) is kept visible
-    m.setVirtual((setup.idleLead || 0) + t);
-    if (!setup.idleLead) m.rig.prevExpression = null;
-  }, { setup, t });
+    // t is relative to the clip start; step the rig in 16 ms frames so pose keyframes on the way are applied (a jump
+    // would start a 700 ms pose switch only at t); with an idle lead the cross-fade (and the fading tail) stays visible
+    for (let x = start; x < target; x += 16) m.rig.update(x);
+    m.rig.update(target);
+    m.setVirtual(target);
+  }, { setup, t, T0: stillBase });
   await page.waitForTimeout(80);
   await canvas.screenshot({ path: resolve(outDir, name + '.png') });
   console.log('still', name);
