@@ -29,13 +29,20 @@ if poses_file.exists():
     spec = (RES / "mali_wholebody_spec.json").read_text(encoding="utf-8")
     anims = (RES / "mali_wholebody_animations.json").read_text(encoding="utf-8")
     catalog = ROOT / "NikuCue" / "Resources" / "Assets.xcassets" / "Mali"
-    variants, images = {}, {}
+    parts, images = {"pose": {"variants": {}}}, {}
+    def embed(image_set):
+        folder = catalog / f"{image_set}.imageset"
+        pngs = sorted(folder.glob("*.png")) if folder.exists() else []
+        if pngs and image_set not in images:
+            images[image_set] = "data:image/png;base64," + base64.b64encode(pngs[0].read_bytes()).decode("ascii")
     for name, pose in poses["poses"].items():
-        variants[name] = {"texture": pose["imageSet"], "bounds": pose["bounds"]}
-        png = catalog / f"{pose['imageSet']}.imageset" / f"mali_{name}.png"
-        if png.exists():
-            images[pose["imageSet"]] = "data:image/png;base64," + base64.b64encode(png.read_bytes()).decode("ascii")
-    pack_json = _json.dumps({"parts": {"pose": {"variants": variants}}, "pixelsPerUnit": 1, "isProductionArt": False})
+        parts["pose"]["variants"][name] = {"texture": pose["imageSet"], "bounds": pose["bounds"]}
+        embed(pose["imageSet"])
+        # Layer parts (e.g. the idle tail) exist only for the poses that declare them: strict variants, no fallback.
+        for part, layer in pose.get("layers", {}).items():
+            parts.setdefault(part, {"variants": {}})["variants"][name] = {"texture": layer["imageSet"], "bounds": layer["bounds"]}
+            embed(layer["imageSet"])
+    pack_json = _json.dumps({"parts": parts, "pixelsPerUnit": 1, "isProductionArt": False, "strictVariants": True})
     images_json = _json.dumps(images)
 html = (here / "index.html").read_text(encoding="utf-8")
 html = html.replace("__CHARACTER_SPEC__", spec)

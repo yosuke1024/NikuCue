@@ -148,14 +148,18 @@ final class CatSceneController: ObservableObject {
             _ = queue.finishCurrent { _ in false }
             return
         }
-        stopAmbient()
-        stopInteraction()
-        rig.resetToRest()
+        stopAmbient(resetting: false)
+        stopInteraction(resetting: false)
         currentClip = intent.clip
+        let tracks = reduceMotion ? clip.reducedMotionTracks : clip.tracks
+        // Driven properties snap to rest (their track takes over next frame); the rest (idle tail sway, breathing)
+        // ease back over the blend time so the reaction never starts with a jump.
+        var controlled: CatRig.ControlledProperties = [:]
+        for track in tracks { controlled[track.node, default: []].insert(track.property) }
+        rig.settle(toRestOver: library.spec.expressionBlend, controlled: controlled)
         // The look at t = 0 is applied synchronously: the expression track's SKAction only evaluates once an SKView
         // drives the scene, and the pose must not lag a frame behind the clip. Later keyframes still come from the
         // track; `setLook` ignores same-look calls, so there is no double cross-fade.
-        let tracks = reduceMotion ? clip.reducedMotionTracks : clip.tracks
         let initialLook = tracks.first { $0.property == "expression" }.flatMap { KeyframeSampler.name($0, at: 0) } ?? clip.defaultLook
         rig.setLook(initialLook, blend: library.spec.expressionBlend)
         running = library.actions(for: clip, reducedMotion: reduceMotion, rig: rig)
@@ -182,13 +186,13 @@ final class CatSceneController: ObservableObject {
         }
     }
 
-    private func stopInteraction() {
+    private func stopInteraction(resetting: Bool = true) {
         finishWork?.cancel()
         finishWork = nil
         for item in running { item.node.removeAction(forKey: item.key) }
         running = []
         removeHearts()
-        rig.resetToRest()
+        if resetting { rig.resetToRest() }
     }
 
     // MARK: Ambient
@@ -211,12 +215,12 @@ final class CatSceneController: ObservableObject {
         startAmbient()
     }
 
-    private func stopAmbient() {
+    private func stopAmbient(resetting: Bool = true) {
         for item in ambientActions { item.node.removeAction(forKey: item.key) }
         ambientActions = []
         hostNode.removeAction(forKey: "blink.schedule")
         for id in ["eyeL", "eyeR"] { rig.node(id)?.removeAction(forKey: "blink.\(id)") }
-        rig.resetToRest()
+        if resetting { rig.resetToRest() }
     }
 
     private func scheduleBlink() {

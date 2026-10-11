@@ -30,8 +30,26 @@ def pose(*pairs):
     return {"node": "pose", "property": "expression", "keyframes": [{"t": t, "v": v} for t, v in pairs]}
 
 
+# Idle (owner request 2026-10-11): slow, visible breathing within the README's 1.5 % limit and a tail sway on the
+# separate tail layer. Breath 3.6 s (inhale 1.7 s / exhale 1.9 s) x4 and sway 4.8 s x3 share a 14.4 s loop so the two
+# rhythms drift against each other instead of pulsing in step.
+IDLE_MS = 14400
+BREATH_MS, SWAY_MS = 3600, 4800
+
+
+def repeat(period, pairs, total):
+    out = []
+    for k in range(total // period):
+        for t, v, *ease in pairs:
+            if k > 0 and t == 0: continue
+            out.append((k * period + t, v, *ease))
+    return out
+
+
 TRACKS = {
-    "idle": [track("bodyPivot", "scaleY", (0, 1.0), (900, 1.012), (2700, 0.994), (3600, 1.0), ease="sine")],
+    "idle": [track("bodyPivot", "scaleY", *repeat(BREATH_MS, [(0, 1.0), (1700, 1.015), (3600, 1.0)], IDLE_MS), ease="sine"),
+             track("bodyPivot", "scaleX", *repeat(BREATH_MS, [(0, 1.0), (1700, 0.996), (3600, 1.0)], IDLE_MS), ease="sine"),
+             track("tailPivot", "rotation", *repeat(SWAY_MS, [(0, 0), (1200, 5), (3600, -5), (4800, 0)], IDLE_MS), ease="sine")],
     "greet": [pose((0, "happy")),
               track("bodyPivot", "offsetY", (0, 0), (250, 10), (900, 10), (1100, 0)),
               track("bodyPivot", "scale", (0, 1.0), (250, 1.01), (900, 1.01), (1100, 1.0))],
@@ -71,7 +89,9 @@ def main() -> None:
     for clip in data["clips"]:
         cid = clip["id"]
         clip["expression"] = clip_pose[cid]           # pose shown when the clip starts (asset manifest mapping)
-        clip["controls"] = ["bodyPivot", "shadow", "pose"]
+        clip["controls"] = ["bodyPivot", "shadow", "pose", "tailPivot"]
+        if cid == "idle":
+            clip["durationMs"] = IDLE_MS
         clip["tracks"] = TRACKS[cid]
         clip["reducedMotionTracks"] = REDUCED[cid]
         clip["description"] = f"Whole-body texture treatment: {clip.get('description', '')}"

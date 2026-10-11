@@ -7,13 +7,14 @@
   "clips": [
     {
       "id": "idle",
-      "durationMs": 3600,
+      "durationMs": 14400,
       "loop": true,
       "expression": "idle",
       "controls": [
         "bodyPivot",
         "shadow",
-        "pose"
+        "pose",
+        "tailPivot"
       ],
       "description": "Whole-body texture treatment: Breathing scaleY ±0.01; tail ±5deg; blink intervals 4000–7000ms, seeded for tests. Pause conflicting channels during interactions.",
       "reducedMotion": "Static neutral with optional gentle expression crossfade",
@@ -27,18 +28,148 @@
               "v": 1.0
             },
             {
-              "t": 900,
-              "v": 1.012,
-              "ease": "sine"
-            },
-            {
-              "t": 2700,
-              "v": 0.994,
+              "t": 1700,
+              "v": 1.015,
               "ease": "sine"
             },
             {
               "t": 3600,
               "v": 1.0,
+              "ease": "sine"
+            },
+            {
+              "t": 5300,
+              "v": 1.015,
+              "ease": "sine"
+            },
+            {
+              "t": 7200,
+              "v": 1.0,
+              "ease": "sine"
+            },
+            {
+              "t": 8900,
+              "v": 1.015,
+              "ease": "sine"
+            },
+            {
+              "t": 10800,
+              "v": 1.0,
+              "ease": "sine"
+            },
+            {
+              "t": 12500,
+              "v": 1.015,
+              "ease": "sine"
+            },
+            {
+              "t": 14400,
+              "v": 1.0,
+              "ease": "sine"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "scaleX",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 1.0
+            },
+            {
+              "t": 1700,
+              "v": 0.996,
+              "ease": "sine"
+            },
+            {
+              "t": 3600,
+              "v": 1.0,
+              "ease": "sine"
+            },
+            {
+              "t": 5300,
+              "v": 0.996,
+              "ease": "sine"
+            },
+            {
+              "t": 7200,
+              "v": 1.0,
+              "ease": "sine"
+            },
+            {
+              "t": 8900,
+              "v": 0.996,
+              "ease": "sine"
+            },
+            {
+              "t": 10800,
+              "v": 1.0,
+              "ease": "sine"
+            },
+            {
+              "t": 12500,
+              "v": 0.996,
+              "ease": "sine"
+            },
+            {
+              "t": 14400,
+              "v": 1.0,
+              "ease": "sine"
+            }
+          ]
+        },
+        {
+          "node": "tailPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 1200,
+              "v": 5,
+              "ease": "sine"
+            },
+            {
+              "t": 3600,
+              "v": -5,
+              "ease": "sine"
+            },
+            {
+              "t": 4800,
+              "v": 0,
+              "ease": "sine"
+            },
+            {
+              "t": 6000,
+              "v": 5,
+              "ease": "sine"
+            },
+            {
+              "t": 8400,
+              "v": -5,
+              "ease": "sine"
+            },
+            {
+              "t": 9600,
+              "v": 0,
+              "ease": "sine"
+            },
+            {
+              "t": 10800,
+              "v": 5,
+              "ease": "sine"
+            },
+            {
+              "t": 13200,
+              "v": -5,
+              "ease": "sine"
+            },
+            {
+              "t": 14400,
+              "v": 0,
               "ease": "sine"
             }
           ]
@@ -54,7 +185,8 @@
       "controls": [
         "bodyPivot",
         "shadow",
-        "pose"
+        "pose",
+        "tailPivot"
       ],
       "description": "Whole-body texture treatment: Look up, one small double paw wave. Not a full-body walk.",
       "reducedMotion": "softSmile crossfade",
@@ -141,7 +273,8 @@
       "controls": [
         "bodyPivot",
         "shadow",
-        "pose"
+        "pose",
+        "tailPivot"
       ],
       "description": "Whole-body texture treatment: Lean head 7deg towards touch, soft eyes, small tail curve.",
       "reducedMotion": "closedHappy crossfade",
@@ -228,7 +361,8 @@
       "controls": [
         "bodyPivot",
         "shadow",
-        "pose"
+        "pose",
+        "tailPivot"
       ],
       "timeline": [
         {
@@ -411,7 +545,8 @@
       "controls": [
         "bodyPivot",
         "shadow",
-        "pose"
+        "pose",
+        "tailPivot"
       ],
       "description": "Whole-body texture treatment: Gently raise forepaws and look attentive. No repeated urging.",
       "reducedMotion": "curious crossfade",
@@ -473,7 +608,8 @@
       "controls": [
         "bodyPivot",
         "shadow",
-        "pose"
+        "pose",
+        "tailPivot"
       ],
       "description": "Whole-body texture treatment: Slow blink, relaxed posture. Never sadness, tears, or loss of affection.",
       "reducedMotion": "softSmile crossfade",
@@ -530,7 +666,8 @@
       "controls": [
         "bodyPivot",
         "shadow",
-        "pose"
+        "pose",
+        "tailPivot"
       ],
       "description": "Whole-body texture treatment: Slow breathing and slight head tilt; interruption allowed.",
       "reducedMotion": "Static sleepy pose",
@@ -571,7 +708,8 @@
       "controls": [
         "bodyPivot",
         "shadow",
-        "pose"
+        "pose",
+        "tailPivot"
       ],
       "description": "Whole-body texture treatment: Two gentle celebration beats and max three hearts; never full-screen.",
       "reducedMotion": "Happy expression with static small heart; no motion",

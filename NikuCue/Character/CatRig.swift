@@ -99,10 +99,46 @@ final class CatRig {
     func node(_ id: String) -> SKNode? { nodes[id] }
 
     /// Restores every rig node's rest transform. The root is owned by the scene (layout scale/position) and is
-    /// never reset here. Actions are not removed here; callers remove them by key first.
+    /// never reset here. Clip actions are not removed here; callers remove them by key first.
     func resetToRest() {
         for (id, node) in nodes where node !== root {
+            node.removeAction(forKey: CatRig.restEaseKey)
             rest[id]?.apply(to: node)
+        }
+    }
+
+    static let restEaseKey = "rest.ease"
+    /// Per node id, the track properties the next clip drives (`offsetX`, `rotation`, `scaleY`, ...).
+    typealias ControlledProperties = [String: Set<String>]
+
+    /// Prepares the rig for a new clip: properties the clip drives snap to rest (their track takes over on the
+    /// next frame), everything else eases back over `duration`, so a swaying tail or a breathing body never jumps
+    /// when a reaction interrupts the ambient loop.
+    func settle(toRestOver duration: TimeInterval, controlled: ControlledProperties) {
+        for (id, node) in nodes where node !== root {
+            guard let target = rest[id] else { continue }
+            node.removeAction(forKey: CatRig.restEaseKey)
+            let driven = controlled[id] ?? []
+            let drivesX = driven.contains("scale") || driven.contains("scaleX")
+            let drivesY = driven.contains("scale") || driven.contains("scaleY")
+            if driven.contains("offsetX") { node.position.x = target.position.x }
+            if driven.contains("offsetY") { node.position.y = target.position.y }
+            if driven.contains("rotation") { node.zRotation = target.zRotation }
+            if drivesX { node.xScale = target.xScale }
+            if drivesY { node.yScale = target.yScale }
+            if driven.contains("alpha") { node.alpha = target.alpha }
+            var actions: [SKAction] = []
+            if !driven.contains("offsetX"), abs(node.position.x - target.position.x) > 0.01 { actions.append(.moveTo(x: target.position.x, duration: duration)) }
+            if !driven.contains("offsetY"), abs(node.position.y - target.position.y) > 0.01 { actions.append(.moveTo(y: target.position.y, duration: duration)) }
+            if !driven.contains("rotation"), abs(node.zRotation - target.zRotation) > 0.0005 { actions.append(.rotate(toAngle: target.zRotation, duration: duration, shortestUnitArc: true)) }
+            if !drivesX, abs(node.xScale - target.xScale) > 0.0005 { actions.append(.scaleX(to: target.xScale, duration: duration)) }
+            if !drivesY, abs(node.yScale - target.yScale) > 0.0005 { actions.append(.scaleY(to: target.yScale, duration: duration)) }
+            if !driven.contains("alpha"), abs(node.alpha - target.alpha) > 0.005 { actions.append(.fadeAlpha(to: target.alpha, duration: duration)) }
+            guard !actions.isEmpty else { continue }
+            if duration <= 0 { target.apply(to: node); continue }
+            let ease = SKAction.group(actions)
+            ease.timingMode = .easeInEaseOut
+            node.run(ease, withKey: CatRig.restEaseKey)
         }
     }
 

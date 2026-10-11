@@ -12,14 +12,29 @@
   ],
   "poses": {
     "idle": {
-      "imageSet": "MaliIdle",
+      "imageSet": "MaliIdleBody",
       "bounds": [
         -512.0,
         -64,
         512.0,
         960
       ],
-      "floorShiftFromSeated": 2
+      "floorShiftFromSeated": 2,
+      "layers": {
+        "tail": {
+          "imageSet": "MaliIdleTail",
+          "bounds": [
+            -42,
+            -88,
+            238,
+            292
+          ],
+          "pivot": [
+            236.0,
+            132
+          ]
+        }
+      }
     },
     "happy": {
       "imageSet": "MaliHappy",
@@ -95,6 +110,10 @@
   "neverShowOnSkip": [
     "sad"
   ],
+  "layerParts": [
+    "tail"
+  ],
+  "layerNote": "idle.layers.tail is cut from the owner's idle image along the hip outline (tools/character/import_wholebody_pack.py) and rotates behind the body; other poses keep their painted tail",
   "qa": {
     "idle": {
       "removedPixels": 4112,
@@ -103,7 +122,66 @@
         64,
         983,
         959
-      ]
+      ],
+      "tailSplit": {
+        "rows": [
+          539,
+          913
+        ],
+        "cutRange": [
+          735,
+          837
+        ],
+        "underlapPixels": 4844,
+        "droppedFragmentPixels": 43,
+        "cuts": {
+          "540": 834,
+          "550": 813,
+          "560": 800,
+          "570": 789,
+          "580": 790,
+          "590": 793,
+          "600": 768,
+          "610": 753,
+          "620": 793,
+          "630": 746,
+          "640": 752,
+          "650": 757,
+          "660": 759,
+          "670": 762,
+          "680": 764,
+          "690": 761,
+          "700": 795,
+          "710": 762,
+          "720": 763,
+          "730": 775,
+          "740": 772,
+          "750": 769,
+          "760": 776,
+          "770": 779,
+          "780": 782,
+          "790": 789,
+          "800": 790,
+          "810": 788,
+          "820": 793,
+          "830": 790,
+          "840": 783,
+          "850": 778,
+          "860": 773,
+          "870": 770,
+          "880": 768,
+          "890": 762,
+          "910": 740
+        },
+        "restCompositeMaxDiff": 255,
+        "restCompositeMeanDiff": 0.4974,
+        "tailCropBox": [
+          706,
+          536,
+          986,
+          916
+        ]
+      }
     },
     "happy": {
       "removedPixels": 4279,

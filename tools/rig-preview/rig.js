@@ -7,7 +7,7 @@
 (function (global) {
   'use strict';
 
-  const EXPRESSION_BLEND_MS = 100;
+  const DEFAULT_EXPRESSION_BLEND_MS = 100;   // parts rig (docs/04 §5); animations.json may state its own expressionBlendMs
 
   function parsePath(d) {
     const toks = d.replace(/,/g, ' ').trim().split(/\s+/);
@@ -104,6 +104,8 @@
       this.rng = mulberry32(this.opts.seed);
       this.time = 0;
       this.listeners = [];
+      this.blendMs = anims.expressionBlendMs || DEFAULT_EXPRESSION_BLEND_MS;
+      this.settling = null;   // residual transforms easing back to rest after a clip interrupts the ambient loop
     }
 
     _compile(part) {
@@ -125,6 +127,17 @@
       const t = now == null ? this.time : now;
       if (def.loop) { this.ambientId = clipId; this.ambientStart = t; this.clip = null; this.resetTransforms(); this.setExpression(def.expression, t); return; }
       this.clip = { id: clipId, def, start: t };
+      // Mirrors CatRig.settle: properties the clip drives snap to rest, the rest (idle tail sway, breathing) ease back.
+      const controlled = {};
+      for (const tr of (this.opts.reduceMotion ? def.reducedMotionTracks : def.tracks) || []) (controlled[tr.node] = controlled[tr.node] || new Set()).add(tr.property);
+      const from = {};
+      for (const id in this.nodes) {
+        const n = this.nodes[id], c = controlled[id] || new Set();
+        const r = { dx: c.has('offsetX') ? 0 : n.dx, dy: c.has('offsetY') ? 0 : n.dy, rot: c.has('rotation') ? 0 : n.rot,
+                    sx: (c.has('scale') || c.has('scaleX')) ? 0 : n.sx - 1, sy: (c.has('scale') || c.has('scaleY')) ? 0 : n.sy - 1 };
+        if (Math.abs(r.dx) + Math.abs(r.dy) + Math.abs(r.rot) + Math.abs(r.sx) + Math.abs(r.sy) > 1e-4) from[id] = r;
+      }
+      this.settling = Object.keys(from).length ? { start: t, from } : null;
       this.resetTransforms();
       if (clipId === 'milestone' && !this.opts.reduceMotion) this.spawnHearts(t);
       if (clipId === 'milestone' && this.opts.reduceMotion) { const h = def.hearts.reducedMotion; this.hearts = [{ born: t, x: h.position[0], y: h.position[1], static: true, scale: h.scale }]; }
@@ -169,6 +182,16 @@
         else if (tr.property === 'scaleY') n.sy *= v;
         else if (tr.property === 'scale') { n.sx *= v; n.sy *= v; }
         else if (tr.property === 'alpha') n.alpha *= v;
+      }
+      if (this.settling) {
+        const u = Math.min(1, (t - this.settling.start) / this.blendMs);
+        const k = 1 - EASE.easeInOut(u);
+        for (const id in this.settling.from) {
+          const n = this.nodes[id]; if (!n) continue;
+          const r = this.settling.from[id];
+          n.dx += r.dx * k; n.dy += r.dy * k; n.rot += r.rot * k; n.sx *= 1 + r.sx * k; n.sy *= 1 + r.sy * k;
+        }
+        if (u >= 1) this.settling = null;
       }
       // blink: ambient only, seeded intervals from animations.json; only rigs with eye nodes and blink.enabled !== false
       // (the whole-body texture rig has neither: no fake blinks by stretching a portrait)
@@ -216,7 +239,7 @@
       }
       if (art.variants) {
         const cur = art.variants[this.expression] || art.variants.neutral || art.variants[this.spec.expressions[0]];
-        const blendT = Math.min(1, (this.time - this.expressionBlendStart) / EXPRESSION_BLEND_MS);
+        const blendT = Math.min(1, (this.time - this.expressionBlendStart) / this.blendMs);
         if (this.prevExpression && blendT < 1) {
           const prev = art.variants[this.prevExpression] || art.variants.neutral;
           this._drawLayers(ctx, prev.layers, alpha * (1 - blendT));
@@ -228,8 +251,10 @@
     }
 
     _drawPackPart(ctx, id, part, alpha) {
-      const pick = (expr) => part.variants ? (part.variants[expr] || part.variants.neutral || part.variants[this.spec.expressions[0]]) : part;
+      // strictVariants (whole-body pack): a look without this layer draws nothing instead of falling back
+      const pick = (expr) => part.variants ? (this.pack.strictVariants ? part.variants[expr] : (part.variants[expr] || part.variants.neutral || part.variants[this.spec.expressions[0]])) : part;
       const draw = (d, a) => {
+        if (!d) return;
         const img = this.images[d.texture]; if (!img || !d.bounds) return;
         const [x0, y0, x1, y1] = d.bounds;
         ctx.save(); ctx.globalAlpha = a; ctx.scale(1, -1); // image rows are y-down; flip back inside the y-up rig space
@@ -237,7 +262,7 @@
         ctx.restore();
       };
       if (part.variants) {
-        const blendT = Math.min(1, (this.time - this.expressionBlendStart) / EXPRESSION_BLEND_MS);
+        const blendT = Math.min(1, (this.time - this.expressionBlendStart) / this.blendMs);
         if (this.prevExpression && blendT < 1) { draw(pick(this.prevExpression), alpha * (1 - blendT)); draw(pick(this.expression), alpha * blendT); }
         else draw(pick(this.expression), alpha);
       } else draw(part, alpha);

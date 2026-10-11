@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "docs" / "assets" / "mali_v1"
@@ -32,6 +32,17 @@ CLIP_POSES = {"idle": "idle", "greet": "happy", "pet": "pet", "celebrate": "cele
 # Rig expressions (engine vocabulary) → poses, so existing reaction intents keep working.
 EXPRESSION_MAP = {"neutral": "idle", "softSmile": "happy", "closedHappy": "happy", "curious": "happy", "sleepy": "sleepy"}
 SEATED_FLOOR_FROM_TOP = 961  # alpha bbox bottom shared by the seated textures (asset manifest QA)
+# Idle tail layer (owner request 2026-10-11: tail sway while idle). The tail is cut out of the owner's idle image along
+# the hip outline so it can rotate as its own sprite BEHIND the body; everything is derived, nothing is redrawn.
+TAIL_ROWS = (500, 915)        # image rows (y down) that can hold tail pixels right of the cut
+TAIL_GAP_ROWS_END = 722       # above this row the cheek and the tail are separated by transparent background
+TAIL_PIVOT_IMG = (748, 828)   # tail base behind the hip, image pixels (x right, y down)
+TAIL_UNDERLAP = 28            # tail pixels extended under the body so a sway never shows a gap at the hip
+# Hip/hind-leg outline below the gap, read from artifacts/mali-assets-v1/tail_split_check.png (image px, y down).
+# The cut snaps to the stroke found within ±8 px of this guide so the tail's own fur strokes are not mistaken for it.
+HIP_GUIDE = [(765, 722), (772, 745), (780, 768), (787, 795), (792, 813), (790, 828), (781, 840), (770, 862),
+             (765, 880), (757, 895), (745, 906), (733, 913), (725, 916)]
+TAIL_IMAGESETS = {"body": "MaliIdleBody", "tail": "MaliIdleTail"}
 # Rig frame: the floor centre (root) sits GROUND_Y units above the frame bottom (room for the shadow ellipse),
 # and the frame top leaves LIFT_HEADROOM above the tallest pose for the celebrate lift (34 units) and hearts.
 GROUND_Y = 60
@@ -52,6 +63,201 @@ def clean(im: Image.Image) -> tuple[Image.Image, dict]:
     ys, xs = np.where(alpha > 0)
     bbox = [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())]
     return cleaned, {"removedPixels": removed, "opaqueBBox": bbox}
+
+
+def _stroke_like(px) -> bool:
+    r, g, b, a = px
+    lum = (r * 299 + g * 587 + b * 114) // 1000
+    return a > 200 and (r - b) > 60 and lum < 215
+
+
+def _guide_x(y: int) -> int | None:
+    """Linear interpolation of HIP_GUIDE at row y (None outside its rows)."""
+    for (x0, y0), (x1, y1) in zip(HIP_GUIDE, HIP_GUIDE[1:]):
+        if y0 <= y <= y1:
+            return round(x0 + (x1 - x0) * (y - y0) / (y1 - y0))
+    return None
+
+
+def tail_cut(im: Image.Image) -> dict[int, int]:
+    """Per image row, the first x that belongs to the tail (rows without a tail are absent).
+
+    Rows above TAIL_GAP_ROWS_END: cheek/body and tail are separated by transparent background. The tail is the
+    first opaque run that is at least 12 px wide and starts right of x=760 (whisker tips are thinner); the cut is
+    the middle of the gap just left of it. Rows below: body fur and the tail's underside are separated by the
+    hip outline stroke (soft tan line); the cut is just right of the first stroke run found from x=720. Rows
+    whose stroke could not be found are interpolated from their neighbours. Nothing is smoothed: a jagged cut
+    inside transparent background is invisible, and the stroke is continuous by itself."""
+    px = im.load()
+    w, h = im.size
+    cuts: dict[int, int | None] = {}
+    for y in range(*TAIL_ROWS):
+        if y < TAIL_GAP_ROWS_END:
+            runs = []
+            x = 690
+            while x < w:
+                while x < w and px[x, y][3] <= 40: x += 1
+                if x >= w: break
+                s0 = x
+                while x < w and px[x, y][3] > 40: x += 1
+                runs.append((s0, x))
+            big = [r for r in runs if r[1] - r[0] >= 10 and r[0] >= 760]
+            if not big:
+                continue
+            tail_start = big[0][0]
+            prev_end = max([r[1] for r in runs if r[1] <= tail_start], default=None)
+            cuts[y] = (prev_end + tail_start) // 2 if prev_end is not None else tail_start - 2
+        else:
+            guide = _guide_x(y)
+            if guide is None:
+                continue
+            runs = []
+            x = guide - 8
+            while x <= guide + 8:
+                if _stroke_like(px[x, y]) and _stroke_like(px[x + 1, y]):
+                    end = x
+                    while end < w - 1 and _stroke_like(px[end, y]): end += 1
+                    runs.append((x, end))
+                    x = end
+                x += 1
+            # A real outline stroke is 3-8 px wide; longer stroke-like runs are the tail's shaded underside.
+            strokes = [r for r in runs if r[1] - r[0] <= 8]
+            if strokes:
+                end = min(strokes, key=lambda r: abs((r[0] + r[1]) / 2 - guide))[1]
+                cuts[y] = end + 1
+            else:
+                cuts[y] = guide + 2
+    # interpolate missing stroke rows between found neighbours
+    stroke_rows = [y for y in range(TAIL_GAP_ROWS_END, TAIL_ROWS[1]) if y in cuts]
+    known = [y for y in stroke_rows if cuts[y] is not None]
+    for y in stroke_rows:
+        if cuts[y] is None:
+            below = [k for k in known if k > y]; above = [k for k in known if k < y]
+            if above and below:
+                a, b = above[-1], below[0]
+                cuts[y] = round(cuts[a] + (cuts[b] - cuts[a]) * (y - a) / (b - a))
+            elif above: cuts[y] = cuts[above[-1]]
+            elif below: cuts[y] = cuts[below[0]]
+    out = {}
+    for y, cut in cuts.items():
+        if cut is None: continue
+        if any(px[xx, y][3] > 40 for xx in range(cut, w)):
+            out[y] = cut
+    return out
+
+
+def largest_component(mask: np.ndarray) -> np.ndarray:
+    """Keeps the largest 8-connected component of a boolean mask (drops stray fragments)."""
+    h, w = mask.shape
+    seen = np.zeros_like(mask, dtype=bool)
+    best: list[tuple[int, int]] = []
+    ys, xs = np.where(mask)
+    for sy, sx in zip(ys.tolist(), xs.tolist()):
+        if seen[sy, sx]: continue
+        stack = [(sy, sx)]; seen[sy, sx] = True; comp = []
+        while stack:
+            cy, cx = stack.pop(); comp.append((cy, cx))
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    ny, nx = cy + dy, cx + dx
+                    if 0 <= ny < h and 0 <= nx < w and mask[ny, nx] and not seen[ny, nx]:
+                        seen[ny, nx] = True; stack.append((ny, nx))
+        if len(comp) > len(best): best = comp
+    out = np.zeros_like(mask)
+    for cy, cx in best: out[cy, cx] = True
+    return out
+
+
+def split_tail(idle: Image.Image) -> tuple[Image.Image, Image.Image, list[int], dict]:
+    """Returns (body without tail, tail layer cropped, tail crop box [x0,y0,x1,y1], qa)."""
+    a = np.array(idle.convert("RGBA"))
+    h, w = a.shape[:2]
+    cuts = tail_cut(idle)
+    mask = np.zeros((h, w), dtype=bool)
+    for y, cut in cuts.items():
+        mask[y, cut:] = True
+    mask &= a[:, :, 3] > 0
+    fragments_before = int(mask.sum())
+    mask = largest_component(mask)
+    dropped_fragments = fragments_before - int(mask.sum())
+    # Grow into the narrow rows at the top of the tail curl (x >= 790, above the body) that the run rule skipped.
+    opaque = a[:, :, 3] > 0
+    grow_zone = np.zeros_like(mask); grow_zone[:600, 790:] = True
+    for _ in range(12):
+        neigh = np.zeros_like(mask)
+        neigh[1:, :] |= mask[:-1, :]; neigh[:-1, :] |= mask[1:, :]; neigh[:, 1:] |= mask[:, :-1]; neigh[:, :-1] |= mask[:, 1:]
+        added = neigh & opaque & grow_zone & ~mask
+        if not added.any(): break
+        mask |= added
+    body = a.copy()
+    body[mask] = 0
+    tail = a.copy()
+    tail[~mask] = 0
+    # Underlap: extend the tail's edge pixel leftwards under the body on rows where tail and body touch.
+    underlapped = 0
+    for y, cut in cuts.items():
+        if a[y, cut, 3] <= 40 or cut - 1 < 0 or a[y, cut - 1, 3] <= 40:
+            continue                                                # gap row: real silhouette, nothing to hide
+        edge = a[y, cut].copy()
+        for i in range(1, TAIL_UNDERLAP + 1):
+            x = cut - i
+            if x < 0: break
+            feather = 1.0 if i <= TAIL_UNDERLAP - 10 else max(0.0, (TAIL_UNDERLAP - i) / 10)
+            tail[y, x] = edge
+            tail[y, x, 3] = int(edge[3] * feather)
+            underlapped += 1
+    ys, xs = np.where(tail[:, :, 3] > 0)
+    box = [int(xs.min()) - 2, int(ys.min()) - 2, int(xs.max()) + 3, int(ys.max()) + 3]
+    tail_img = Image.fromarray(tail, "RGBA").crop(box)
+    body_img = Image.fromarray(body, "RGBA")
+    # Rest composite must reproduce the original exactly where the body is opaque (tail is drawn behind).
+    comp = Image.new("RGBA", idle.size, (0, 0, 0, 0))
+    comp.alpha_composite(tail_img, (box[0], box[1]))
+    comp.alpha_composite(body_img)
+    diff = np.abs(np.array(comp).astype(int) - a.astype(int))
+    qa = {"rows": [min(cuts), max(cuts)], "cutRange": [min(cuts.values()), max(cuts.values())], "underlapPixels": underlapped,
+          "droppedFragmentPixels": dropped_fragments, "cuts": {str(y): c for y, c in cuts.items() if y % 10 == 0},
+          "restCompositeMaxDiff": int(diff.max()), "restCompositeMeanDiff": round(float(diff.mean()), 4), "tailCropBox": box}
+    return body_img, tail_img, box, qa
+
+
+def tail_check_sheet(idle: Image.Image, body: Image.Image, tail: Image.Image, box: list[int], cuts: dict[int, int]) -> Image.Image:
+    """Review sheet: original | body | tail, then rest / -5° / +5° composites on light and dark surfaces."""
+    px, py = TAIL_PIVOT_IMG
+    def composite(angle_deg: float) -> Image.Image:
+        layer = Image.new("RGBA", idle.size, (0, 0, 0, 0))
+        layer.alpha_composite(tail, (box[0], box[1]))
+        if angle_deg:
+            layer = layer.rotate(angle_deg, resample=Image.BICUBIC, center=(px, py))
+        layer.alpha_composite(body)
+        return layer
+    tiles = [("original", idle), ("body", body)]
+    tail_full = Image.new("RGBA", idle.size, (0, 0, 0, 0)); tail_full.alpha_composite(tail, (box[0], box[1]))
+    tiles.append(("tail layer", tail_full))
+    for ang in (0, -5, 5):
+        tiles.append((f"composite {ang:+d}°", composite(ang)))
+    size = 300
+    sheet = Image.new("RGB", (6 * (size + 10) + 10, 2 * (size + 30) + 10), (251, 239, 217))
+    draw = ImageDraw.Draw(sheet)
+    for row, bg in enumerate(((251, 239, 217), (36, 30, 27))):
+        for col, (label, im) in enumerate(tiles):
+            cell = Image.new("RGB", im.size, bg); cell.paste(im, (0, 0), im)
+            x = 10 + col * (size + 10); y = 10 + row * (size + 30)
+            draw.rectangle([x, y, x + size, y + size], fill=bg)
+            sheet.paste(cell.resize((size, size), Image.LANCZOS), (x, y))
+            draw.text((x + 4, y + size + 4), label, fill=(90, 70, 60))
+    # zoomed junction: cut line on the original, then rest / +5° / -5° composites, light background
+    overlay = Image.new("RGB", idle.size, (251, 239, 217)); overlay.paste(idle, (0, 0), idle)
+    od = ImageDraw.Draw(overlay)
+    for y, cut in cuts.items(): od.point((cut, y), fill=(220, 30, 30))
+    od.ellipse([px - 5, py - 5, px + 5, py + 5], outline=(30, 90, 220), width=2)
+    zoom_src = [overlay.crop((640, 480, 900, 940))] + [composite(a).crop((640, 480, 900, 940)) for a in (0, 5, -5)]
+    zsheet = Image.new("RGB", (4 * 270, 470), (251, 239, 217))
+    for i, z in enumerate(zoom_src):
+        cell = Image.new("RGB", z.size, (251, 239, 217)); cell.paste(z, (0, 0), z.getchannel("A") if z.mode == "RGBA" else None); zsheet.paste(cell, (i * 270, 5))
+    out = Image.new("RGB", (sheet.width, sheet.height + zsheet.height + 10), (251, 239, 217))
+    out.paste(sheet, (0, 0)); out.paste(zsheet, (10, sheet.height + 5))
+    return out
 
 
 def main() -> None:
@@ -92,6 +298,30 @@ def main() -> None:
     for name, sheet in sheets.items():
         sheet.save(ART / f"inspection_{name}.png")
 
+    # Idle tail layer: body (full frame, tail removed) + tail crop that rotates around TAIL_PIVOT_IMG behind the body.
+    idle_clean = Image.open(CATALOG / f"{IMAGESET['idle']}.imageset" / "mali_idle.png").convert("RGBA")
+    body_img, tail_img, tail_box, tail_qa = split_tail(idle_clean)
+    for key, png_name, im in (("body", "mali_idle_body.png", body_img), ("tail", "mali_idle_tail.png", tail_img)):
+        folder = CATALOG / f"{TAIL_IMAGESETS[key]}.imageset"
+        folder.mkdir(exist_ok=True)
+        im.save(folder / png_name, optimize=True)
+        (folder / "Contents.json").write_text(json.dumps({
+            "images": [{"filename": png_name, "idiom": "universal"}],
+            "info": {"author": "xcode", "version": 1},
+        }, indent=2) + "\n", encoding="utf-8")
+    # The whole idle image is no longer shipped (body + tail reproduce it at rest); keep the catalog lean.
+    whole_idle = CATALOG / f"{IMAGESET['idle']}.imageset"
+    for f in whole_idle.glob("*"): f.unlink()
+    whole_idle.rmdir()
+    px, py = TAIL_PIVOT_IMG
+    idle_floor = -poses["idle"]["bounds"][1]                       # floor_from_bottom for idle
+    pivot_rel_root = [px - width / 2, (height - py) - idle_floor]  # design units, y up, relative to the floor centre
+    tail_bounds = [tail_box[0] - px, py - tail_box[3], tail_box[2] - px, py - tail_box[1]]
+    poses["idle"]["imageSet"] = TAIL_IMAGESETS["body"]
+    poses["idle"]["layers"] = {"tail": {"imageSet": TAIL_IMAGESETS["tail"], "bounds": tail_bounds, "pivot": pivot_rel_root}}
+    qa["idle"]["tailSplit"] = tail_qa
+    tail_check_sheet(idle_clean, body_img, tail_img, tail_box, tail_cut(idle_clean)).save(ART / "tail_split_check.png")
+
     union = [min(q["opaqueBBox"][0] for q in qa.values()), min(q["opaqueBBox"][1] for q in qa.values()),
              max(q["opaqueBBox"][2] for q in qa.values()), max(q["opaqueBBox"][3] for q in qa.values())]
     pack = {
@@ -108,6 +338,8 @@ def main() -> None:
         "expressionMap": EXPRESSION_MAP,
         "optionalPoses": ["sad"],
         "neverShowOnSkip": ["sad"],
+        "layerParts": ["tail"],
+        "layerNote": "idle.layers.tail is cut from the owner's idle image along the hip outline (tools/character/import_wholebody_pack.py) and rotates behind the body; other poses keep their painted tail",
         "qa": qa,
     }
     (RES / "mali_poses.json").write_text(json.dumps(pack, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -132,13 +364,17 @@ def main() -> None:
             {"id": "root", "parent": None, "position": [width // 2, GROUND_Y], "z": 0, "kind": "pivot"},
             {"id": "shadow", "parent": "root", "position": [0, 0], "z": 0, "kind": "ellipse", "size": [360, 44], "scale": 2.1, "fill": "shadow"},
             {"id": "bodyPivot", "parent": "root", "position": [0, 0], "z": 1, "kind": "pivot"},
+            {"id": "tailPivot", "parent": "bodyPivot", "position": pivot_rel_root, "z": 1, "kind": "pivot"},
+            {"id": "tail", "parent": "tailPivot", "position": [0, 0], "z": 0, "kind": "layerSprite",
+             "size": [tail_box[2] - tail_box[0], tail_box[3] - tail_box[1]]},
             {"id": "pose", "parent": "bodyPivot", "position": [0, 0], "z": 2, "kind": "poseSprite", "size": [width, height]},
         ],
         "note": "Generated by tools/character/import_wholebody_pack.py from the owner's asset pack.",
     }
     (RES / "mali_wholebody_spec.json").write_text(json.dumps(spec, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"poses": {p: {"removed": qa[p]["removedPixels"], "bbox": qa[p]["opaqueBBox"], "floorShift": poses[p]["floorShiftFromSeated"]} for p in POSES},
-                      "designSize": spec["designSize"], "aboveFloorMax": above_max}, indent=1))
+                      "designSize": spec["designSize"], "aboveFloorMax": above_max, "tail": tail_qa,
+                      "tailPivotRelRoot": pivot_rel_root, "tailBounds": tail_bounds}, indent=1))
 
 
 if __name__ == "__main__":

@@ -268,3 +268,19 @@ python3 tools/rig-preview/build.py && node tools/rig-preview/capture.mjs --out a
 
 **未実施（この環境に macOS がない）**: アプリターゲットのコンパイル、`WholeBodyArtProviderTests` を含む XCTest、Simulator / 実機での表示と画面録画、メモリ（1024² × 6 枚、ポーズごとに遅延読込、メモリ警告で `purgeCache`）、30 fps 確認。手順は `docs/OWNER_NEXT_STEPS.md` §4。「6 枚で高度なアニメーションが完成した」とは扱わない。`isProductionArt: false`、R02 は開いたまま。
 
+### 待機中の呼吸と尻尾の揺れ（2026-10-11, オーナー要望「もっと生きてる感じに」）
+
+| ID | 決定 | 根拠 |
+|---|---|---|
+| D-WB-7 | 待機（idle）に、見える呼吸（縦 +1.5 % / 横 −0.4 %、3.6 秒周期、sine）と尻尾の揺れ（±5°、4.8 秒周期）を入れる。ループは 14.4 秒（呼吸 4 回・揺れ 3 回）で、二つのリズムがずれ続けて機械的に見えない | アセット README §6: 呼吸は 1.5 % 以内、尻尾は**別レイヤー**でのみ動かす（一枚絵を伸縮させない） |
+| D-WB-8 | 尻尾レイヤーはオーナーの idle 画像から切り出して派生させる（新規の絵は描かない）。上半分は頬と尻尾の間の透明な隙間、下半分は腰の輪郭線（手で読んだガイド `HIP_GUIDE` に ±8 px で線をスナップ）で切り、尻尾は体の**後ろ**に描く。付け根（画像 px (748, 828)）を軸に回す。切り口の下に 28 px 分尻尾の縁を延長して、揺れても腰に隙間が出ない | 原画の雰囲気を保ったまま今すぐ動かせる最小の手段。正式な尻尾レイヤーが納品されたら `MaliIdleTail` を差し替えるだけ |
+| D-WB-9 | 反応が揺れの途中で始まるとき、クリップが動かさないプロパティ（尻尾の回転、呼吸の scale）は 180 ms でそっと戻し、クリップが動かすプロパティだけ即座に rest へ（`CatRig.settle`） | 揺れた尻尾が反応開始の瞬間に跳ねるのを防ぐ。プレビューも同じ規則（`rig.js` の settling） |
+
+**データ契約**: `mali_poses.json` の `poses.idle.imageSet` は `MaliIdleBody`（尻尾を抜いた全身、1024 フレームのまま）、`poses.idle.layers.tail` = {`MaliIdleTail`（281 × 380 の切り出し）, 付け根基準の bounds, `pivot`（床中心基準 [236, 132]）}、`layerParts: ["tail"]`。rig には `tailPivot`（bodyPivot の子、z 1）と `tail`（tailPivot の子）を追加し、`pose`（z 2）の後ろに描く。他のポーズは描き込みの尻尾のまま（レイヤーなし）。`MaliIdle` 単体の画像セットは同梱しない（body + tail が静止時に同じ絵になる）。
+
+**変更ファイル**: `tools/character/import_wholebody_pack.py`（`tail_cut` / `split_tail` / `largest_component` / 検査シート `artifacts/mali-assets-v1/tail_split_check.png`）、`generate_wholebody_tracks.py`（idle 14.4 秒、scaleX/scaleY/tailPivot rotation）、`WholeBodyArtProvider.swift`（`Layer` / `layerParts` / レイヤー部品の `art` と検証、preload）、`CatRig.swift`（`settle(toRestOver:controlled:)`、`restEaseKey`）、`CatSceneController.swift`（start 時に settle、stop の reset を選択制に）、`scripts/check_resources.py`（レイヤー画像セット・bounds・pivot 一致・z 順・tailPivot ≤ 8°）、`tools/rig-preview/`（レイヤー部品の strict variants、settle、`expressionBlendMs` を JSON から、idle の静止画 6 枚 + 反応直後 1 枚）、`NikuCueTests/WholeBodyArtProviderTests.swift`（ノード 6、レイヤー art、settle、未実行）。
+
+**切り出しの検査**（`check_resources.py` PASS）: 尻尾の行 539〜913、切り口 x 735〜837、孤立断片 43 px を体へ戻し、延長 4844 px。静止時の合成は掃除済み idle と一致（体の縁の半透明画素の下に尻尾の延長が入る分だけ差。平均 0.50/255）。検査シートで −5° / +5° の合成と腰の拡大を確認。初回は中央値平滑化が頬と腰に切り口を引き込み、ひげの先が尻尾側に入った → 隙間行は「幅 10 px 以上の不透明 run」、腰はガイド線スナップ、最大連結成分のみ採用、に変更して解消。
+
+**ブラウザ確認**: 待機 0 / 1.2 / 2.4 / 3.6 / 6.0 / 8.4 秒の静止画で揺れと呼吸、`12_greet_after_sway` で反応開始時に尻尾が跳ねないことを確認（`artifacts/mali-assets-v1/preview/`）。**未実施**: Simulator / 実機。
+

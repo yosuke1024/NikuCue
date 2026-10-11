@@ -11,7 +11,7 @@
 | A3 | SpriteKit、ノード階層（`character_spec.json`）、キーフレーム（`animations.json`）、`CatRig` / `AnimationLibrary` / `CatSceneController`、Domain（反応エンジン・キュー・習慣ロジック）は**そのまま維持** |
 | A4 | 原画の差し替えは `CharacterArtProvider` の実装差し替え（`TexturePackArtProvider`）と `mali_texture_pack.json` の同梱で行い、状態遷移・習慣ロジックには触れない |
 | A5 | 正式な原画がオーナーから提供され、Gallery で承認されるまで、猫のビジュアルは**未完成**（RELEASE_BLOCKERS R02 は開いたまま） |
-| A6 | **暫定段階（2026-10-10 〜）**: オーナー提供の全身イラスト 6 枚（`docs/assets/mali_v1`）を `WholeBodyArtProvider` で表示し、クリップごとにポーズを cross-fade + 軽い動き（持ち上げ・小さな傾き・呼吸 ≤ 1.5 %）で見せる。パーツ分け原画（A2）が来るまでの置き換えであり、瞬き・しっぽ・手足は動かさない。製品ビジュアルの完成扱いはしない |
+| A6 | **暫定段階（2026-10-10 〜）**: オーナー提供の全身イラスト 6 枚（`docs/assets/mali_v1`）を `WholeBodyArtProvider` で表示し、クリップごとにポーズを cross-fade + 軽い動き（持ち上げ・小さな傾き・呼吸 ≤ 1.5 %）で見せる。パーツ分け原画（A2）が来るまでの置き換えであり、瞬き・手足は動かさない。例外として待機中の尻尾は、オーナーの idle 画像から切り出した派生レイヤー（`MaliIdleTail`、`poses.idle.layers.tail`）を付け根で回す（2026-10-11、REV-WB-3）。製品ビジュアルの完成扱いはしない |
 
 ## 1. 現在の実装の仕分け
 
@@ -94,6 +94,7 @@ AppContainer
 ```
 
 - 全身段階の契約: `mali_poses.json`（ポーズ → image set、床中心基準の bounds、clip → ポーズ、`expressionMap`、`optionalPoses` / `neverShowOnSkip`）。各ポーズは同じ 1024 フレームを保ち、bounds でポーズごとの床を root に合わせる（実行時クロップなし）。rig フレームは 1024 × 1066、root = (512, 60)、`designSize` = フレーム。`CatScene.layoutRig` は designSize を画面の 92 % に収め root を下端 6 % に置くので、最も高いポーズ + 持ち上げ + ハートがフレーム内に収まる（`check_resources.py` が検証）。
+- レイヤー部品（`layerParts`、現在は `tail`）: ポーズごとに任意。`poses.<pose>.layers.<part>` があるポーズだけその rig ノード（`<part>`、親は `<part>Pivot`）に絵が出て、無いポーズは空になる（cross-fade で自然に消える）。レイヤーの bounds は pivot ノード基準。正式な尻尾レイヤーが来たら画像セットと bounds を差し替えるだけで、track（`tailPivot` の rotation）はそのまま使える。
 - パーツ分け原画が納品されたら `mali_poses.json` を同梱から外す（または `build_texture_pack.py` の出力を同梱する）だけで A2 の経路に戻る。状態遷移・反応・習慣ロジックは触らない。
 
 - `TexturePackArtProvider.art(for:expression:pixelsPerUnit:)`: manifest の part / variant を引き、テクスチャを `SKTextureAtlas(named:)`（`MaliParts.spriteatlas`、Xcode が自動でアトラス化）か同梱 PNG から取得。`size` = bounds の幅・高さ（units）、`anchorPoint` = bounds から計算。`pixelsPerUnit` 引数は無視（画像の解像度は固定）。

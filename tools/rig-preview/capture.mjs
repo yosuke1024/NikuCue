@@ -25,6 +25,7 @@ async function still(name, setup, t) {
     m.rig.clip = null; m.rig.hearts = []; m.rig.play('idle', 0); m.rig.prevExpression = null;
     m.setVirtual(0);
     if (setup.expression) m.setExpression(setup.expression);
+    if (setup.idleLead) { m.rig.update(setup.idleLead); m.setVirtual(setup.idleLead); }   // run the ambient loop first
     if (setup.clip) m.play(setup.clip);
     if (setup.room) m.setRoom(setup.room);
     m.setVirtual(t); m.rig.prevExpression = null;
@@ -49,6 +50,11 @@ await still('07_settle_blink', { clip: 'settle' }, 520);
 await still('08_doze', { clip: 'doze' }, 1200);
 await still('09_milestone_hearts', { clip: 'milestone' }, 700);
 await still('10_night_room_doze', { clip: 'doze', room: 'night' }, 2400);
+await page.evaluate(() => window.__mali.setRoom('day'));
+// idle life: breathing (3.6 s) and tail sway (4.8 s) drift against each other over the 14.4 s loop
+for (const t of [0, 1200, 2400, 3600, 6000, 8400]) await still(`11_idle_${String(t).padStart(5, '0')}ms`, { clip: 'idle' }, t);
+// a reaction interrupting the sway: the tail eases back instead of snapping (settle)
+await still('12_greet_after_sway_0060ms', { clip: 'greet', idleLead: 1200 }, 60);
 await page.evaluate(() => window.__mali.setRoom('day'));
 
 // contact sheet of expressions + a 64px check

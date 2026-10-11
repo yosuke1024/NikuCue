@@ -57,6 +57,49 @@ final class WholeBodyArtProviderTests: XCTestCase {
         }
         XCTAssertNotNil(provider.art(for: "shadow", look: nil, pixelsPerUnit: 1), "decorations come from the placeholder provider")
         XCTAssertNotNil(provider.art(for: "heart", look: nil, pixelsPerUnit: 1))
+        for (name, pose) in pack.poses {
+            for (part, layer) in pose.layers ?? [:] {
+                let art = provider.art(for: part, look: name, pixelsPerUnit: 1)
+                XCTAssertNotNil(art, "layer image set \(layer.imageSet) must load")
+                if let art {
+                    XCTAssertEqual(art.size.width, layer.bounds[2] - layer.bounds[0], accuracy: 0.5)
+                    XCTAssertEqual(art.size.height, layer.bounds[3] - layer.bounds[1], accuracy: 0.5)
+                }
+            }
+        }
+    }
+
+    /// The idle tail is its own layer behind the body; other poses carry their painted tail and show no layer.
+    func testIdleTailLayerIsSeparateAndSways() throws {
+        let (rig, anims, pack, paths) = try loadBundled()
+        XCTAssertEqual(pack.layerParts, ["tail"])
+        let tail = try XCTUnwrap(pack.poses["idle"]?.layers?["tail"])
+        XCTAssertEqual(tail.imageSet, "MaliIdleTail")
+        let pivot = try XCTUnwrap(rig.node("tailPivot"))
+        XCTAssertEqual(pivot.parent, "bodyPivot")
+        XCTAssertEqual(tail.pivot?[0] ?? -1, pivot.position[0], accuracy: 0.5)
+        XCTAssertEqual(tail.pivot?[1] ?? -1, pivot.position[1], accuracy: 0.5)
+        XCTAssertLessThan(pivot.z, try XCTUnwrap(rig.node("pose")).z, "tail draws behind the body")
+        let provider = WholeBodyArtProvider(pack: pack, decorations: VectorArtProvider(paths: paths)) { self.solidTexture($0) }
+        XCTAssertTrue(provider.hasVariants("tail"))
+        XCTAssertNotNil(provider.art(for: "tail", look: "idle", pixelsPerUnit: 1))
+        XCTAssertNil(provider.art(for: "tail", look: "happy", pixelsPerUnit: 1), "happy keeps its painted tail; the layer is empty")
+        XCTAssertNil(provider.art(for: "tail", look: nil, pixelsPerUnit: 1))
+        let idle = try XCTUnwrap(anims.clip(.idle))
+        let sway = try XCTUnwrap(idle.tracks.first { $0.node == "tailPivot" && $0.property == "rotation" })
+        XCTAssertLessThanOrEqual(sway.keyframes.map { abs($0.v.number ?? 0) }.max() ?? 0, 8, "sway stays within the cut's tolerance")
+        XCTAssertTrue(idle.reducedMotionTracks.isEmpty, "Reduce Motion: no sway, no breathing")
+        XCTAssertEqual(idle.durationMs, 14400, "breathing (3.6 s) and sway (4.8 s) share one loop")
+
+        // A reaction interrupting the sway eases the tail back instead of snapping it.
+        let catRig = CatRig(spec: rig, art: provider, pixelsPerUnit: 1)
+        let tailPivot = try XCTUnwrap(catRig.node("tailPivot"))
+        tailPivot.zRotation = 0.08
+        let scene = CatScene(size: CGSize(width: 390, height: 260), rig: catRig, library: AnimationLibrary(spec: anims), seed: 1)
+        scene.controller.playDemo(.greet, dayKey: DayKey(string: "2026-10-11")!)
+        XCTAssertEqual(tailPivot.zRotation, 0.08, accuracy: 0.0001, "not snapped")
+        XCTAssertNotNil(tailPivot.action(forKey: CatRig.restEaseKey), "eases back over the blend time")
+        XCTAssertNil(try XCTUnwrap(catRig.node("bodyPivot")).action(forKey: CatRig.restEaseKey), "driven nodes snap instead")
     }
 
     func testRigCrossFadesPosesWithoutTouchingTheStateMachine() throws {
@@ -67,7 +110,7 @@ final class WholeBodyArtProviderTests: XCTestCase {
             return self.solidTexture(name)
         }
         let catRig = CatRig(spec: rig, art: provider, pixelsPerUnit: 1)
-        XCTAssertEqual(catRig.nodes.count, 4)
+        XCTAssertEqual(catRig.nodes.count, 6, "root, shadow, bodyPivot, tailPivot, tail, pose")
         XCTAssertEqual(catRig.look, "idle")
         XCTAssertFalse(catRig.hasEyeParts)
         let design = try XCTUnwrap(rig.designSize)
@@ -80,7 +123,7 @@ final class WholeBodyArtProviderTests: XCTestCase {
         XCTAssertEqual(catRig.look, "sad")
         catRig.setLook("unknownPose", blend: 0)
         XCTAssertEqual(catRig.look, "sad", "unknown looks are ignored")
-        XCTAssertEqual(Set(requested), ["MaliIdle", "MaliHappy", "MaliSad"], "textures load lazily per pose")
+        XCTAssertEqual(Set(requested), ["MaliIdleBody", "MaliIdleTail", "MaliHappy", "MaliSad"], "textures load lazily per pose and layer")
 
         let scene = CatScene(size: CGSize(width: 390, height: 260), rig: catRig, library: AnimationLibrary(spec: anims), seed: 1)
         let controller = scene.controller

@@ -71,6 +71,30 @@
       "kind": "pivot"
     },
     {
+      "id": "tailPivot",
+      "parent": "bodyPivot",
+      "position": [
+        236.0,
+        132
+      ],
+      "z": 1,
+      "kind": "pivot"
+    },
+    {
+      "id": "tail",
+      "parent": "tailPivot",
+      "position": [
+        0,
+        0
+      ],
+      "z": 0,
+      "kind": "layerSprite",
+      "size": [
+        280,
+        380
+      ]
+    },
+    {
       "id": "pose",
       "parent": "bodyPivot",
       "position": [

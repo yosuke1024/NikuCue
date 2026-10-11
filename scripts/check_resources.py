@@ -157,6 +157,17 @@ def main() -> None:
                     raise ValueError(f"texture pack: {png.name} is not a PNG")
             pack_parts += 1
 
+    def imageset_size(catalog, image_set, label):
+        import struct
+        folder = catalog / f"{image_set}.imageset"
+        pngs = sorted(folder.glob("*.png")) if folder.exists() else []
+        require(len(pngs) == 1 and (folder / "Contents.json").exists(), f"{label}: image set {image_set} missing or ambiguous")
+        if not pngs:
+            return 0, 0
+        with pngs[0].open("rb") as fh:
+            head = fh.read(24)
+        return struct.unpack(">II", head[16:24])
+
     # 5c. whole-body pose textures (owner-supplied), when bundled
     poses_path = RES / "Character" / "mali_poses.json"
     wb_summary = "absent"
@@ -169,15 +180,26 @@ def main() -> None:
         for name, pose in poses["poses"].items():
             b = pose["bounds"]
             require(len(b) == 4 and b[0] < b[2] and b[1] < b[3], f"whole-body: {name} bounds")
-            folder = catalog / f"{pose['imageSet']}.imageset"
-            png = folder / f"mali_{name}.png"
-            require(png.exists() and (folder / "Contents.json").exists(), f"whole-body: image set {pose['imageSet']} missing")
-            import struct
-            with png.open("rb") as fh:
-                head = fh.read(24)
-            w, h = struct.unpack(">II", head[16:24])
+            w, h = imageset_size(catalog, pose["imageSet"], f"whole-body: {name}")
             require([w, h] == poses["frame"], f"whole-body: {name} is {w}x{h}, frame is {poses['frame']}")
             require(abs((b[2] - b[0]) - w) < 1 and abs((b[3] - b[1]) - h) < 1, f"whole-body: {name} bounds do not match the frame")
+            for part, layer in pose.get("layers", {}).items():
+                require(part in poses.get("layerParts", []), f"whole-body: {name}.{part} not declared in layerParts")
+                lb = layer["bounds"]
+                require(len(lb) == 4 and lb[0] < lb[2] and lb[1] < lb[3], f"whole-body: {name}.{part} bounds")
+                lw, lh = imageset_size(catalog, layer["imageSet"], f"whole-body: {name}.{part}")
+                require(abs((lb[2] - lb[0]) - lw) < 1 and abs((lb[3] - lb[1]) - lh) < 1, f"whole-body: {name}.{part} bounds do not match its image")
+        node_by_id = {n["id"]: n for n in wb_spec["nodes"]}
+        for part in poses.get("layerParts", []):
+            require(part in node_by_id, f"whole-body: layer part {part} has no rig node")
+            pivot = node_by_id.get(node_by_id[part]["parent"]) if part in node_by_id else None
+            require(pivot is not None and pivot["kind"] == "pivot", f"whole-body: {part} needs a pivot parent")
+            require(pivot is not None and pivot["z"] < node_by_id["pose"]["z"], f"whole-body: {part} layer must draw behind the pose sprite")
+            for name, pose in poses["poses"].items():
+                pv = pose.get("layers", {}).get(part, {}).get("pivot")
+                if pv is not None and pivot is not None:
+                    require(abs(pv[0] - pivot["position"][0]) <= 0.5 and abs(pv[1] - pivot["position"][1]) <= 0.5,
+                            f"whole-body: {name}.{part} pivot {pv} differs from rig node {pivot['id']} {pivot['position']}")
         for clip_id, pose in poses["clipPoses"].items():
             require(pose in poses["poses"], f"whole-body: clip {clip_id} → unknown pose {pose}")
         require(poses["clipPoses"]["settle"] not in poses.get("neverShowOnSkip", []), "whole-body: settle must not show a guilt pose")
@@ -199,6 +221,8 @@ def main() -> None:
                             require(0.97 <= kf["v"] <= 1.03, f"whole-body: {clip['id']} scale {kf['v']} distorts the artwork")
                         if tr["property"] == "rotation" and tr["node"] == "bodyPivot":
                             require(abs(kf["v"]) <= 5, f"whole-body: {clip['id']} rotation {kf['v']} too large for a single portrait")
+                        if tr["property"] == "rotation" and tr["node"] == "tailPivot":
+                            require(abs(kf["v"]) <= 8, f"whole-body: {clip['id']} tail rotation {kf['v']} would show the cut at the hip")
         # Every pose, the biggest lift and the milestone hearts must stay inside the rig frame (CatScene fits
         # designSize into the view, root 6 % above the bottom), otherwise ears or hearts get clipped on device.
         canvas = wb_spec["canvas"]
