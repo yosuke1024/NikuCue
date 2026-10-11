@@ -39,7 +39,7 @@
 | Q32 | backup | logic | `BackupValidatorTests.testRejections`, `HabitServiceTests.testImportFailureKeepsOriginalData` |
 | Q33 | backup | logic + xctest | `HabitServiceTests.testBackupRoundTripRestoresWithRemindersOff`, `SwiftDataRepositoryTests.testReplaceAllAndDeleteAll` |
 | Q34 | deletion | logic + xctest | `HabitServiceTests.testDeleteAllKeepsNothingLocal`（権利は DB 外） |
-| Q35 | art | ブラウザ描画 + xctest | オーナー提供の全身 6 枚を `artifacts/mali-assets-v1`（6 ポーズ × 明暗、8 クリップ、32 秒動画。Simulator ではない）で記録。`WholeBodyArtProviderTests`（未実行）。人間承認 R02 待ち。`artifacts/P01` は旧 placeholder の記録 |
+| Q35 | art | ブラウザ描画 + xctest | オーナー提供の全身 6 枚を `artifacts/mali-assets-v1`（6 ポーズ × 明暗、8 クリップ、待機の呼吸と尻尾の揺れ、32 秒動画。Simulator ではない）で記録。待機の尻尾は idle 画像から派生したレイヤー（`tail_split_check.png`）、sleepy はコードによる前足レタッチ（`sleepy_retouch_check.png`）で、どちらもオーナー承認待ち。`WholeBodyArtProviderTests`（未実行）。人間承認 R02 待ち。`artifacts/P01` は旧 placeholder の記録 |
 | Q36 | launch | xctest + script | `MonetizationTests.testPlaceholderConfigurationBlocksAds`, `scripts/check_release_config.sh` |
 | Q37 | localization | logic + xctest | `StringCatalogTests`, `LocalizationBundleTests.testLocalizerResolvesNameAndLanguage` |
 | Q38 | lifecycle | 実装 | `AppContainer.gatherConsentIfNeeded` が猫を pause。not_run |

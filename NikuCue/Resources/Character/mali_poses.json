@@ -211,13 +211,14 @@
       ]
     },
     "sleepy": {
-      "removedPixels": 4251,
+      "removedPixels": 4087,
       "opaqueBBox": [
         148,
         55,
         970,
         958
-      ]
+      ],
+      "retouch": "tools/character/retouch_sleepy.py (mirror fill); owner art review pending"
     },
     "sad": {
       "removedPixels": 3920,
