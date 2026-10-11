@@ -143,6 +143,83 @@ final class WholeBodyArtProviderTests: XCTestCase {
         XCTAssertLessThanOrEqual(controller.activeActionCount, 6)
     }
 
+    // MARK: Timing ("間"): linger after a reaction, a beat before a queued one, the bubble after the motion
+
+    func completion(_ clip: ClipID, key: String) -> ReactionIntent {
+        let event = CatEvent(kind: .completionCommitted, occurredAt: Date(), dayKey: DayKey(string: "2026-10-11")!,
+                             habitId: UUID(), category: .custom, revision: 1)
+        return ReactionIntent(reactionId: clip.rawValue, clip: clip, expression: clip.defaultExpression, priority: 60,
+                              messageKey: key, textDwellMs: 4000, event: event)
+    }
+
+    func makeScene() throws -> (CatScene, CatRig, AnimationSpec) {
+        let (rig, anims, pack, paths) = try loadBundled()
+        let provider = WholeBodyArtProvider(pack: pack, decorations: VectorArtProvider(paths: paths)) { self.solidTexture($0) }
+        let catRig = CatRig(spec: rig, art: provider, pixelsPerUnit: 1)
+        let scene = CatScene(size: CGSize(width: 390, height: 260), rig: catRig, library: AnimationLibrary(spec: anims), seed: 1)
+        return (scene, catRig, anims)
+    }
+
+    func testReactionLingersAndQueuedReactionWaitsABeat() async throws {
+        let (scene, catRig, anims) = try makeScene()
+        let controller = scene.controller
+        let celebrate = try XCTUnwrap(anims.clip(.celebrate))
+        XCTAssertGreaterThan(celebrate.linger, 0, "the happy face stays a moment after the jump")
+        XCTAssertGreaterThan(anims.reactionGap, 0, "back-to-back reactions get a breath in between")
+
+        var started: [String] = []
+        controller.onReactionStarted = { started.append($0.messageKey) }
+        controller.handle(completion(.celebrate, key: "reaction.complete.1"))
+        controller.handle(completion(.celebrate, key: "reaction.complete.2"))
+        XCTAssertEqual(started, ["reaction.complete.1"])
+
+        // The clip time is over (driven directly: unit tests have no SKView clock).
+        let endLook = catRig.look
+        controller.finishCurrent()
+        XCTAssertEqual(controller.currentClip, .idle, "breathing resumes during the beat")
+        XCTAssertTrue(controller.queue.isBusy, "the queued reaction is promoted but not started yet")
+        XCTAssertEqual(started, ["reaction.complete.1"], "nothing starts (or is recorded) during the beat")
+        XCTAssertEqual(catRig.look, endLook, "the finished look lingers instead of snapping back")
+        XCTAssertNotNil(catRig.root.action(forKey: CatSceneController.lingerKey))
+
+        try await Task.sleep(for: .milliseconds(Int(anims.reactionGap * 1000) + 200))
+        XCTAssertEqual(started, ["reaction.complete.1", "reaction.complete.2"], "the queued reaction starts after the beat")
+        XCTAssertEqual(controller.currentClip, .celebrate)
+        XCTAssertNil(catRig.root.action(forKey: CatSceneController.lingerKey), "a new reaction cancels the linger")
+    }
+
+    func testUndoDuringTheBeatDropsTheQueuedReaction() async throws {
+        let (scene, _, anims) = try makeScene()
+        let controller = scene.controller
+        var started = 0
+        controller.onReactionStarted = { _ in started += 1 }
+        let second = completion(.celebrate, key: "reaction.complete.2")
+        controller.handle(completion(.celebrate, key: "reaction.complete.1"))
+        controller.handle(second)
+        controller.finishCurrent()
+        controller.cancelReactions(habitId: try XCTUnwrap(second.event.habitId), dayKey: second.event.dayKey)
+        try await Task.sleep(for: .milliseconds(Int(anims.reactionGap * 1000) + 200))
+        XCTAssertEqual(started, 1, "an undone completion never celebrates")
+        XCTAssertFalse(controller.queue.isBusy)
+        XCTAssertEqual(controller.currentClip, .idle)
+    }
+
+    func testBubbleFollowsTheMotionExceptUnderReduceMotion() async throws {
+        let (scene, _, anims) = try makeScene()
+        let controller = scene.controller
+        let celebrate = try XCTUnwrap(anims.clip(.celebrate))
+        XCTAssertGreaterThan(celebrate.messageDelay, 0)
+        controller.handle(completion(.celebrate, key: "reaction.complete.1"))
+        XCTAssertNil(controller.messageKey, "the cat reacts first")
+        try await Task.sleep(for: .milliseconds(Int(celebrate.messageDelay * 1000) + 200))
+        XCTAssertEqual(controller.messageKey, "reaction.complete.1", "then speaks; the dwell starts now")
+
+        controller.playDemo(.idle, dayKey: DayKey(string: "2026-10-11")!)
+        controller.reduceMotion = true
+        controller.handle(completion(.celebrate, key: "reaction.complete.2"))
+        XCTAssertEqual(controller.messageKey, "reaction.complete.2", "Reduce Motion: no motion to wait for")
+    }
+
     func testSelectionPrefersWholeBodyWhenBundled() throws {
         let (_, _, _, paths) = try loadBundled()
         let selection = CharacterArtSelection.resolve(paths: paths, bundle: Bundle(for: AppContainer.self))

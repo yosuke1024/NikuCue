@@ -185,8 +185,15 @@ struct AnimationSpec: Decodable, Sendable {
         var tracks: [Track]
         var reducedMotionTracks: [Track]
         var hearts: Hearts?
+        /// After the clip ends, its last look stays while the ambient loop resumes, then cross-fades back (0 = none).
+        /// The linger belongs to the ambient state, so any new reaction interrupts it at once.
+        var lingerMs: Double?
+        /// Delay of the speech bubble after the clip starts: the cat reacts first, then speaks (0 under Reduce Motion).
+        var messageAtMs: Double?
 
         var duration: TimeInterval { durationMs / 1000 }
+        var linger: TimeInterval { max(0, lingerMs ?? 0) / 1000 }
+        var messageDelay: TimeInterval { max(0, messageAtMs ?? 0) / 1000 }
         var clipID: ClipID? { ClipID(rawValue: id) }
         var defaultExpression: Expression { Expression(rawValue: expression) ?? .neutral }
         /// The look (expression or pose name) the clip starts with.
@@ -209,6 +216,8 @@ struct AnimationSpec: Decodable, Sendable {
     var fpsTarget: Int
     var maxQueuedInteractions: Int
     var expressionBlendMs: Double
+    /// A short beat between a finished reaction and a queued one (0 = start at once). Nothing is recorded during it.
+    var reactionGapMs: Double?
     var clips: [Clip]
     var ambient: Ambient
 
@@ -219,6 +228,7 @@ struct AnimationSpec: Decodable, Sendable {
     func clip(_ id: ClipID) -> Clip? { clips.first { $0.id == id.rawValue } }
 
     var expressionBlend: TimeInterval { expressionBlendMs / 1000 }
+    var reactionGap: TimeInterval { max(0, reactionGapMs ?? 0) / 1000 }
 
     /// Mirrors scripts/check_resources.py for the parts that matter at runtime.
     func validate(against rig: RigSpec) -> [String] {
@@ -246,7 +256,10 @@ struct AnimationSpec: Decodable, Sendable {
             for track in clip.tracks {
                 if !seen.insert("\(track.node).\(track.property)").inserted { problems.append("\(clip.id): duplicate track \(track.node).\(track.property)") }
             }
+            if let linger = clip.lingerMs, linger < 0 || linger > 3000 { problems.append("\(clip.id): lingerMs out of range") }
+            if let at = clip.messageAtMs, at < 0 || at >= clip.durationMs { problems.append("\(clip.id): messageAtMs must fall inside the clip") }
         }
+        if let gap = reactionGapMs, gap < 0 || gap > 1000 { problems.append("reactionGapMs out of range") }
         return problems
     }
 }

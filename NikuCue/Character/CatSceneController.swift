@@ -39,6 +39,13 @@ final class CatSceneController: ObservableObject {
     private var ambientActions: [AnimationLibrary.ScheduledAction] = []
     private var finishWork: DispatchWorkItem?
     private var dwellWork: DispatchWorkItem?
+    /// Pending start of a queued reaction after the inter-reaction beat (`reactionGapMs`).
+    private var gapWork: DispatchWorkItem?
+    /// Pending speech bubble (`messageAtMs`): the cat reacts first, then speaks.
+    private var messageWork: DispatchWorkItem?
+    /// Linger of the finished reaction's look, from its clip (`lingerMs`).
+    private var runningLinger: TimeInterval = 0
+    static let lingerKey = "ambient.linger"
     private var rng: SeededRandomNumberGenerator
     private var heartNodes: [SKNode] = []
     private let hostNode: SKNode
@@ -168,29 +175,59 @@ final class CatSceneController: ObservableObject {
         for item in running { item.node.run(item.action, withKey: item.key) }
         if intent.clip == .milestone, let hearts = clip.hearts { spawnHearts(hearts) }
         onReactionStarted?(intent)
-        if !intent.messageKey.isEmpty { showMessage(intent.messageKey, dwellMs: intent.textDwellMs) }
+        if !intent.messageKey.isEmpty {
+            showMessage(intent.messageKey, dwellMs: intent.textDwellMs, after: reduceMotion ? 0 : clip.messageDelay)
+        }
+        runningLinger = clip.linger
 
         let work = DispatchWorkItem { [weak self] in self?.finishCurrent() }
         finishWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + clip.duration, execute: work)
     }
 
-    private func finishCurrent() {
+    /// Ends the running reaction (called when its clip time is over; internal so tests can drive it without a clock).
+    /// The ambient loop resumes at once with the reaction's last look held for the clip's linger. A queued reaction
+    /// starts after a short beat (`reactionGapMs`) and is re-validated at that moment.
+    func finishCurrent() {
         finishWork = nil
+        let heldLook = rig.look
+        let linger = runningLinger
+        runningLinger = 0
         stopInteraction()
         guard !isPaused else { queue.discardAll(); return }
         let next = queue.finishCurrent { [weak self] intent in self?.isStillValid?(intent) ?? true }
-        if let next {
+        guard let next else {
+            startAmbient(holding: heldLook, for: linger)
+            return
+        }
+        let gap = library.spec.reactionGap
+        guard gap > 0 else { start(next); return }
+        startAmbient(holding: heldLook, for: max(linger, gap))
+        let work = DispatchWorkItem { [weak self] in self?.startAfterGap(next) }
+        gapWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + gap, execute: work)
+    }
+
+    private func startAfterGap(_ intent: ReactionIntent) {
+        gapWork = nil
+        guard !isPaused, queue.current == intent else { return }
+        if isStillValid?(intent) ?? true {
+            start(intent)
+            return
+        }
+        // Undone or stale during the beat: drop it quietly (the ambient loop is already running).
+        if let next = queue.finishCurrent(isStillValid: { [weak self] i in self?.isStillValid?(i) ?? true }) {
             start(next)
         } else {
             currentClip = ambient == .dozing ? .doze : .idle
-            startAmbient()
         }
     }
 
     private func stopInteraction(resetting: Bool = true) {
         finishWork?.cancel()
         finishWork = nil
+        gapWork?.cancel()
+        gapWork = nil
         for item in running { item.node.removeAction(forKey: item.key) }
         running = []
         removeHearts()
@@ -199,13 +236,23 @@ final class CatSceneController: ObservableObject {
 
     // MARK: Ambient
 
-    private func startAmbient() {
+    /// Starts the ambient loop. `heldLook` (the look a reaction ended on) stays for `hold` seconds while breathing
+    /// resumes, then cross-fades to the ambient look; the hold is an ambient action, so a new reaction, a pause or a
+    /// time-of-day change cancels it.
+    private func startAmbient(holding heldLook: String? = nil, for hold: TimeInterval = 0) {
         stopAmbient()
         let clipId: ClipID = ambient == .dozing ? .doze : .idle
         currentClip = clipId
         guard let clip = library.spec.clip(clipId) else { return }
         rig.resetToRest()
-        rig.setLook(clip.defaultLook, blend: library.spec.expressionBlend)
+        let blend = library.spec.expressionBlend
+        if let heldLook, hold > 0, heldLook != clip.defaultLook, rig.look == heldLook {
+            let target = clip.defaultLook
+            let release = SKAction.run { [weak self] in self?.rig.setLook(target, blend: blend) }
+            hostNode.run(.sequence([.wait(forDuration: hold), release]), withKey: CatSceneController.lingerKey)
+        } else {
+            rig.setLook(clip.defaultLook, blend: blend)
+        }
         ambientActions = library.actions(for: clip, reducedMotion: reduceMotion, rig: rig)
         for item in ambientActions { item.node.run(item.action, withKey: item.key) }
         // Blinks exist only on the parts rig; whole-body textures are never stretched to fake one (asset README §6).
@@ -221,6 +268,7 @@ final class CatSceneController: ObservableObject {
         for item in ambientActions { item.node.removeAction(forKey: item.key) }
         ambientActions = []
         hostNode.removeAction(forKey: "blink.schedule")
+        hostNode.removeAction(forKey: CatSceneController.lingerKey)
         for id in ["eyeL", "eyeR"] { rig.node(id)?.removeAction(forKey: "blink.\(id)") }
         if resetting { rig.resetToRest() }
     }
@@ -272,7 +320,20 @@ final class CatSceneController: ObservableObject {
 
     // MARK: Message bubble
 
-    private func showMessage(_ key: String, dwellMs: Int) {
+    /// Shows the bubble after `delay` (the dwell time starts when it appears, docs/05 §6: readable ~4 s).
+    private func showMessage(_ key: String, dwellMs: Int, after delay: TimeInterval = 0) {
+        messageWork?.cancel()
+        messageWork = nil
+        guard delay > 0 else { presentMessage(key, dwellMs: dwellMs); return }
+        let work = DispatchWorkItem { [weak self] in
+            self?.messageWork = nil
+            self?.presentMessage(key, dwellMs: dwellMs)
+        }
+        messageWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
+    private func presentMessage(_ key: String, dwellMs: Int) {
         dwellWork?.cancel()
         messageKey = key
         let work = DispatchWorkItem { [weak self] in self?.messageKey = nil }
@@ -281,6 +342,8 @@ final class CatSceneController: ObservableObject {
     }
 
     private func clearMessage() {
+        messageWork?.cancel()
+        messageWork = nil
         dwellWork?.cancel()
         dwellWork = nil
         messageKey = nil

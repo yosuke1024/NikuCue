@@ -28,44 +28,64 @@
               "v": 1.0
             },
             {
-              "t": 1700,
-              "v": 1.015,
+              "t": 1400,
+              "v": 1.013,
               "ease": "sine"
             },
             {
-              "t": 3600,
+              "t": 2975,
               "v": 1.0,
               "ease": "sine"
             },
             {
-              "t": 5300,
+              "t": 3500,
+              "v": 1.0,
+              "ease": "linear"
+            },
+            {
+              "t": 5020,
               "v": 1.015,
               "ease": "sine"
             },
             {
-              "t": 7200,
+              "t": 6730,
               "v": 1.0,
               "ease": "sine"
             },
             {
-              "t": 8900,
-              "v": 1.015,
+              "t": 7300,
+              "v": 1.0,
+              "ease": "linear"
+            },
+            {
+              "t": 8660,
+              "v": 1.011,
               "ease": "sine"
             },
             {
-              "t": 10800,
+              "t": 10190,
               "v": 1.0,
               "ease": "sine"
             },
             {
-              "t": 12500,
-              "v": 1.015,
+              "t": 10700,
+              "v": 1.0,
+              "ease": "linear"
+            },
+            {
+              "t": 12180,
+              "v": 1.014,
+              "ease": "sine"
+            },
+            {
+              "t": 13845,
+              "v": 1.0,
               "ease": "sine"
             },
             {
               "t": 14400,
               "v": 1.0,
-              "ease": "sine"
+              "ease": "linear"
             }
           ]
         },
@@ -78,44 +98,64 @@
               "v": 1.0
             },
             {
-              "t": 1700,
-              "v": 0.996,
+              "t": 1400,
+              "v": 0.997,
               "ease": "sine"
             },
             {
-              "t": 3600,
+              "t": 2975,
               "v": 1.0,
               "ease": "sine"
             },
             {
-              "t": 5300,
+              "t": 3500,
+              "v": 1.0,
+              "ease": "linear"
+            },
+            {
+              "t": 5020,
               "v": 0.996,
               "ease": "sine"
             },
             {
-              "t": 7200,
+              "t": 6730,
               "v": 1.0,
               "ease": "sine"
             },
             {
-              "t": 8900,
-              "v": 0.996,
+              "t": 7300,
+              "v": 1.0,
+              "ease": "linear"
+            },
+            {
+              "t": 8660,
+              "v": 0.997,
               "ease": "sine"
             },
             {
-              "t": 10800,
+              "t": 10190,
               "v": 1.0,
               "ease": "sine"
             },
             {
-              "t": 12500,
+              "t": 10700,
+              "v": 1.0,
+              "ease": "linear"
+            },
+            {
+              "t": 12180,
               "v": 0.996,
+              "ease": "sine"
+            },
+            {
+              "t": 13845,
+              "v": 1.0,
               "ease": "sine"
             },
             {
               "t": 14400,
               "v": 1.0,
-              "ease": "sine"
+              "ease": "linear"
             }
           ]
         },
@@ -128,43 +168,63 @@
               "v": 0
             },
             {
-              "t": 1200,
-              "v": 5,
+              "t": 1300,
+              "v": 4.5,
               "ease": "sine"
             },
             {
-              "t": 3600,
-              "v": -5,
+              "t": 2900,
+              "v": -3.0,
+              "ease": "sine"
+            },
+            {
+              "t": 3700,
+              "v": -1.0,
               "ease": "sine"
             },
             {
               "t": 4800,
-              "v": 0,
+              "v": -1.0,
               "ease": "sine"
             },
             {
               "t": 6000,
-              "v": 5,
+              "v": 5.0,
               "ease": "sine"
             },
             {
-              "t": 8400,
-              "v": -5,
+              "t": 7600,
+              "v": -4.5,
               "ease": "sine"
             },
             {
-              "t": 9600,
-              "v": 0,
+              "t": 8800,
+              "v": 0.5,
               "ease": "sine"
             },
             {
-              "t": 10800,
-              "v": 5,
+              "t": 10200,
+              "v": 0.5,
               "ease": "sine"
             },
             {
-              "t": 13200,
-              "v": -5,
+              "t": 11000,
+              "v": 3.5,
+              "ease": "sine"
+            },
+            {
+              "t": 11400,
+              "v": 2.2,
+              "ease": "sine"
+            },
+            {
+              "t": 12300,
+              "v": -3.5,
+              "ease": "sine"
+            },
+            {
+              "t": 13400,
+              "v": -1.0,
               "ease": "sine"
             },
             {
@@ -179,7 +239,7 @@
     },
     {
       "id": "greet",
-      "durationMs": 1100,
+      "durationMs": 1200,
       "loop": false,
       "expression": "happy",
       "controls": [
@@ -190,6 +250,8 @@
       ],
       "description": "Whole-body texture treatment: Look up, one small double paw wave. Not a full-body walk.",
       "reducedMotion": "softSmile crossfade",
+      "lingerMs": 700,
+      "messageAtMs": 250,
       "tracks": [
         {
           "node": "pose",
@@ -210,17 +272,27 @@
               "v": 0
             },
             {
-              "t": 250,
-              "v": 10,
+              "t": 120,
+              "v": -3,
+              "ease": "easeOut"
+            },
+            {
+              "t": 420,
+              "v": 12,
+              "ease": "easeOut"
+            },
+            {
+              "t": 620,
+              "v": 9,
               "ease": "easeInOut"
             },
             {
-              "t": 900,
-              "v": 10,
-              "ease": "easeInOut"
+              "t": 880,
+              "v": 11,
+              "ease": "sine"
             },
             {
-              "t": 1100,
+              "t": 1200,
               "v": 0,
               "ease": "easeInOut"
             }
@@ -235,17 +307,17 @@
               "v": 1.0
             },
             {
-              "t": 250,
-              "v": 1.01,
-              "ease": "easeInOut"
+              "t": 420,
+              "v": 1.012,
+              "ease": "easeOut"
             },
             {
-              "t": 900,
+              "t": 880,
               "v": 1.01,
-              "ease": "easeInOut"
+              "ease": "sine"
             },
             {
-              "t": 1100,
+              "t": 1200,
               "v": 1.0,
               "ease": "easeInOut"
             }
@@ -267,7 +339,7 @@
     },
     {
       "id": "pet",
-      "durationMs": 900,
+      "durationMs": 1000,
       "loop": false,
       "expression": "pet",
       "controls": [
@@ -278,6 +350,8 @@
       ],
       "description": "Whole-body texture treatment: Lean head 7deg towards touch, soft eyes, small tail curve.",
       "reducedMotion": "closedHappy crossfade",
+      "lingerMs": 900,
+      "messageAtMs": 200,
       "tracks": [
         {
           "node": "pose",
@@ -298,17 +372,17 @@
               "v": 0
             },
             {
-              "t": 250,
-              "v": 3,
-              "ease": "easeInOut"
+              "t": 300,
+              "v": 3.2,
+              "ease": "easeOut"
             },
             {
-              "t": 650,
-              "v": 3,
-              "ease": "easeInOut"
+              "t": 700,
+              "v": 2.6,
+              "ease": "sine"
             },
             {
-              "t": 900,
+              "t": 1000,
               "v": 0,
               "ease": "easeInOut"
             }
@@ -323,17 +397,17 @@
               "v": 1.0
             },
             {
-              "t": 250,
-              "v": 1.02,
-              "ease": "easeInOut"
+              "t": 300,
+              "v": 1.018,
+              "ease": "easeOut"
             },
             {
-              "t": 650,
-              "v": 1.02,
-              "ease": "easeInOut"
+              "t": 700,
+              "v": 1.014,
+              "ease": "sine"
             },
             {
-              "t": 900,
+              "t": 1000,
               "v": 1.0,
               "ease": "easeInOut"
             }
@@ -355,7 +429,7 @@
     },
     {
       "id": "celebrate",
-      "durationMs": 1600,
+      "durationMs": 1700,
       "loop": false,
       "expression": "celebrate",
       "controls": [
@@ -413,6 +487,8 @@
       ],
       "note": "Animate bodyPivot position relative to its rest transform. Keep root and ground shadow position fixed. Shadow opacity/scale may change. Restore all transforms on cancel.",
       "reducedMotion": "softSmile→closedHappy 100ms crossfade, no jump or particles",
+      "lingerMs": 800,
+      "messageAtMs": 600,
       "tracks": [
         {
           "node": "pose",
@@ -423,7 +499,7 @@
               "v": "celebrate"
             },
             {
-              "t": 1300,
+              "t": 900,
               "v": "happy"
             }
           ]
@@ -437,24 +513,44 @@
               "v": 0
             },
             {
-              "t": 140,
-              "v": 0,
-              "ease": "easeIn"
+              "t": 120,
+              "v": -5,
+              "ease": "easeOut"
             },
             {
-              "t": 420,
+              "t": 400,
               "v": 34,
               "ease": "easeOut"
             },
             {
-              "t": 680,
+              "t": 620,
               "v": 0,
               "ease": "easeIn"
             },
             {
-              "t": 1600,
+              "t": 720,
+              "v": -3,
+              "ease": "easeOut"
+            },
+            {
+              "t": 860,
+              "v": 2,
+              "ease": "easeOut"
+            },
+            {
+              "t": 1000,
               "v": 0,
               "ease": "easeInOut"
+            },
+            {
+              "t": 1350,
+              "v": 3,
+              "ease": "sine"
+            },
+            {
+              "t": 1700,
+              "v": 0,
+              "ease": "sine"
             }
           ]
         },
@@ -467,22 +563,32 @@
               "v": 1.0
             },
             {
-              "t": 140,
-              "v": 1.0,
-              "ease": "easeInOut"
-            },
-            {
-              "t": 420,
-              "v": 0.9,
+              "t": 120,
+              "v": 1.02,
               "ease": "easeOut"
             },
             {
-              "t": 680,
+              "t": 400,
+              "v": 0.88,
+              "ease": "easeOut"
+            },
+            {
+              "t": 620,
               "v": 1.0,
               "ease": "easeIn"
             },
             {
-              "t": 1600,
+              "t": 720,
+              "v": 1.02,
+              "ease": "easeOut"
+            },
+            {
+              "t": 1000,
+              "v": 1.0,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1700,
               "v": 1.0,
               "ease": "easeInOut"
             }
@@ -497,22 +603,17 @@
               "v": 1.0
             },
             {
-              "t": 140,
-              "v": 1.0,
-              "ease": "easeInOut"
-            },
-            {
-              "t": 420,
+              "t": 400,
               "v": 0.7,
               "ease": "easeOut"
             },
             {
-              "t": 680,
+              "t": 620,
               "v": 1.0,
               "ease": "easeIn"
             },
             {
-              "t": 1600,
+              "t": 1700,
               "v": 1.0,
               "ease": "easeInOut"
             }
@@ -529,7 +630,7 @@
               "v": "celebrate"
             },
             {
-              "t": 1300,
+              "t": 900,
               "v": "happy"
             }
           ]
@@ -539,7 +640,7 @@
     },
     {
       "id": "cheer",
-      "durationMs": 1200,
+      "durationMs": 1300,
       "loop": false,
       "expression": "happy",
       "controls": [
@@ -550,6 +651,8 @@
       ],
       "description": "Whole-body texture treatment: Gently raise forepaws and look attentive. No repeated urging.",
       "reducedMotion": "curious crossfade",
+      "lingerMs": 600,
+      "messageAtMs": 300,
       "tracks": [
         {
           "node": "pose",
@@ -570,17 +673,27 @@
               "v": 0
             },
             {
-              "t": 300,
-              "v": 8,
-              "ease": "easeInOut"
+              "t": 150,
+              "v": -2,
+              "ease": "easeOut"
             },
             {
-              "t": 900,
+              "t": 450,
               "v": 8,
-              "ease": "easeInOut"
+              "ease": "easeOut"
             },
             {
-              "t": 1200,
+              "t": 800,
+              "v": 6,
+              "ease": "sine"
+            },
+            {
+              "t": 1050,
+              "v": 8,
+              "ease": "sine"
+            },
+            {
+              "t": 1300,
               "v": 0,
               "ease": "easeInOut"
             }
@@ -602,7 +715,7 @@
     },
     {
       "id": "settle",
-      "durationMs": 1300,
+      "durationMs": 1500,
       "loop": false,
       "expression": "idle",
       "controls": [
@@ -613,6 +726,8 @@
       ],
       "description": "Whole-body texture treatment: Slow blink, relaxed posture. Never sadness, tears, or loss of affection.",
       "reducedMotion": "softSmile crossfade",
+      "lingerMs": 0,
+      "messageAtMs": 300,
       "tracks": [
         {
           "node": "pose",
@@ -633,14 +748,54 @@
               "v": 1.0
             },
             {
-              "t": 500,
-              "v": 0.99,
+              "t": 600,
+              "v": 0.988,
               "ease": "easeInOut"
             },
             {
-              "t": 1300,
+              "t": 1500,
               "v": 1.0,
+              "ease": "sine"
+            }
+          ]
+        },
+        {
+          "node": "bodyPivot",
+          "property": "offsetY",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 600,
+              "v": -2,
               "ease": "easeInOut"
+            },
+            {
+              "t": 1500,
+              "v": 0,
+              "ease": "sine"
+            }
+          ]
+        },
+        {
+          "node": "tailPivot",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 700,
+              "v": -4,
+              "ease": "easeInOut"
+            },
+            {
+              "t": 1500,
+              "v": 0,
+              "ease": "sine"
             }
           ]
         }
@@ -660,7 +815,7 @@
     },
     {
       "id": "doze",
-      "durationMs": 4800,
+      "durationMs": 9600,
       "loop": true,
       "expression": "sleepy",
       "controls": [
@@ -681,19 +836,34 @@
               "v": 1.0
             },
             {
-              "t": 1200,
+              "t": 2070,
               "v": 1.01,
               "ease": "sine"
             },
             {
-              "t": 3600,
-              "v": 0.994,
+              "t": 4140,
+              "v": 1.0,
               "ease": "sine"
             },
             {
-              "t": 4800,
+              "t": 4600,
+              "v": 1.0,
+              "ease": "linear"
+            },
+            {
+              "t": 6850,
+              "v": 1.008,
+              "ease": "sine"
+            },
+            {
+              "t": 9100,
               "v": 1.0,
               "ease": "sine"
+            },
+            {
+              "t": 9600,
+              "v": 1.0,
+              "ease": "linear"
             }
           ]
         }
@@ -702,7 +872,7 @@
     },
     {
       "id": "milestone",
-      "durationMs": 2200,
+      "durationMs": 2400,
       "loop": false,
       "expression": "celebrate",
       "controls": [
@@ -713,6 +883,8 @@
       ],
       "description": "Whole-body texture treatment: Two gentle celebration beats and max three hearts; never full-screen.",
       "reducedMotion": "Happy expression with static small heart; no motion",
+      "lingerMs": 900,
+      "messageAtMs": 400,
       "tracks": [
         {
           "node": "pose",
@@ -737,24 +909,29 @@
               "v": 0
             },
             {
-              "t": 150,
-              "v": 0,
-              "ease": "easeIn"
-            },
-            {
-              "t": 400,
-              "v": 26,
+              "t": 120,
+              "v": -4,
               "ease": "easeOut"
             },
             {
-              "t": 650,
+              "t": 380,
+              "v": 28,
+              "ease": "easeOut"
+            },
+            {
+              "t": 600,
               "v": 0,
               "ease": "easeIn"
             },
             {
-              "t": 800,
+              "t": 700,
+              "v": -2,
+              "ease": "easeOut"
+            },
+            {
+              "t": 820,
               "v": 0,
-              "ease": "easeIn"
+              "ease": "easeOut"
             },
             {
               "t": 1050,
@@ -762,14 +939,29 @@
               "ease": "easeOut"
             },
             {
-              "t": 1300,
+              "t": 1270,
               "v": 0,
               "ease": "easeIn"
             },
             {
-              "t": 2200,
+              "t": 1370,
+              "v": -2,
+              "ease": "easeOut"
+            },
+            {
+              "t": 1500,
               "v": 0,
-              "ease": "easeInOut"
+              "ease": "easeOut"
+            },
+            {
+              "t": 1950,
+              "v": 3,
+              "ease": "sine"
+            },
+            {
+              "t": 2400,
+              "v": 0,
+              "ease": "sine"
             }
           ]
         },
@@ -782,27 +974,27 @@
               "v": 1.0
             },
             {
-              "t": 400,
+              "t": 380,
               "v": 0.75,
-              "ease": "easeInOut"
+              "ease": "easeOut"
             },
             {
-              "t": 650,
+              "t": 600,
               "v": 1.0,
-              "ease": "easeInOut"
+              "ease": "easeIn"
             },
             {
               "t": 1050,
               "v": 0.78,
-              "ease": "easeInOut"
+              "ease": "easeOut"
             },
             {
-              "t": 1300,
+              "t": 1270,
               "v": 1.0,
-              "ease": "easeInOut"
+              "ease": "easeIn"
             },
             {
-              "t": 2200,
+              "t": 2400,
               "v": 1.0,
               "ease": "easeInOut"
             }
@@ -827,11 +1019,11 @@
       ],
       "hearts": {
         "spawnAtMs": [
-          250,
-          510,
-          770
+          380,
+          650,
+          1050
         ],
-        "lifeMs": 900,
+        "lifeMs": 1000,
         "riseUnits": 80,
         "max": 3,
         "positions": [
@@ -871,5 +1063,6 @@
     }
   },
   "expressionBlendMs": 180,
+  "reactionGapMs": 350,
   "trackFormat": "same as animations.json; 'expression' tracks carry pose names from mali_poses.json"
 }

@@ -121,7 +121,7 @@
     greet: '会えてうれしい。今日も、自分のペースでね。', pet: 'そのなで方、好き。', celebrate: '一つできたね。うれしいな。',
     cheer: '小さく始めてもいいよ。', settle: '今日は休んでも大丈夫。', milestone: '一緒にできた日が3日になったね。', doze: 'うとうと……。そばにいるね。'
   };
-  let speed = 1, virtual = 0, last = null, lastPet = -1e9, bubbleTimer = null;
+  let speed = 1, virtual = 0, last = null, lastPet = -1e9;
   const PET_COOLDOWN = 2000;
   const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (prefersReduced) { rig.opts.reduceMotion = true; document.getElementById('rm').checked = true; }
@@ -134,10 +134,19 @@
     return { scale, ox: w / 2 - rootNode.position[0] * scale, oy: h * 0.94 + rootNode.position[1] * scale };
   }
   function fit() { return fitInto(canvas.width, canvas.height); }
+  // Bubble and queue on the virtual clock (mirrors CatSceneController: messageAtMs, dwell from appearance,
+  // one waiting reaction started after reactionGapMs).
+  let pendingBubble = null, bubbleUntil = null, waiting = null, pendingStart = null;
+  function tickTimers() {
+    if (pendingBubble && virtual >= pendingBubble.at) { const b = pendingBubble; pendingBubble = null; showBubble(b.text); bubbleUntil = b.at + b.dwell; }
+    if (bubbleUntil != null && virtual >= bubbleUntil) { bubble.classList.remove('show'); bubbleUntil = null; }
+    if (pendingStart && virtual >= pendingStart.at) { const id = pendingStart.id; pendingStart = null; play(id); }
+  }
   function frame(ts) {
     if (last == null) last = ts;
     virtual += (ts - last) * speed; last = ts;
     rig.update(virtual);
+    tickTimers();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const { scale, ox, oy } = fit();
     rig.draw(ctx, scale, ox, oy);
@@ -146,17 +155,29 @@
   }
   requestAnimationFrame(frame);
 
-  function say(text, dwell) {
-    clearTimeout(bubbleTimer);
-    if (!text) { bubble.classList.remove('show'); return; }
-    bubble.textContent = text; bubble.classList.add('show');
-    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), (dwell || 4000) / speed);
+  function showBubble(text) { bubble.textContent = text; bubble.classList.add('show'); }
+  function say(text, dwell, delayMs) {
+    pendingBubble = null;
+    if (!text) { bubble.classList.remove('show'); bubbleUntil = null; return; }
+    if (delayMs > 0) { pendingBubble = { at: virtual + delayMs, text, dwell: dwell || 4000 }; return; }
+    showBubble(text); bubbleUntil = virtual + (dwell || 4000);
   }
   function play(id) {
+    pendingStart = null;
+    if (id === 'idle' || id === 'doze') waiting = null;
     rig.play(id, virtual);
     if (id === 'idle') { say(''); return; }
-    say(MESSAGES[id] || id, id === 'milestone' ? 5000 : 4000);
+    const def = anims.clips.find(c => c.id === id);
+    say(MESSAGES[id] || id, id === 'milestone' ? 5000 : 4000, rig.opts.reduceMotion ? 0 : (def.messageAtMs || 0));
   }
+  function react(id) {
+    if (rig.clip || pendingStart) { waiting = id; return; }
+    play(id);
+  }
+  rig.on(ev => {
+    if (ev.type !== 'clipFinished' || !waiting) return;
+    pendingStart = { at: virtual + (anims.reactionGapMs || 0), id: waiting }; waiting = null;
+  });
   const clipsEl = document.getElementById('clips');
   for (const c of anims.clips) { const b = document.createElement('button'); b.textContent = c.id; b.onclick = () => play(c.id); clipsEl.appendChild(b); }
   const exEl = document.getElementById('expressions');
@@ -164,9 +185,9 @@
   function pet() { if (virtual - lastPet < PET_COOLDOWN || rig.clip) return; lastPet = virtual; play('pet'); }
   document.getElementById('pet').onclick = pet;
   canvas.addEventListener('pointerdown', pet);
-  document.getElementById('demoDone').onclick = () => play('celebrate');
-  document.getElementById('rest').onclick = () => play('settle');
-  document.getElementById('stop').onclick = () => { rig.clip = null; rig.hearts = []; rig.play('idle', virtual); say(''); };
+  document.getElementById('demoDone').onclick = () => react('celebrate');
+  document.getElementById('rest').onclick = () => react('settle');
+  document.getElementById('stop').onclick = () => { rig.clip = null; rig.hearts = []; waiting = null; pendingStart = null; rig.play('idle', virtual); say(''); };
   document.getElementById('rm').onchange = e => { rig.opts.reduceMotion = e.target.checked; rig.play(rig.ambientId, virtual); };
   document.getElementById('roomSel').onchange = e => { room.style.background = ROOM[e.target.value]; if (e.target.value === 'night') play('doze'); else if (rig.ambientId === 'doze') play('idle'); };
   document.getElementById('speed').onchange = e => { speed = parseFloat(e.target.value); };

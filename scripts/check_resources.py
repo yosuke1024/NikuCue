@@ -228,6 +228,36 @@ def main() -> None:
                             require(abs(kf["v"]) <= 5, f"whole-body: {clip['id']} rotation {kf['v']} too large for a single portrait")
                         if tr["property"] == "rotation" and tr["node"] == "tailPivot":
                             require(abs(kf["v"]) <= 8, f"whole-body: {clip['id']} tail rotation {kf['v']} would show the cut at the hip")
+        # Timing ("間"): clip lengths stay within docs/04 ±20 %, every track ends at rest, no pose flashes (< 500 ms
+        # on screen, counting the linger after the clip), cross-fades stay in the asset README window, and the
+        # controller hooks (linger, bubble delay, gap between queued reactions) stay in sane ranges.
+        spec_ms = {"greet": 1100, "pet": 900, "celebrate": 1600, "cheer": 1200, "settle": 1300, "milestone": 2200}
+        rest_value = {"rotation": 0, "offsetX": 0, "offsetY": 0, "scaleX": 1, "scaleY": 1, "scale": 1, "alpha": 1}
+        require(120 <= wb_anims["expressionBlendMs"] <= 220, "whole-body: cross-fade must stay within 120-220 ms (asset README)")
+        require(0 <= wb_anims.get("reactionGapMs", 0) <= 1000, "whole-body: reactionGapMs out of range")
+        for clip in wb_anims["clips"]:
+            cid, dur = clip["id"], clip["durationMs"]
+            if cid in spec_ms:
+                require(0.8 * spec_ms[cid] <= dur <= 1.2 * spec_ms[cid], f"whole-body: {cid} lasts {dur} ms, docs/04 allows ±20 % of {spec_ms[cid]}")
+            require(0 <= clip.get("lingerMs", 0) <= 3000, f"whole-body: {cid} lingerMs out of range")
+            require(0 <= clip.get("messageAtMs", 0) < dur, f"whole-body: {cid} messageAtMs must fall inside the clip")
+            for tr in clip["tracks"]:
+                if tr["property"] == "expression":
+                    continue
+                if not clip.get("loop"):
+                    require(abs(tr["keyframes"][-1]["v"] - rest_value[tr["property"]]) < 1e-6 and tr["keyframes"][-1]["t"] == dur,
+                            f"whole-body: {cid} {tr['node']}.{tr['property']} must end at rest at {dur} ms")
+                else:
+                    require(abs(tr["keyframes"][0]["v"] - tr["keyframes"][-1]["v"]) < 1e-6 and tr["keyframes"][-1]["t"] == dur,
+                            f"whole-body: {cid} {tr['node']}.{tr['property']} must loop seamlessly")
+                if tr["node"] == "bodyPivot" and tr["property"] == "offsetY":
+                    require(all(-8 <= k["v"] <= 40 for k in tr["keyframes"]), f"whole-body: {cid} lift/dip out of range")
+            for tr in clip["tracks"] + clip["reducedMotionTracks"]:
+                if tr["property"] != "expression":
+                    continue
+                times = [k["t"] for k in tr["keyframes"]] + [dur + clip.get("lingerMs", 0)]
+                for a, b in zip(times, times[1:]):
+                    require(b - a >= 500, f"whole-body: {cid} shows a pose for only {b - a} ms (flash)")
         # Every pose, the biggest lift and the milestone hearts must stay inside the rig frame (CatScene fits
         # designSize into the view, root 6 % above the bottom), otherwise ears or hearts get clipped on device.
         canvas = wb_spec["canvas"]

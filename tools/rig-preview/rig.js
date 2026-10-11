@@ -106,6 +106,7 @@
       this.listeners = [];
       this.blendMs = anims.expressionBlendMs || DEFAULT_EXPRESSION_BLEND_MS;
       this.settling = null;   // residual transforms easing back to rest after a clip interrupts the ambient loop
+      this.linger = null;     // { until, look }: the finished reaction's look held while the ambient loop resumes
     }
 
     _compile(part) {
@@ -125,6 +126,7 @@
       const def = this.anims.clips.find(c => c.id === clipId);
       if (!def) throw new Error('unknown clip ' + clipId);
       const t = now == null ? this.time : now;
+      this.linger = null;     // any new clip (reaction or ambient) cancels a pending linger, like the controller
       if (def.loop) { this.ambientId = clipId; this.ambientStart = t; this.clip = null; this.resetTransforms(); this.setExpression(def.expression, t); return; }
       this.clip = { id: clipId, def, start: t };
       // Mirrors CatRig.settle: properties the clip drives snap to rest, the rest (idle tail sway, breathing) ease back.
@@ -162,13 +164,16 @@
       if (this.clip) {
         elapsed = t - this.clip.start;
         if (elapsed >= this.clip.def.durationMs) {
-          const finished = this.clip.id; this.clip = null; this.ambientStart = t; this.hearts = [];
+          const finished = this.clip.id, lingerMs = this.clip.def.lingerMs || 0; this.clip = null; this.ambientStart = t; this.hearts = [];
           const amb = this.anims.clips.find(c => c.id === this.ambientId);
-          this.setExpression(amb.expression, t);
+          // CatSceneController.finishCurrent: the reaction's last look lingers while breathing resumes
+          if (lingerMs > 0 && this.expression !== amb.expression) this.linger = { until: t + lingerMs, look: amb.expression };
+          else this.setExpression(amb.expression, t);
           this.listeners.forEach(fn => fn({ type: 'clipFinished', id: finished }));
         } else { activeDef = this.clip.def; }
       }
       if (!activeDef) { activeDef = this.anims.clips.find(c => c.id === this.ambientId); elapsed = (t - this.ambientStart) % activeDef.durationMs; loop = true; }
+      if (this.linger && !this.clip && t >= this.linger.until) { this.setExpression(this.linger.look, this.linger.until); this.linger = null; }
       const tracks = rm ? (activeDef.reducedMotionTracks || []) : (activeDef.tracks || []);
       for (const tr of tracks) {
         const n = this.nodes[tr.node]; if (!n) continue;

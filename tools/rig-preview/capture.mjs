@@ -2,7 +2,7 @@
 // Usage: node tools/rig-preview/capture.mjs [--out artifacts/P01] [--video]
 // Output is a browser render of the shared JSON contracts, NOT an iOS Simulator recording.
 import { chromium } from 'playwright';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -59,7 +59,39 @@ for (const t of [0, 1200, 2400, 3600, 6000, 8400]) await still(`11_idle_${String
 await still('12_greet_after_sway_0060ms', { clip: 'greet', idleLead: 1200 }, 60);
 await page.evaluate(() => window.__mali.setRoom('day'));
 
-// contact sheet of expressions + a 64px check
+// Timing filmstrips ("間"): each reaction from its start through the linger back to the ambient pose, one frame
+// every STEP ms, so pauses, holds, pose switches and the return to idle can be read at a glance.
+const STEP = 100;
+for (const id of ['greet', 'pet', 'celebrate', 'cheer', 'settle', 'milestone']) {
+  const dataUrl = await page.evaluate(({ id, STEP }) => {
+    const m = window.__mali; m.pause(true);
+    const def = m.rig.anims.clips.find(c => c.id === id);
+    const end = def.durationMs + (def.lingerMs || 0) + 600;
+    const times = []; for (let t = 0; t <= end; t += STEP) times.push(t);
+    const cell = 132, cols = 12, rows = Math.ceil(times.length / cols), label = 16;
+    const cv = document.createElement('canvas'); cv.width = cols * cell; cv.height = rows * (cell + label);
+    const g = cv.getContext('2d'); g.fillStyle = '#FBEFD9'; g.fillRect(0, 0, cv.width, cv.height);
+    m.rig.clip = null; m.rig.hearts = []; m.rig.play('idle', 0); m.rig.prevExpression = null; m.rig.update(0);
+    m.rig.play(id, 0);
+    const design = m.rig.spec.designSize || [760, 760], root = m.rig.spec.nodes.find(n => n.id === 'root');
+    times.forEach((t, i) => {
+      m.rig.update(t);
+      const x = (i % cols) * cell, y = Math.floor(i / cols) * (cell + label);
+      const s = Math.min(cell * 0.92 / design[1], cell * 0.92 / design[0]);
+      g.save(); g.beginPath(); g.rect(x, y, cell, cell); g.clip();
+      m.rig.draw(g, s, x + cell / 2 - root.position[0] * s, y + cell * 0.94 + root.position[1] * s);
+      g.restore();
+      const phase = t < def.durationMs ? id : (m.rig.linger ? 'linger' : 'idle');
+      g.fillStyle = phase === id ? '#8a5a3c' : (phase === 'linger' ? '#b07a2a' : '#6f7f6a');
+      g.font = '11px sans-serif'; g.fillText(`${t} ${phase === id ? '' : phase} ${m.rig.expression}`, x + 4, y + cell + 12);
+    });
+    m.rig.play('idle', 0);
+    return cv.toDataURL('image/png');
+  }, { id, STEP });
+  writeFileSync(resolve(outDir, `13_timing_${id}.png`), Buffer.from(dataUrl.split(',')[1], 'base64'));
+  console.log('strip', id);
+}
+
 if (wantVideo) {
   // Record-only layout (?record=1): the 720 px room plus the bubble, driven programmatically so nothing scrolls.
   const ctx = await browser.newContext({ viewport: { width: 720, height: 800 }, recordVideo: { dir: outDir, size: { width: 720, height: 800 } } });
@@ -73,15 +105,17 @@ if (wantVideo) {
   const at = async (ms, fn) => { const wait = t0 + ms - Date.now(); if (wait > 0) await p.waitForTimeout(wait); await fn(); };
   // Asset README §7 review video: idle, greet, pet, completion, rest, milestone, doze on the night room, then the
   // same idle/pet on a dark surface so fringes and the shadow can be judged on light and dark backgrounds.
-  await at(4500, () => p.evaluate(() => window.__mali.play('greet')));
+  // idle, greet, pet, two quick completions (the second waits for a short beat), rest, milestone, night doze, dark idle + pet
+  await at(4000, () => p.evaluate(() => window.__mali.play('greet')));
   await at(7500, pet);
-  await at(11000, done);
-  await at(14500, () => p.evaluate(() => window.__mali.play('settle')));
-  await at(18000, () => p.evaluate(() => window.__mali.play('milestone')));
-  await at(22000, () => p.evaluate(() => { window.__mali.setRoom('night'); window.__mali.play('doze'); }));
-  await at(26000, () => p.evaluate(() => { window.__mali.setRoom('dark'); window.__mali.play('idle'); }));
-  await at(27500, pet);
-  await at(31000, async () => {});
+  await at(10500, done);
+  await at(10900, done);
+  await at(16500, () => p.evaluate(() => window.__mali.react('settle')));
+  await at(20000, () => p.evaluate(() => window.__mali.react('milestone')));
+  await at(25000, () => p.evaluate(() => { window.__mali.setRoom('night'); window.__mali.play('doze'); }));
+  await at(29000, () => p.evaluate(() => { window.__mali.setRoom('dark'); window.__mali.play('idle'); }));
+  await at(30500, pet);
+  await at(34500, async () => {});
   const video = p.video();
   await ctx.close();
   const path = await video.path();

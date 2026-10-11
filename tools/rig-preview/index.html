@@ -87,11 +87,26 @@
     return { scale, ox: w / 2 - rootNode.position[0] * scale, oy: h * 0.94 + rootNode.position[1] * scale };
   }
   function fit() { return fitInto(canvas.width, canvas.height); }
+  // Bubble and queue on the virtual clock (mirrors CatSceneController: messageAtMs, 4 s dwell from appearance,
+  // one waiting reaction started after reactionGapMs).
+  let pendingBubble = null, bubbleUntil = null, waiting = null, pendingStart = null;
+  function say(text, delayMs, dwellMs) {
+    pendingBubble = null;
+    if (!text) { bubble.textContent = ''; bubbleUntil = null; return; }
+    if (delayMs > 0) { pendingBubble = { at: virtual + delayMs, text, dwellMs }; return; }
+    bubble.textContent = text; bubbleUntil = virtual + (dwellMs || 4000);
+  }
+  function tickTimers() {
+    if (pendingBubble && virtual >= pendingBubble.at) { const b = pendingBubble; pendingBubble = null; bubble.textContent = b.text; bubbleUntil = b.at + (b.dwellMs || 4000); }
+    if (bubbleUntil != null && virtual >= bubbleUntil) { bubble.textContent = ''; bubbleUntil = null; }
+    if (pendingStart && virtual >= pendingStart.at) { const id = pendingStart.id; pendingStart = null; play(id); }
+  }
   function frame(ts) {
     if (last == null) last = ts;
     if (!paused) virtual += (ts - last) * speed;
     last = ts;
     rig.update(virtual);
+    tickTimers();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const { scale, ox, oy } = fit();
     rig.draw(ctx, scale, ox, oy);
@@ -101,10 +116,21 @@
   requestAnimationFrame(frame);
 
   function play(id) {
-    if (id === 'idle' || id === 'doze') { rig.play(id, virtual); bubble.textContent = MESSAGES[id] || ''; currentClip = id; return; }
-    rig.play(id, virtual); bubble.textContent = MESSAGES[id] || id;
+    pendingStart = null;
+    if (id === 'idle' || id === 'doze') { waiting = null; rig.play(id, virtual); say(MESSAGES[id] || '', 0); currentClip = id; return; }
+    const def = anims.clips.find(c => c.id === id);
+    rig.play(id, virtual);
+    say(MESSAGES[id] || id, rig.opts.reduceMotion ? 0 : (def.messageAtMs || 0), id === 'milestone' ? 5000 : 4000);
   }
-  rig.on(ev => { if (ev.type === 'clipFinished') { setTimeout(() => { if (!rig.clip) bubble.textContent = ''; }, 2500 / speed); } });
+  // ReactionQueue: one running + one waiting (latest replaces); the waiting one starts after the beat
+  function react(id) {
+    if (rig.clip || pendingStart) { waiting = id; return; }
+    play(id);
+  }
+  rig.on(ev => {
+    if (ev.type !== 'clipFinished' || !waiting) return;
+    pendingStart = { at: virtual + (anims.reactionGapMs || 0), id: waiting }; waiting = null;
+  });
 
   const clipsEl = document.getElementById('clips');
   for (const c of anims.clips) {
@@ -118,12 +144,12 @@
   }
   document.getElementById('pet').onclick = () => { if (virtual - lastPet < PET_COOLDOWN || rig.clip) return; lastPet = virtual; play('pet'); };
   canvas.addEventListener('pointerdown', () => document.getElementById('pet').click());
-  document.getElementById('demoDone').onclick = () => play('celebrate');
-  document.getElementById('stop').onclick = () => { rig.clip = null; rig.hearts = []; rig.play('idle', virtual); bubble.textContent = ''; };
+  document.getElementById('demoDone').onclick = () => react('celebrate');
+  document.getElementById('stop').onclick = () => { rig.clip = null; rig.hearts = []; waiting = null; pendingStart = null; rig.play('idle', virtual); say('', 0); };
   document.getElementById('rm').onchange = e => { rig.opts.reduceMotion = e.target.checked; rig.play(rig.ambientId, virtual); };
   document.getElementById('room').onchange = e => canvas.style.setProperty('--room', ROOM[e.target.value]);
   document.getElementById('speed').onchange = e => { speed = parseFloat(e.target.value); };
-  window.__mali = { rig, play, setVirtual: t => { virtual = t; }, getVirtual: () => virtual, pause: p => { paused = p; }, setExpression: e => rig.setExpression(e, virtual), setRoom: r => canvas.style.setProperty('--room', ROOM[r]) };
+  window.__mali = { rig, play, react, setVirtual: t => { virtual = t; }, getVirtual: () => virtual, pause: p => { paused = p; }, setExpression: e => rig.setExpression(e, virtual), setRoom: r => canvas.style.setProperty('--room', ROOM[r]) };
 })();
 </script>
 </body>
