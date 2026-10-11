@@ -11,7 +11,7 @@
 | A3 | SpriteKit、ノード階層（`character_spec.json`）、キーフレーム（`animations.json`）、`CatRig` / `AnimationLibrary` / `CatSceneController`、Domain（反応エンジン・キュー・習慣ロジック）は**そのまま維持** |
 | A4 | 原画の差し替えは `CharacterArtProvider` の実装差し替え（`TexturePackArtProvider`）と `mali_texture_pack.json` の同梱で行い、状態遷移・習慣ロジックには触れない |
 | A5 | 正式な原画がオーナーから提供され、Gallery で承認されるまで、猫のビジュアルは**未完成**（RELEASE_BLOCKERS R02 は開いたまま） |
-| A6 | **暫定段階（2026-10-10 〜）**: オーナー提供の全身イラスト 6 枚（`docs/assets/mali_v1`）を `WholeBodyArtProvider` で表示し、クリップごとにポーズを cross-fade + 軽い動き（持ち上げ・小さな傾き・呼吸 ≤ 1.5 %）で見せる。パーツ分け原画（A2）が来るまでの置き換えであり、瞬き・手足は動かさない。例外として待機中の尻尾は、オーナーの idle 画像から切り出した派生レイヤー（`MaliIdleTail`、`poses.idle.layers.tail`）を付け根で回す（2026-10-11、REV-WB-3）。製品ビジュアルの完成扱いはしない |
+| A6 | **暫定段階（2026-10-10 〜）**: オーナー提供の全身イラスト 6 枚（`docs/assets/mali_v1_1`、v1.1 で sleepy を修正）を `WholeBodyArtProvider` で表示し、クリップごとにポーズを cross-fade + 軽い動き（持ち上げ・小さな傾き・呼吸 ≤ 1.5 %）で見せる。パーツ分け原画（A2）が来るまでの置き換えであり、瞬き・手足は動かさない。例外として待機中の尻尾は、オーナーの idle 画像から切り出した派生レイヤー（`MaliIdleTail`、`poses.idle.layers.tail`）を付け根で回す（2026-10-11、REV-WB-3）。製品ビジュアルの完成扱いはしない |
 
 ## 1. 現在の実装の仕分け
 

@@ -309,3 +309,15 @@ python3 tools/rig-preview/build.py && node tools/rig-preview/capture.mjs --out a
 
 却下のうち、安価に塞げる 3 件も対応した: 切り口の延長（underlap）が最大連結成分で落とした断片の行にも書かれ、孤立した小片が +5° で体の外にはみ出す → 保持された行だけ延長（尻尾の切り出し範囲が [733, 536, 986, 893] に縮小）。静止時合成の差分指標が alpha 0 の画素の RGB まで比較して無意味 → premultiplied の色差と alpha 差を別々に記録。`check_resources.py` が全身用 track の時刻順・duration 内・ease 名・controls を検証していなかった → 追加。
 
+### アセット v1.1: sleepy の修正版への置き換え（2026-10-11, オーナー提供 `NikuCue_Mali_Assets_v1_1.zip`）
+
+| ID | 決定 | 根拠 |
+|---|---|---|
+| D-WB-12 | `docs/assets/mali_v1` を v1.1 パック（`docs/assets/mali_v1_1`）で**置き換え**、旧 `mali_sleepy.png`（前足 3 本）はリポジトリから削除する。他の 5 枚は v1 と**バイト同一**（SHA-256 で確認）、変わったのは sleepy・README・統合メモ・manifest・コンタクトシートのみ | `ANATOMY_CORRECTION_v1_1.md` / 統合メモ「旧画像は使わない、代替として残さない」 |
+| D-WB-13 | 前日のコードによる前足レタッチ（`retouch_sleepy.py`、REV-WB-4）は**廃止**し、取り込み時のフックと確認シートも削除。新 sleepy は承認済みの座り姿勢（idle と同じ体）に半眼・閉じた口の表情で、あくびではない | オーナーの原画修正が正。レタッチは旧画像の幾何に合わせたもので、新画像に当ててはならない |
+| D-WB-14 | 他の 5 表情、clip → ポーズ対応、状態遷移、待機の呼吸・尻尾、Domain は無変更 | 統合メモ「アセットのみの更新」 |
+
+**取り込み結果**: 新 sleepy は alpha 外接矩形が idle と同一（132, 62, 986, 962）で、idle との差は顔の領域（x 296〜708, y 368〜520）だけ。床は idle と同じ 64 px（`floorShiftFromSeated` 2）。縁取りの掃除で除去した画素は 4112（idle と同数。体が同一のため）。`check_resources.py` PASS（6 ポーズ、8 クリップ、フレーム 1024 × 1066）。idle ⇄ sleepy の cross-fade は体が同一のため顔だけが変わる。sleepy の尻尾は描き込みのまま（レイヤー化していない。idle と同じ尻尾なので、doze 中も揺らしたい場合は同じ切り出しを sleepy にも適用できる。要望があれば対応）。
+
+**検証**: ブラウザ描画で sleepy の明暗静止画（`preview/02_look_sleepy_{light,dark}.png`）、doze（`08_doze.png`、`10_night_room_doze.png`）、32 秒動画、ポーズ表を再生成。**iOS Simulator / 実機は未実施**（この環境に macOS がない）。統合メモの「アセットカタログ / プレビューのキャッシュを消す」は、Xcode 側で Derived Data を消して再ビルドする作業として `docs/OWNER_NEXT_STEPS.md` §4 に記載。
+

@@ -9,3 +9,7 @@ Priority: render on iOS simulator/device; build a debug gallery to switch all si
 Do not claim that layered rigging or natural blinking/tail physics are achieved with these six images. Ask for dedicated layer art later if necessary.
 
 Validation deliverables: paths of imported assets, Xcode build/test results (or explicit limitations if not runnable), a short screen recording/screenshot of all six expressions on light/dark surfaces, and a list of any visual defects needing owner review. Do not mark the character complete without explicit sign-off.
+
+
+## Mandatory v1.1 correction
+Replace the previously imported `mali_sleepy.png` (not add as an alternate). Clear any asset catalog or preview caches as needed. The new `doze` texture depicts half-closed eyes with a closed mouth, both front paws grounded. Do not use the old yawning texture: it has an extra front leg. This is an asset-only update; leave domain logic and state mappings unchanged.

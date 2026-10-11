@@ -20,7 +20,7 @@
 | `NikuCue/Resources/` | 同梱する JSON 契約（文言 3 言語、反応、キャラクター rig / パス / アニメーション、全身ポーズ `mali_poses.json`）、Mali の画像セット（`Assets.xcassets/Mali`、オーナー提供 v1）、PrivacyInfo |
 | `Packages/NikuCueDomain/` | 純粋な Domain（Foundation のみ）。`swift test` で macOS / Linux で実行できる |
 | `NikuCueTests/` | アプリ側の XCTest（Simulator で実行） |
-| `tools/character/` | 開発用プレースホルダー絵の生成、アニメーション track の生成、**全身イラストの取り込み（`import_wholebody_pack.py` + `generate_wholebody_tracks.py`、現在の表示。idle の尻尾レイヤー切り出しと sleepy の前足レタッチ `retouch_sleepy.py` を含む）**、パーツ分け原画の取り込み（`build_texture_pack.py`） |
+| `tools/character/` | 開発用プレースホルダー絵の生成、アニメーション track の生成、**全身イラストの取り込み（`import_wholebody_pack.py` + `generate_wholebody_tracks.py`、現在の表示。idle の尻尾レイヤー切り出しを含む。原画は `docs/assets/mali_v1_1`）**、パーツ分け原画の取り込み（`build_texture_pack.py`） |
 | `tools/rig-preview/` | 同じ JSON をブラウザで描画する開発用プレビューと Playwright キャプチャ |
 | `artifacts/` | 記録した画像・動画（`artifacts/mali-assets-v1` = 全身 6 枚のポーズ表・クリップ静止画・32 秒動画、`artifacts/P01` = 旧 placeholder。いずれもブラウザ描画で Simulator の記録ではない） |
 | `scripts/` | `check_resources.py`（同梱 JSON の検証）、`check_release_config.sh`（Release ビルドの placeholder 検査） |

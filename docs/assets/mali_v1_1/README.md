@@ -1,9 +1,12 @@
-# NikuCue — Mali Texture Assets v1
+# NikuCue — Mali Texture Assets v1.1
 
 ## What this package contains
 Six **RGBA 1024×1024 PNGs** with transparent backgrounds: idle, happy, celebrate, pet, sleepy, sad. The 6 pictures were generated from the owner-approved Concept A and cleaned/aligned for an **initial whole-image animation prototype**, along with a contact sheet and a manifest mapping existing app states to texture files.
 
 Important: These files are **not bone-rigging source artwork, sprite-sheet frames, or proof of perfectly consistent anatomy**. The design retains small image-to-image changes. Do not present the character as animation-finished or ship automatically without visual sign-off. The approved Concept A in `Reference` is a visual identity reference, not an animation layer file.
+
+## Fix in v1.1 — anatomical correction
+The prior `mali_sleepy.png` incorrectly showed a lifted front paw *plus* both front paws planted on the floor. It was anatomically inconsistent. The replaced sleepy texture uses the owner-approved seated body silhouette and half-closed eyes: **both front paws remain on the floor; no extra arm and no mouth-covering yawn**. This is a deliberate expression change from “yawning” to “drowsy.” Use this corrected file, not the old v1 image. The other five textures are unchanged.
 
 ## Implementation order
 1. Add the six PNGs to an Xcode asset catalog (`MaliIdle`, `MaliHappy`, `MaliCelebrate`, `MaliPet`, `MaliSleepy`, `MaliSad`), or use the existing TexturePackArtProvider import pipeline. Verify alpha is respected by SpriteKit and SwiftUI on a dark AND light background.

@@ -4,7 +4,7 @@ import SpriteKit
 import UIKit
 
 /// `mali_poses.json`: owner-supplied whole-body textures, one per pose, cross-faded by the rig
-/// (docs/assets/mali_v1/README.md). This is an interim treatment: no part is independently movable, so no
+/// (docs/assets/mali_v1_1/README.md). This is an interim treatment: no part is independently movable, so no
 /// blink, tail or limb motion is synthesised from these images.
 struct WholeBodyPosePack: Decodable, Sendable {
     /// An independently movable layer cut from a pose image (e.g. the idle tail), drawn by its own rig node.

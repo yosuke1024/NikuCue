@@ -3,8 +3,8 @@
   "characterId": "mali_v1_wholebody",
   "isProductionArt": false,
   "status": "Owner-supplied whole-body textures (Concept A), interim cross-fade treatment; visual sign-off pending (R02)",
-  "source": "docs/assets/mali_v1 (NikuCue_Mali_Assets_v1.zip from the owner)",
-  "license": "Owner-provided artwork for NikuCue; see docs/assets/mali_v1/README.md",
+  "source": "docs/assets/mali_v1_1 (NikuCue_Mali_Assets_v1_1.zip from the owner; sleepy corrected, see ANATOMY_CORRECTION_v1_1.md)",
+  "license": "Owner-provided artwork for NikuCue; see docs/assets/mali_v1_1/README.md",
   "pixelsPerUnit": 1,
   "frame": [
     1024,
@@ -70,11 +70,11 @@
       "imageSet": "MaliSleepy",
       "bounds": [
         -512.0,
-        -65,
+        -64,
         512.0,
-        959
+        960
       ],
-      "floorShiftFromSeated": 3
+      "floorShiftFromSeated": 2
     },
     "sad": {
       "imageSet": "MaliSad",
@@ -212,14 +212,13 @@
       ]
     },
     "sleepy": {
-      "removedPixels": 4087,
+      "removedPixels": 4112,
       "opaqueBBox": [
-        148,
-        55,
-        970,
-        958
-      ],
-      "retouch": "tools/character/retouch_sleepy.py (mirror fill); owner art review pending"
+        147,
+        64,
+        983,
+        959
+      ]
     },
     "sad": {
       "removedPixels": 3920,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Imports the owner-supplied whole-body Mali textures (docs/assets/mali_v1) into the app.
+"""Imports the owner-supplied whole-body Mali textures (docs/assets/mali_v1_1) into the app.
 
 Produces:
   NikuCue/Resources/Assets.xcassets/Mali/Mali<Pose>.imageset/{Contents.json, mali_<pose>.png}   (fringe-cleaned copies)
@@ -8,21 +8,18 @@ Produces:
   artifacts/mali-assets-v1/inspection_{light,dark}.png     cleaned textures on light and dark surfaces for owner review
 
 Cleaning is deliberately conservative: pixels whose alpha is below 8, and isolated pixels that lie outside a 4 px
-dilation of the opaque silhouette, get alpha 0. Colours are never changed. The originals stay in docs/assets/mali_v1.
+dilation of the opaque silhouette, get alpha 0. Colours are never changed. The originals stay in docs/assets/mali_v1_1.
 Whole-body textures are an interim treatment: no blinking, tail or limb motion is synthesised from them (asset README §6).
 Run: python3 tools/character/import_wholebody_pack.py
 """
 from __future__ import annotations
 import json
-import sys
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import retouch_sleepy  # noqa: E402  (deterministic code retouch of the owner's sleepy texture: five paws → four)
-SRC = ROOT / "docs" / "assets" / "mali_v1"
+SRC = ROOT / "docs" / "assets" / "mali_v1_1"   # v1.1 (2026-10-11): corrected sleepy texture; other five PNGs byte-identical to v1
 CATALOG = ROOT / "NikuCue" / "Resources" / "Assets.xcassets" / "Mali"
 RES = ROOT / "NikuCue" / "Resources" / "Character"
 ART = ROOT / "artifacts" / "mali-assets-v1"
@@ -274,24 +271,6 @@ def tail_check_sheet(idle: Image.Image, body: Image.Image, tail: Image.Image, bo
     return out
 
 
-def retouch_sheet(original: Image.Image, retouched: Image.Image) -> Image.Image:
-    """Review sheet for the sleepy retouch: whole image at phone size and a 4x paw-row crop, light and dark."""
-    def on(bg, im):
-        b = Image.new("RGB", im.size, bg); b.paste(im, (0, 0), im); return b
-    sheet = Image.new("RGB", (4 * 250 + 50, 270 + 2 * 450 + 20), (251, 239, 217))
-    draw = ImageDraw.Draw(sheet)
-    cells = [((251, 239, 217), original, "original / light"), ((251, 239, 217), retouched, "retouched / light"),
-             ((36, 30, 27), original, "original / dark"), ((36, 30, 27), retouched, "retouched / dark")]
-    for i, (bg, im, label) in enumerate(cells):
-        sheet.paste(on(bg, im).crop((100, 40, 980, 970)).resize((240, 254), Image.LANCZOS), (10 + i * 250, 8))
-        draw.text((10 + i * 250, 262), label, fill=(90, 70, 60))
-    for i, bg in enumerate(((251, 239, 217), (36, 30, 27))):
-        for j, im in enumerate((original, retouched)):
-            sheet.paste(on(bg, im).crop((320, 840, 490, 950)).resize((500, 324), Image.LANCZOS), (10 + j * 510, 290 + i * 340))
-    draw.text((10, 290 + 2 * 340 - 10), "paw row 4x: original (left) vs retouched (right), light then dark. Code retouch; owner art review pending (R02).", fill=(90, 70, 60))
-    return sheet
-
-
 def main() -> None:
     manifest_in = json.loads((SRC / "mali_asset_manifest.json").read_text(encoding="utf-8"))
     width, height = manifest_in["size"]
@@ -306,14 +285,7 @@ def main() -> None:
         src = SRC / "Assets" / "Mali" / f"mali_{pose}.png"
         im = Image.open(src).convert("RGBA")
         assert im.size == (width, height), f"{pose}: unexpected size {im.size}"
-        if pose == "sleepy":
-            # Owner report 2026-10-11: the yawning pose showed four paws on the floor plus the raised one.
-            original = im
-            im = Image.fromarray(retouch_sleepy.retouch(np.array(im)), "RGBA")
-            retouch_sheet(original, im).save(ART / "sleepy_retouch_check.png")
         cleaned, stats = clean(im)
-        if pose == "sleepy":
-            stats["retouch"] = "tools/character/retouch_sleepy.py (mirror fill); owner art review pending"
         folder = CATALOG / f"{IMAGESET[pose]}.imageset"
         folder.mkdir(exist_ok=True)
         cleaned.save(folder / f"mali_{pose}.png", optimize=True)
@@ -368,8 +340,8 @@ def main() -> None:
         "characterId": "mali_v1_wholebody",
         "isProductionArt": False,
         "status": "Owner-supplied whole-body textures (Concept A), interim cross-fade treatment; visual sign-off pending (R02)",
-        "source": "docs/assets/mali_v1 (NikuCue_Mali_Assets_v1.zip from the owner)",
-        "license": "Owner-provided artwork for NikuCue; see docs/assets/mali_v1/README.md",
+        "source": "docs/assets/mali_v1_1 (NikuCue_Mali_Assets_v1_1.zip from the owner; sleepy corrected, see ANATOMY_CORRECTION_v1_1.md)",
+        "license": "Owner-provided artwork for NikuCue; see docs/assets/mali_v1_1/README.md",
         "pixelsPerUnit": 1,
         "frame": [width, height],
         "poses": poses,

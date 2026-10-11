@@ -102,14 +102,15 @@
       ],
       "mode": "RGBA",
       "alpha_true": true,
-      "alpha_zero_fraction": 0.5081,
+      "alpha_zero_fraction": 0.5012,
       "opaque_bbox": [
-        124,
-        54,
-        970,
-        959
+        132,
+        62,
+        986,
+        962
       ],
-      "file_bytes": 801492
+      "file_bytes": 789353,
+      "anatomy_review": "Two forepaws on ground, two hind paws; no additional raised foreleg. Sleepy is half-lidded and closed-mouth."
     },
     "sad": {
       "dimensions": [
@@ -128,5 +129,7 @@
       "file_bytes": 758522
     }
   },
-  "optional_texture": "Assets/Mali/mali_sad.png"
+  "optional_texture": "Assets/Mali/mali_sad.png",
+  "pack_revision": "1.1",
+  "change_note": "Fixed sleepy pose: removed erroneous extra foreleg by using the approved seated body silhouette with relaxed half-lidded eyes. The sleepy state is now drowsy, not mouth-covering yawn."
 }
