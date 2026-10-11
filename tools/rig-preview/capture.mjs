@@ -28,7 +28,9 @@ async function still(name, setup, t) {
     if (setup.idleLead) { m.rig.update(setup.idleLead); m.setVirtual(setup.idleLead); }   // run the ambient loop first
     if (setup.clip) m.play(setup.clip);
     if (setup.room) m.setRoom(setup.room);
-    m.setVirtual(t); m.rig.prevExpression = null;
+    // t is relative to the clip start; with an idle lead the cross-fade (and the fading tail layer) is kept visible
+    m.setVirtual((setup.idleLead || 0) + t);
+    if (!setup.idleLead) m.rig.prevExpression = null;
   }, { setup, t });
   await page.waitForTimeout(80);
   await canvas.screenshot({ path: resolve(outDir, name + '.png') });

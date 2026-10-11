@@ -295,3 +295,17 @@ python3 tools/rig-preview/build.py && node tools/rig-preview/capture.mjs --out a
 
 **確認物**: `artifacts/mali-assets-v1/sleepy_retouch_check.png`（原本 / レタッチ、明暗、足元 4 倍）。`check_resources.py` PASS。これは**コードによる暫定修正**であり、オーナーの承認（または原画の再納品）が必要（R02）。
 
+### 尻尾レイヤー変更の静的レビュー（2026-10-11, Workflow `review-tail-layer-change`、4 観点 → 各指摘を 2 名が反証）
+
+指摘 17 件のうち確定 5 件、却下 12 件（2 名とも「実在」と判定したものだけ確定）。確定分の対応:
+
+| 指摘 | 対応 |
+|---|---|
+| Gallery / Demo の `playDemo` が `stopInteraction()`（reset あり）で rig を rest に戻してから `start()` の settle を呼ぶため、オーナーが動きを確認する画面でだけ尻尾と呼吸が跳ねる | `stopInteraction(resetting: false)`。`start()` が reset なしで止めて settle する |
+| settle のテストが scene 生成前に尻尾の回転を仕込んでおり、controller の初期化で rest に戻されて必ず失敗する | scene 生成後に仕込み、`playDemo(.greet)` で尻尾は ease・bodyPivot（greet が scale を駆動）は snap を検証 |
+| `capture.mjs` の `idleLead` 付き静止画が、クリップ開始（仮想 1200 ms）より前の時刻でサンプリングされ settle の進行が負になる（尻尾 −396°） | サンプル時刻をリード分ずらし、cross-fade 中の前の look（尻尾レイヤー）を保持 |
+| 「sleepy の前足 5 本が未対応」 | レビュー対象のコミット時点では未対応（その後 `678d4ef` で対応済み） |
+| `capture.mjs` の同件（重複） | 上と同じ |
+
+却下のうち、安価に塞げる 3 件も対応した: 切り口の延長（underlap）が最大連結成分で落とした断片の行にも書かれ、孤立した小片が +5° で体の外にはみ出す → 保持された行だけ延長（尻尾の切り出し範囲が [733, 536, 986, 893] に縮小）。静止時合成の差分指標が alpha 0 の画素の RGB まで比較して無意味 → premultiplied の色差と alpha 差を別々に記録。`check_resources.py` が全身用 track の時刻順・duration 内・ease 名・controls を検証していなかった → 追加。
+

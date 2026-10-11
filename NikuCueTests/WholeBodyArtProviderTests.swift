@@ -91,15 +91,21 @@ final class WholeBodyArtProviderTests: XCTestCase {
         XCTAssertTrue(idle.reducedMotionTracks.isEmpty, "Reduce Motion: no sway, no breathing")
         XCTAssertEqual(idle.durationMs, 14400, "breathing (3.6 s) and sway (4.8 s) share one loop")
 
-        // A reaction interrupting the sway eases the tail back instead of snapping it.
+        // A reaction interrupting the sway eases the tail back instead of snapping it. The controller's init
+        // starts the ambient loop (which resets the rig), so the mid-sway state is seeded after the scene exists;
+        // without an SKView the idle actions never advance, so the seeded rotation is what settle() sees.
         let catRig = CatRig(spec: rig, art: provider, pixelsPerUnit: 1)
-        let tailPivot = try XCTUnwrap(catRig.node("tailPivot"))
-        tailPivot.zRotation = 0.08
         let scene = CatScene(size: CGSize(width: 390, height: 260), rig: catRig, library: AnimationLibrary(spec: anims), seed: 1)
+        let tailPivot = try XCTUnwrap(catRig.node("tailPivot"))
+        let bodyPivot = try XCTUnwrap(catRig.node("bodyPivot"))
+        tailPivot.zRotation = 0.08
+        bodyPivot.yScale = 1.012
         scene.controller.playDemo(.greet, dayKey: DayKey(string: "2026-10-11")!)
-        XCTAssertEqual(tailPivot.zRotation, 0.08, accuracy: 0.0001, "not snapped")
+        XCTAssertEqual(scene.controller.currentClip, .greet)
+        XCTAssertEqual(tailPivot.zRotation, 0.08, accuracy: 0.0001, "not snapped: eases over the blend")
         XCTAssertNotNil(tailPivot.action(forKey: CatRig.restEaseKey), "eases back over the blend time")
-        XCTAssertNil(try XCTUnwrap(catRig.node("bodyPivot")).action(forKey: CatRig.restEaseKey), "driven nodes snap instead")
+        XCTAssertEqual(bodyPivot.yScale, 1.0, accuracy: 0.0001, "greet drives bodyPivot.scale, so it snaps to rest")
+        XCTAssertNil(bodyPivot.action(forKey: CatRig.restEaseKey), "driven nodes snap instead")
     }
 
     func testRigCrossFadesPosesWithoutTouchingTheStateMachine() throws {

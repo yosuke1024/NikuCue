@@ -24,8 +24,8 @@
         "tail": {
           "imageSet": "MaliIdleTail",
           "bounds": [
-            -42,
-            -88,
+            -15,
+            -65,
             238,
             292
           ],
@@ -132,7 +132,7 @@
           735,
           837
         ],
-        "underlapPixels": 4844,
+        "underlapPixels": 4194,
         "droppedFragmentPixels": 43,
         "cuts": {
           "540": 834,
@@ -173,13 +173,14 @@
           "890": 762,
           "910": 740
         },
-        "restCompositeMaxDiff": 255,
-        "restCompositeMeanDiff": 0.4974,
+        "restCompositePremultipliedMaxDiff": 43,
+        "restCompositeAlphaMaxDiff": 44,
+        "restCompositePixelsOver8": 8,
         "tailCropBox": [
-          706,
+          733,
           536,
           986,
-          916
+          893
         ]
       }
     },

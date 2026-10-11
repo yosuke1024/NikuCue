@@ -208,10 +208,15 @@ def main() -> None:
         ids = {n["id"] for n in wb_spec["nodes"]}
         require({"root", "shadow", "bodyPivot", "pose"} <= ids, "whole-body: rig nodes")
         require(len(wb_anims["clips"]) == 8, "whole-body: eight clips")
+        eases = {"linear", "easeIn", "easeOut", "easeInOut", "sine"}
         for clip in wb_anims["clips"]:
             require(clip["expression"] == poses["clipPoses"][clip["id"]], f"whole-body: clip {clip['id']} default pose")
             for tr in clip["tracks"] + clip["reducedMotionTracks"]:
                 require(tr["node"] in ids, f"whole-body: {clip['id']} track node {tr['node']}")
+                require(tr["node"] in clip["controls"], f"whole-body: {clip['id']} track node {tr['node']} not in controls")
+                times = [k["t"] for k in tr["keyframes"]]
+                require(times == sorted(times) and times[0] >= 0 and times[-1] <= clip["durationMs"], f"whole-body: {clip['id']} {tr['node']}.{tr['property']} keyframe times")
+                require(all(k.get("ease", "easeInOut") in eases for k in tr["keyframes"]), f"whole-body: {clip['id']} {tr['node']}.{tr['property']} ease name")
                 if tr["property"] == "expression":
                     for kf in tr["keyframes"]:
                         require(kf["v"] in poses["poses"], f"whole-body: {clip['id']} pose {kf['v']}")

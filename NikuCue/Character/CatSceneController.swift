@@ -137,7 +137,9 @@ final class CatSceneController: ObservableObject {
             startAmbient()
             return
         }
-        stopInteraction()
+        // start() stops ambient/interaction without resetting and then settles the rig, so the demo path eases a
+        // swaying tail or a breathing body back exactly like a real reaction instead of snapping it.
+        stopInteraction(resetting: false)
         queue.discardAll()
         _ = queue.enqueue(intent)
         start(intent)

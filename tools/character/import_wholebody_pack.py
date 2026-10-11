@@ -199,13 +199,18 @@ def split_tail(idle: Image.Image) -> tuple[Image.Image, Image.Image, list[int], 
     # Underlap: extend the tail's edge pixel leftwards under the body on rows where tail and body touch.
     underlapped = 0
     for y, cut in cuts.items():
-        if a[y, cut, 3] <= 40 or cut - 1 < 0 or a[y, cut - 1, 3] <= 40:
+        if not mask[y, cut] or cut - 1 < 0:
+            continue                                                # a fragment the component filter dropped
+        # the body must be solidly opaque left of the cut (a whisker crossing the gap is not a body):
+        run = 0
+        while run < TAIL_UNDERLAP and cut - 1 - run >= 0 and a[y, cut - 1 - run, 3] > 200:
+            run += 1
+        if run < 6:
             continue                                                # gap row: real silhouette, nothing to hide
         edge = a[y, cut].copy()
-        for i in range(1, TAIL_UNDERLAP + 1):
+        for i in range(1, run + 1):                                 # never past the opaque body run
             x = cut - i
-            if x < 0: break
-            feather = 1.0 if i <= TAIL_UNDERLAP - 10 else max(0.0, (TAIL_UNDERLAP - i) / 10)
+            feather = 1.0 if i <= run - 10 else max(0.0, (run - i) / 10)
             tail[y, x] = edge
             tail[y, x, 3] = int(edge[3] * feather)
             underlapped += 1
@@ -217,10 +222,16 @@ def split_tail(idle: Image.Image) -> tuple[Image.Image, Image.Image, list[int], 
     comp = Image.new("RGBA", idle.size, (0, 0, 0, 0))
     comp.alpha_composite(tail_img, (box[0], box[1]))
     comp.alpha_composite(body_img)
-    diff = np.abs(np.array(comp).astype(int) - a.astype(int))
+    # Compare premultiplied colour (RGB of fully transparent pixels is meaningless) and alpha separately.
+    c = np.array(comp).astype(int)
+    a_int = a.astype(int)
+    pre = lambda im: im[:, :, :3] * im[:, :, 3:4] // 255
+    colour_diff = np.abs(pre(c) - pre(a_int))
+    alpha_diff = np.abs(c[:, :, 3] - a_int[:, :, 3])
     qa = {"rows": [min(cuts), max(cuts)], "cutRange": [min(cuts.values()), max(cuts.values())], "underlapPixels": underlapped,
           "droppedFragmentPixels": dropped_fragments, "cuts": {str(y): c for y, c in cuts.items() if y % 10 == 0},
-          "restCompositeMaxDiff": int(diff.max()), "restCompositeMeanDiff": round(float(diff.mean()), 4), "tailCropBox": box}
+          "restCompositePremultipliedMaxDiff": int(colour_diff.max()), "restCompositeAlphaMaxDiff": int(alpha_diff.max()),
+          "restCompositePixelsOver8": int((colour_diff.max(axis=2) > 8).sum()), "tailCropBox": box}
     return body_img, tail_img, box, qa
 
 
