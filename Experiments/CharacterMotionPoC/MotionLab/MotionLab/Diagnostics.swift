@@ -34,7 +34,8 @@ final class Diagnostics {
     private var slide: [String: SlideStats] = [:]
     private var occurrence: [String: Double] = [:]
     private var feetPrev: [String: (x: Double, y: Double)] = [:]
-    private var runStart: [String: (x: Double, context: [String: Int])] = [:]
+    /// The open grounded segment of each foot: where it started and in which context (one context per segment).
+    private var segment: [String: (x: Double, context: String)] = [:]
     private var memory: [[Double]] = []
     private var lastMemorySample: CFTimeInterval = 0
     private(set) var log: [String] = []
@@ -93,20 +94,22 @@ final class Diagnostics {
                 occurrence[key, default: 0] += d
                 st.maxOccurrence = max(st.maxOccurrence, occurrence[key] ?? 0)
                 slide[ctx] = st
-                if runStart[id] == nil { runStart[id] = (q.x, [:]) }
-                runStart[id]?.context[ctx, default: 0] += 1
-            } else if let run = runStart[id] {
-                closeRun(id: id, run: run, endX: q.x)
+                // a stance that spans a walk, a blend and standing is split there, so each context reports only
+                // the drift that happened in it
+                if let seg = segment[id], seg.context != ctx { closeSegment(id: id, endX: q.x) }
+                if segment[id] == nil { segment[id] = (q.x, ctx) }
+            } else {
+                closeSegment(id: id, endX: q.x)
             }
         }
     }
 
-    private func closeRun(id: String, run: (x: Double, context: [String: Int]), endX: Double) {
-        runStart[id] = nil
-        guard let dominant = run.context.max(by: { $0.value < $1.value })?.key else { return }
-        var st = slide[dominant] ?? SlideStats()
-        st.maxRunDrift = max(st.maxRunDrift, abs(endX - run.x))
-        slide[dominant] = st
+    /// Net movement of a grounded foot over one segment (plant → lift, or → context change).
+    private func closeSegment(id: String, endX: Double) {
+        guard let seg = segment.removeValue(forKey: id) else { return }
+        var st = slide[seg.context] ?? SlideStats()
+        st.maxRunDrift = max(st.maxRunDrift, abs(endX - seg.x))
+        slide[seg.context] = st
     }
 
     func drift(engineClipTime: Double, rendererTrackTime: Double, mode: MotorMode) {
@@ -125,14 +128,17 @@ final class Diagnostics {
             case .stimulusApplied(let k):
                 if let i = pendingStimuli.firstIndex(where: { $0.kind == k }) {
                     stimulusLatency[k.rawValue, default: []].append(e.time - pendingStimuli[i].time)
-                    pendingStimuli.removeAll { $0.kind == k }
+                    pendingStimuli.remove(at: i)
                 }
                 note(e.time, "applied \(k.rawValue)")
             case .stimulusAcknowledged(let k, let reason):
-                pendingStimuli.removeAll { $0.kind == k }       // a glance only: no body reaction follows
+                // the input just received got a glance only: no body reaction follows for it
+                if let i = pendingStimuli.lastIndex(where: { $0.kind == k }) { pendingStimuli.remove(at: i) }
                 note(e.time, "glance \(k.rawValue) (\(reason))")
             case .stimulusDropped(let k, let reason):
-                pendingStimuli.removeAll { $0.kind == k }
+                // the oldest waiting one (replaced by a newer input, or discarded by a pause); a replacement of the
+                // same kind stays pending and is timed from its own arrival
+                if let i = pendingStimuli.firstIndex(where: { $0.kind == k }) { pendingStimuli.remove(at: i) }
                 note(e.time, "dropped \(k.rawValue) (\(reason))")
             case .facingChanged(let f):
                 note(e.time, "turn → \(f == .left ? "left" : "right")")
@@ -149,6 +155,7 @@ final class Diagnostics {
     }
 
     func lifecycle(_ phase: String, engine: CatBehaviorEngine) {
+        lastFrameTime = nil                 // the time away is not a frame interval
         lifecycle.append([
             "phase": phase,
             "wallClock": String(format: "%.3f", CACurrentMediaTime()),
@@ -176,6 +183,7 @@ final class Diagnostics {
     var lastMemoryMB: Double { memory.last?[1] ?? Diagnostics.physFootprintMB() }
 
     func summary(extra: [String: String]) -> [String: Any] {
+        for (id, p) in feetPrev { closeSegment(id: id, endX: p.x) }      // feet still planted when the session ends
         let sorted = intervals.sorted()
         func pct(_ p: Double) -> Double { sorted.isEmpty ? 0 : sorted[min(sorted.count - 1, Int(Double(sorted.count) * p))] }
         var slideOut: [String: Any] = [:]
@@ -204,9 +212,9 @@ final class Diagnostics {
     func write(name: String, extra: [String: String]) -> URL? {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let url = dir.appendingPathComponent("diagnostics-\(name).json")
-        guard let data = try? JSONSerialization.data(withJSONObject: summary(extra: extra), options: [.prettyPrinted, .sortedKeys])
+        guard let data = try? JSONSerialization.data(withJSONObject: summary(extra: extra), options: [.prettyPrinted, .sortedKeys]),
+              (try? data.write(to: url)) != nil
         else { return nil }
-        try? data.write(to: url)
         return url
     }
 

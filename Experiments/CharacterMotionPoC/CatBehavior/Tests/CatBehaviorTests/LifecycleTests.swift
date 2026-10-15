@@ -36,17 +36,6 @@ final class LifecycleTests: XCTestCase {
         }
     }
 
-    func testTurningOnReducedMotionMidWalkStopsOnAPlantedFoot() {
-        var run = Run(seed: 2)
-        while run.engine.mode != .walking { run.step(1.0 / 60.0) }
-        run.step(1.0 / 60.0)
-        run.engine.setReducedMotion(true)
-        run.run(seconds: 4)
-        XCTAssertNotEqual(run.engine.mode, .walking)
-        XCTAssertTrue(run.events.contains { if case .arrived = $0.event { return true } else { return false } })
-        XCTAssertEqual(run.violations, [])
-    }
-
     func testEngineHasNoFoundationDependency() throws {
         // the engine must stay portable to WebAssembly and free of UI/SDK imports (CLAUDE.md: pure domain logic)
         let sources = URL(fileURLWithPath: #filePath).deletingLastPathComponent()

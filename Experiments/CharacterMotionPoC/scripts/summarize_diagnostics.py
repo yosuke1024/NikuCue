@@ -41,24 +41,26 @@ def main() -> None:
         fi = d.get("frameInterval", {})
         lat = d.get("stimulusLatency", {})
         lat_all = sorted(x for v in lat.values() for x in v)
+        measured_feet = bool(slide)          # the flipbook renderer has no bones to measure
+        na = "n/a"
         rows.append({
             "file": f.name,
             "scenario": extra.get("scenario", "?"),
             "renderer": extra.get("renderer", "?"),
             "reduce": f"{extra.get('reduceMotion', '?')} (system {extra.get('systemReduceMotion', '?')})",
             "frames": d.get("frames", 0),
-            "fps": f"{1 / fi['median']:.0f}" if fi.get("median") else "-",
-            "p95ms": fmt(fi.get("p95", 0) * 1000),
-            "walkSlide": f"{fmt(walk.get('maxRunDrift', 0))} ({fmt(100 * walk.get('maxRunDrift', 0) / height, 2)}%)",
-            "walkOcc": fmt(walk.get("maxOccurrence", 0)),
-            "walkStep": fmt(walk.get("maxStep", 0), 2),
-            "blendSlide": fmt(blend.get("maxOccurrence", 0)),
-            "turnSlide": fmt(turn.get("maxOccurrence", 0)),
-            "standSlide": fmt(stand.get("maxRunDrift", 0), 2),
+            "fps": f"{1 / fi['median']:.0f}" if fi.get("median") else ("60 (virtual)" if fi.get("virtualSeconds") else na),
+            "p95ms": fmt(fi.get("p95", 0) * 1000) if fi.get("p95") else na,
+            "walkSlide": f"{fmt(walk.get('maxRunDrift', 0))} ({fmt(100 * walk.get('maxRunDrift', 0) / height, 2)}%)" if walk else na,
+            "walkOcc": fmt(walk.get("maxOccurrence", 0)) if walk else na,
+            "walkStep": fmt(walk.get("maxStep", 0), 2) if walk else na,
+            "blendSlide": fmt(blend.get("maxOccurrence", 0)) if blend else na,
+            "turnSlide": fmt(turn.get("maxOccurrence", 0)) if turn else na,
+            "standSlide": fmt(stand.get("maxRunDrift", 0), 2) if stand else na,
             "rootStep": fmt(d.get("maxRootStep", 0), 2),
             "flips": d.get("facingFlipsOutsideTurn", 0),
-            "drift": fmt(d.get("maxClipDriftWalking", 0) * 1000, 2),
-            "mem": f"{fmt(mem.get('min', 0))}–{fmt(mem.get('max', 0))}",
+            "drift": fmt(d.get("maxClipDriftWalking", 0) * 1000, 2) if measured_feet else na,
+            "mem": f"{fmt(mem.get('min', 0))}–{fmt(mem.get('max', 0))}" if mem.get("max") else na,
             "activities": ", ".join(f"{k}×{v}" for k, v in sorted(d.get("activities", {}).items())),
             "latency": f"{lat_all[len(lat_all) // 2]:.2f}/{lat_all[-1]:.2f}" if lat_all else "-",
             "lifecycle": d.get("lifecycle", []),

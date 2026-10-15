@@ -7,8 +7,9 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const here = path.dirname(new URL(import.meta.url).pathname);
+const here = path.dirname(fileURLToPath(import.meta.url));   // decoded (paths with spaces or non-ASCII characters)
 const out = path.resolve(process.argv[2] || path.join(here, "../captures/browser"));
 const metricsOnlyAll = process.argv.includes("--metrics-only");
 const wanted = process.argv.slice(3).filter((a) => !a.startsWith("--"));

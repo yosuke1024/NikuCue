@@ -50,7 +50,7 @@ const mql = matchMedia("(prefers-reduced-motion: reduce)");
 // ---------- Diagnostics (same definitions as MotionLab/Diagnostics.swift) ----------
 const diag = {
   frames: 0, maxRootStep: 0, facingFlipsOutsideTurn: 0, maxClipDriftWalking: 0,
-  slide: {}, feetPrev: {}, runStart: {}, serialStart: {}, serialFrom: {}, occurrence: {}, prev: null,
+  slide: {}, feetPrev: {}, segment: {}, serialStart: {}, serialFrom: {}, occurrence: {}, prev: null,
   activities: {}, log: [], latency: {}, pendingStimuli: [], lifecycle: [],
 };
 function context(s) {
@@ -86,18 +86,23 @@ function recordFeet(s) {
       const key = `${ctxName}#${s.base.serial}`;
       diag.occurrence[key] = (diag.occurrence[key] || 0) + d;
       st.maxOccurrence = Math.max(st.maxOccurrence || 0, diag.occurrence[key]);
-      const run = (diag.runStart[id] ||= { x: q.x, context: {} });
-      run.context[ctxName] = (run.context[ctxName] || 0) + 1;
-    } else if (diag.runStart[id]) {
-      const run = diag.runStart[id];
-      delete diag.runStart[id];
-      const dominant = Object.entries(run.context).sort((a, b) => b[1] - a[1])[0][0];
-      const st = (diag.slide[dominant] ||= { frames: 0, total: 0, maxStep: 0, maxRunDrift: 0, maxOccurrence: 0 });
-      st.maxRunDrift = Math.max(st.maxRunDrift, Math.abs(q.x - run.x));
+      // a stance that spans a walk, a blend and standing is split there (same as Diagnostics.swift)
+      const open = diag.segment[id];
+      if (open && open.context !== ctxName) closeSegment(id, q.x);
+      if (!diag.segment[id]) diag.segment[id] = { x: q.x, context: ctxName };
+    } else {
+      closeSegment(id, q.x);
     }
   }
   const e = animState.getTrack(0);
   if (e && s.mode === "walking") diag.maxClipDriftWalking = Math.max(diag.maxClipDriftWalking, Math.abs(e.trackTime - s.baseClipTime));
+}
+function closeSegment(id, endX) {
+  const open = diag.segment[id];
+  if (!open) return;
+  delete diag.segment[id];
+  const st = (diag.slide[open.context] ||= { frames: 0, total: 0, maxStep: 0, maxRunDrift: 0, maxOccurrence: 0 });
+  st.maxRunDrift = Math.max(st.maxRunDrift, Math.abs(endX - open.x));
 }
 function recordEvents(list) {
   for (const [t, d] of list) {
@@ -106,10 +111,18 @@ function recordEvents(list) {
     if (kind === "received") diag.pendingStimuli.push([arg, t]);
     if (kind === "applied") {
       const i = diag.pendingStimuli.findIndex(([k]) => k === arg);
-      if (i >= 0) { (diag.latency[arg] ||= []).push(t - diag.pendingStimuli[i][1]); diag.pendingStimuli = diag.pendingStimuli.filter(([k]) => k !== arg); }
+      if (i >= 0) { (diag.latency[arg] ||= []).push(t - diag.pendingStimuli[i][1]); diag.pendingStimuli.splice(i, 1); }
     }
-    // answered with a glance only (cooldown / busy) or dropped: no body reaction will follow for that input
-    if (kind === "dropped" || kind === "glance") diag.pendingStimuli = diag.pendingStimuli.filter(([k]) => k !== arg);
+    // a glance only (cooldown / busy): the input just received gets no body reaction
+    if (kind === "glance") {
+      const i = diag.pendingStimuli.map(([k]) => k).lastIndexOf(arg);
+      if (i >= 0) diag.pendingStimuli.splice(i, 1);
+    }
+    // dropped: the oldest waiting one (replaced or discarded by a pause); a same-kind replacement stays pending
+    if (kind === "dropped") {
+      const i = diag.pendingStimuli.findIndex(([k]) => k === arg);
+      if (i >= 0) diag.pendingStimuli.splice(i, 1);
+    }
     if (!["clip", "finished", "received", "walk", "stopRequested"].includes(kind)) {
       diag.log.push(`${t.toFixed(2).padStart(6)}s ${d}`);
       if (diag.log.length > 400) diag.log.shift();
@@ -279,7 +292,6 @@ window.harness = {
     diag.lifecycle.push({ phase: "inactive", engineTime: current.time, x: current.x, virtualTime });
     paused = true;
     recordEvents(engine.events());
-    virtualTime += seconds;
   },
   resume(firstFrameDelta) {
     engine.setPaused(false);
@@ -292,12 +304,14 @@ window.harness = {
   setReduceMotion(on) { reduceMotionApp = on; },
   tap(x, y) { tap(x, y, true); },
   summary() {
+    for (const id of Object.keys(diag.segment)) closeSegment(id, diag.feetPrev[id].x);   // feet still planted at the end
     const mem = performance.memory ? { usedJSHeapMB: performance.memory.usedJSHeapSize / 1048576 } : {};
     const pageBytes = atlas.pages.reduce((n, p) => n + (p.texture ? p.texture.getImage().width * p.texture.getImage().height * 4 : 0), 0);
     return {
       extra: { scenario: SCENARIO, renderer: FOOT_LOCK ? "spine-webgl (browser)" : "spine-webgl (browser, no foot planting)", seed: String(SEED), reduceMotion: String(current.reducedMotion),
         systemReduceMotion: String(mql.matches), note: "browser render (Chromium + SwiftShader), not an iOS Simulator or device" },
-      frames: diag.frames, frameInterval: { median: 1 / 60, p95: 1 / 60, max: 1 / 60 },
+      // virtual time: every frame is exactly 1/60 s by construction (nothing measured, unlike MotionLab)
+      frames: diag.frames, frameInterval: { virtualSeconds: 1 / 60 },
       maxRootStep: diag.maxRootStep, facingFlipsOutsideTurn: diag.facingFlipsOutsideTurn, maxClipDriftWalking: diag.maxClipDriftWalking,
       footSlide: Object.fromEntries(Object.entries(diag.slide).map(([k, v]) => [k, { ...v, meanPerFrame: v.frames ? v.total / v.frames : 0 }])),
       memoryMB: { atlasTextureMB: pageBytes / 1048576, ...mem },

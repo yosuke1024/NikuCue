@@ -14,6 +14,14 @@ log() { echo "[$(date +%H:%M:%S)] $*"; }
 
 container() { xcrun simctl get_app_container "$UDID" "$BUNDLE" data; }
 
+REC_PID=""
+# On any exit: finish a running recording (so its mp4 is finalized) and leave Reduce Motion off.
+cleanup() {
+  if [[ -n "$REC_PID" ]]; then kill -INT "$REC_PID" 2>/dev/null || true; wait "$REC_PID" 2>/dev/null || true; fi
+  xcrun simctl spawn "$UDID" defaults write com.apple.Accessibility ReduceMotionEnabled -bool NO 2>/dev/null || true
+}
+trap cleanup EXIT
+
 # run_scenario <name> <seconds> <extra launch args...>; optional hook via $DURING (a function name) at $DURING_AT s
 run_scenario() {
   local name="$1" seconds="$2"
@@ -22,8 +30,10 @@ run_scenario() {
   log "scenario ${name}: ${seconds}s $*"
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
   rm -f "$(container)/Documents/"diagnostics-*.json 2>/dev/null || true
+  rm -f "$stdout"                  # a log from an earlier run must not end this scenario early
   xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$video" &
   local rec=$!
+  REC_PID=$rec
   sleep 2
   if ! xcrun simctl launch --terminate-running-process --stdout="$stdout" --stderr="$OUT/${name}.stderr.log" \
     "$UDID" "$BUNDLE" -MLScenario "$name" -MLSeconds "$seconds" "$@"; then
@@ -32,7 +42,8 @@ run_scenario() {
       log "scenario ${name}: launch failed"
       kill -INT "$rec" 2>/dev/null || true
       wait "$rec" 2>/dev/null || true
-      FAILED="${FAILED:-} ${name}"
+      REC_PID=""
+      FAILED="${FAILED:-} ${name}(launch)"
       return 0
     fi
   fi
@@ -58,7 +69,16 @@ run_scenario() {
   sleep 1
   kill -INT "$rec" 2>/dev/null || true
   wait "$rec" 2>/dev/null || true
-  cp "$(container)/Documents/"diagnostics-*.json "$OUT/" 2>/dev/null || log "no diagnostics for ${name}"
+  REC_PID=""
+  # a scenario without diagnostics or without a recording is a failure, not a quiet gap in the summary
+  if ! cp "$(container)/Documents/"diagnostics-*.json "$OUT/" 2>/dev/null; then
+    log "scenario ${name}: no diagnostics"
+    FAILED="${FAILED:-} ${name}(diagnostics)"
+  fi
+  if [[ ! -s "$video" ]]; then
+    log "scenario ${name}: no recording"
+    FAILED="${FAILED:-} ${name}(recording)"
+  fi
   grep -E "ML_" "$stdout" || true
 }
 

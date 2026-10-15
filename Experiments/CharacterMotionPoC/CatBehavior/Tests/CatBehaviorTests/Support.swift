@@ -61,6 +61,10 @@ struct Run {
         if s.facing != p.facing && !(s.base.clip == profile.turn.name && s.base.serial != p.base.serial) {
             fail("facing flipped outside a turn start (\(s.base.clip))")
         }
+        // the gaze never aims behind the body (one frame of walking as tolerance)
+        if let look = s.look, (look.target.x - s.x) * s.facing.sign < -profile.characterHeight * 0.1 - 12 {
+            fail("gaze behind the body: \(look.target.x) vs x \(s.x) facing \(s.facing)")
+        }
         // every clip change is blended
         if s.base.serial != p.base.serial && s.base.mix <= 0 { fail("clip \(s.base.clip) started without a mix") }
         // never leaves the floor

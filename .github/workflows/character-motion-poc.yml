@@ -34,12 +34,17 @@ jobs:
 
       - name: Toolchain
         run: |
+          # use Xcode 26.6 (the version these results were produced with) when the image has it; the log records it
+          if [ -d /Applications/Xcode_26.6.app ]; then sudo xcode-select -s /Applications/Xcode_26.6.app;
+          else echo "::warning::Xcode 26.6 not on this image; using $(xcode-select -p)"; fi
           xcodebuild -version
           swift --version
           xcrun simctl list runtimes
 
       - name: Engine tests (CatBehavior, macOS)
-        run: swift test --package-path CatBehavior 2>&1 | tee ../../engine-tests.log
+        run: |
+          set -o pipefail
+          swift test --package-path CatBehavior 2>&1 | tee ../../engine-tests.log
 
       - name: Fetch the evaluation sample (pinned commit, SHA-256 verified)
         run: ./scripts/fetch_spine_samples.sh
@@ -68,14 +73,15 @@ jobs:
       - name: Build MotionLab for the Simulator
         run: |
           set -o pipefail
-          xcodebuild build -project MotionLab/MotionLab.xcodeproj -scheme MotionLab -configuration Debug \
+          # Release: performance numbers (frame time, memory) from an optimized build, as shipped
+          xcodebuild build -project MotionLab/MotionLab.xcodeproj -scheme MotionLab -configuration Release \
             -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO 2>&1 | tee ../../build.log | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)|Resolved source packages|spine-runtimes" || true
-          test -d build/Build/Products/Debug-iphonesimulator/MotionLab.app
+            ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO 2>&1 | tee ../../build.log | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)|Resolved source packages|spine-runtimes" || true
+          test -d build/Build/Products/Release-iphonesimulator/MotionLab.app
           # Simulators refuse to launch unsigned apps ("denied by service delegate"): sign ad hoc, as Xcode's
           # "Sign to Run Locally" does (no team, no certificate)
-          codesign --force --sign - --timestamp=none build/Build/Products/Debug-iphonesimulator/MotionLab.app
-          codesign --verify --verbose build/Build/Products/Debug-iphonesimulator/MotionLab.app
+          codesign --force --sign - --timestamp=none build/Build/Products/Release-iphonesimulator/MotionLab.app
+          codesign --verify --verbose build/Build/Products/Release-iphonesimulator/MotionLab.app
 
       - name: Boot simulator
         run: |
@@ -83,7 +89,7 @@ jobs:
           xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
 
       - name: Run scenarios with screen recording
-        run: ./scripts/ci_simulator_run.sh build/Build/Products/Debug-iphonesimulator/MotionLab.app "${{ steps.sim.outputs.udid }}" ci-results
+        run: ./scripts/ci_simulator_run.sh build/Build/Products/Release-iphonesimulator/MotionLab.app "${{ steps.sim.outputs.udid }}" ci-results
 
       - name: Summarize diagnostics
         if: always()

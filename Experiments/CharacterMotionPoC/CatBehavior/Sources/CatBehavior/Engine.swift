@@ -90,7 +90,7 @@ struct Gaze: Sendable {
     private(set) var active = false
     private(set) var serial = 0
     private(set) var current = Point(x: 0, y: 0)
-    private var target = Point(x: 0, y: 0)
+    private(set) var target = Point(x: 0, y: 0)
     private var holdUntil: Double = -1
 
     /// Look at `p` until `until` (engine time). Re-aiming while active glides instead of snapping.
@@ -148,6 +148,9 @@ public struct CatBehaviorEngine: Sendable {
     private var rng: SplitMix64
     private var plan: Plan?
     private var pending: Stimulus?
+    /// Where a waiting pet touched the body, relative to the root and the facing at the time of the tap (the body
+    /// may walk on before it can react; the reaction answers the touched spot, not the empty floor behind).
+    private var pendingPetOffset: Double = 0
     private var lastCompletion: Motor.Completion = .none
     private var gaze = Gaze()
     private var petCooldownUntil: Double = -1
@@ -194,6 +197,7 @@ public struct CatBehaviorEngine: Sendable {
         }
         if let waiting = pending { log(.stimulusDropped(waiting.kind, reason: "replaced")) }
         pending = stimulus
+        if case .pet(let p) = stimulus { pendingPetOffset = (p.x - motor.x) * motor.facing.sign }
     }
 
     public mutating func setReducedMotion(_ on: Bool) {
@@ -236,6 +240,8 @@ public struct CatBehaviorEngine: Sendable {
         lastCompletion = motor.advance(dt)
         time += dt
         gaze.advance(dt, now: time)
+        // walking past what it was looking at: the look ends rather than twisting over the shoulder
+        if gaze.active, isBehind(gaze.target) || isBehind(gaze.current) { gaze.stop() }
         mood.tick(dt, mode: motor.mode)
         for e in motor.drainEvents() { events.append(TimedEvent(time: time - dt, event: e)) }
         return render()
@@ -328,8 +334,12 @@ public struct CatBehaviorEngine: Sendable {
             return                                   // the reaction starts once the feet are planted
         case .standing, .resting:
             pending = nil
-            if s.kind == .pet { petCooldownUntil = time + config.petCooldown }
-            startPlan(builder.reaction(s, x: motor.x, facing: motor.facing))
+            var reaction = s
+            if case .pet(let p) = s {
+                petCooldownUntil = time + config.petCooldown
+                reaction = .pet(at: Point(x: motor.x + pendingPetOffset * motor.facing.sign, y: p.y))
+            }
+            startPlan(builder.reaction(reaction, x: motor.x, facing: motor.facing))
             log(.stimulusApplied(s.kind))
         }
     }
@@ -401,6 +411,7 @@ public struct CatBehaviorEngine: Sendable {
             if direction != motor.facing {
                 p.started = false
                 p.turningFirst = true
+                gaze.stop()
                 motor.startTurn()
                 return false
             }
@@ -409,10 +420,12 @@ public struct CatBehaviorEngine: Sendable {
             return false
         case .face(let f):
             guard f != motor.facing, motor.isStanding else { return true }
+            gaze.stop()
             motor.startTurn()
             return false
         case .faceTowards(let tx):
             guard motor.facing.towards(tx, from: motor.x) != motor.facing, motor.isStanding else { return true }
+            gaze.stop()
             motor.startTurn()
             return false
         case .stand:
@@ -423,19 +436,30 @@ public struct CatBehaviorEngine: Sendable {
             return false
         case .look(let target, let seconds):
             if motor.mode == .resting { motor.stand(resting: false) }
-            gaze.look(at: target, until: time + seconds, from: eyePoint)
+            gaze.look(at: ahead(target), until: time + seconds, from: eyePoint)
             return false
         case .hop:
             if reducedMotion || !motor.isStanding {
                 // Reduce Motion: no jump; a long look at the person carries the joy instead
                 p.steps[p.index] = .look(at: stage.userPoint, seconds: 1.0)
-                gaze.look(at: stage.userPoint, until: time + 1.0, from: eyePoint)
+                gaze.look(at: ahead(stage.userPoint), until: time + 1.0, from: eyePoint)
                 return false
             }
             gaze.stop()
             motor.startHop()
             return false
         }
+    }
+
+    /// The head only looks forward (it cannot twist over the shoulder): a target clearly behind the body, such as
+    /// the person's spot when the character faces away from it, is mirrored in front, so the look goes ahead/up.
+    private func ahead(_ p: Point) -> Point {
+        guard isBehind(p) else { return p }
+        return Point(x: motor.x + (motor.x - p.x), y: p.y)
+    }
+
+    private func isBehind(_ p: Point) -> Bool {
+        (p.x - motor.x) * motor.facing.sign < -profile.characterHeight * 0.1
     }
 
     private var eyePoint: Point {
