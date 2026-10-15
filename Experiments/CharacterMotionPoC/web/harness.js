@@ -199,9 +199,11 @@ function applyState(s, dtScale) {
 // Foot planting (same as MotionLab's SpineDriver): the leg IK targets are children of the root, so their world x
 // is skeleton.x + facing × local x. Override, recompute world transforms, then restore the animated pose so the
 // next frame starts from the animation again.
+let lastPlant = null;   // diagnostic probes only
 function plantFeet(s) {
   const animated = footTargets.map((b) => ({ x: s.x + s.facing * b.pose.x, y: b.pose.y }));
   const planted = engine.plant(animated[0], animated[1]);
+  lastPlant = { animated, planted };
   footTargets.forEach((b, i) => { b.pose.x = (planted[i].x - s.x) * s.facing; b.pose.y = planted[i].y; });
   skeleton.updateWorldTransform(spine.Physics.pose);
   footTargets.forEach((b, i) => { b.pose.x = (animated[i].x - s.x) * s.facing; b.pose.y = animated[i].y; });
@@ -288,6 +290,12 @@ window.harness = {
     render();
     await nextPaint();
     return { t: virtualTime, activity: current.activity, mode: current.mode, x: current.x };
+  },
+  /** Feet and the foot planter's last input/output (diagnostic probes). */
+  debugFeet() {
+    return { t: current.time, x: current.x, facing: current.facing, mode: current.mode, serial: current.base.serial,
+      front: [feet[0][1].appliedPose.worldX, feet[0][1].appliedPose.worldY], rear: [feet[1][1].appliedPose.worldX, feet[1][1].appliedPose.worldY],
+      plant: lastPlant && { a: lastPlant.animated.map((p) => [p.x, p.y]), p: lastPlant.planted.map((p) => [p.x, p.y]) } };
   },
   /** Steps the given frame durations without drawing (diagnostic probes: metrics only, much faster). */
   steps(dts) { for (const dt of dts) frame(paused ? 0 : dt); return { t: virtualTime }; },

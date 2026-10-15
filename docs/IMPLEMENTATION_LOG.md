@@ -390,10 +390,20 @@ node tools/measure_profile.mjs …spineboy-pro.json …spineboy-pma.atlas     �
 node tools/estimate_flipbook.mjs …                                          → 同じ 4 クリップのフリップブック 49.1–82.6 MB（@3x, 24fps）/ Spine atlas 1.0 MB
 web/build_wasm.sh + web/crosscheck_wasm.mjs + CrossCheckTests              → WebAssembly 版とネイティブ版の 90 秒トレースが一致
 node web/capture.mjs captures/browser                                       → ブラウザ描画の録画 4 本 + 診断 JSON（コミットしない）
-GitHub Actions run 1–7                                                      → MotionLab は初回から BUILD SUCCEEDED（Swift の警告 0）。Simulator 起動は run 1/2 で拒否、run 3 以降は 6 シナリオとも起動・録画（下記）
+GitHub Actions run 1–8                                                      → MotionLab は初回から BUILD SUCCEEDED（Swift の警告 0）。Simulator 起動は run 1/2 で拒否、run 3 以降は 6 シナリオとも起動・録画（下記）。最終は run 8
+node web/probe_timing.mjs interaction 11 400 / autonomous 7 200               → フレーム時間とフレーム落ちを 600 通り変えても、待機→振り向きの接地足の移動は最大 7.3 units（Simulator との差の原因調査）
 ```
 
-**Simulator 実行**: <!-- SIM_RESULT -->
+**Simulator 実行**: CI run 8（https://github.com/yosuke1024/NikuCue/actions/runs/38784494560）で全 6 シナリオが起動・録画・診断の書き出しまで成功（Release ビルド、iPhone 17 Simulator / iOS 26.5、Xcode 26.6）。run 3 で見つけた spine-ios 由来の 2 件（世界座標が y 下向き、SwiftUI の更新でフレーム時計がリセット）を修正済み。run 3 の足の数値は y 下向きの問題で無効。数値は REPORT §4.8。
+
+| シナリオ | 描画 | フレーム | fps（中央） | フレーム時間 p95 / 最大 ms | 1 フレームの最大移動 | 振り向き以外の反転 | 切替の接地足 最悪 u | 1 歩の接地 最大 u | クリップ時間のずれ ms | メモリ MB |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| autonomous | spine | 5319 | 60 | 17.1 / 201 | 12.7 | 0 | 38.8 | 25.2 | 0.00 | 20–24 |
+| interaction | spine | 5192 | 60 | 17.7 / 301 | 16.6 | 0 | 44.0 | 25.2 | 0.00 | 20–24 |
+| lifecycle | spine | 1843 | 60 | 17.1 / 100 | 20.1 | 0 | 39.0 | 16.5 | 0.00 | 20–24 |
+| reducedMotion | spine | 2143 | 60 | 18.3 / 433 | 0.0 | 0 | 3.0 | —（歩かない） | 0.00 | 20–23 |
+| systemReduceMotion | spine | 1774 | 60 | 17.3 / 69 | 0.0 | 0 | 2.6 | —（歩かない） | 0.00 | 20–21 |
+| flipbook | flipbook | 3535 | 60 | 17.1 / 261 | 12.6 | 0 | 未計測 | 未計測 | 未計測 | 21–138 |
 
 **独立レビュー**（Workflow `motion-poc-review`、24 エージェント: エンジン・iOS アプリ・計測・CI・報告の主張の 5 観点 → 中〜高の各指摘を別のエージェントが反証）: 確定 10 件、反証 9 件（うち 8 件はレビュー中に修正済みのコードに対するもの）、未検証の低 25 件。対応:
 
@@ -408,6 +418,8 @@ GitHub Actions run 1–7                                                      �
 | CI: エンジンのテスト失敗が見逃される（pipefail なし）、診断・録画のないシナリオでも成功扱い | 失敗にする。Release ビルド、Xcode 26.6 を選択、終了時の後始末 |
 | 報告の主張: 描画は CatScene 以下に閉じている、Features は変更なし | 誤り。`setTimeOfDay`・`isPaused`・Gallery・なでる判定・VoiceOver の結合を §2.1 / §6 に明記 |
 | 報告の主張: 視線は常に即応、一時停止は実装済み、待機規則は ReactionQueue と同じ、Reduce Motion は視線だけ | 前方のみ・停止理由の集合は要移植・規則は異なる（統一案）・その場の振り向きはする、に訂正。実行中の反応を一時停止で終える処理はエンジンに追加 |
+
+**Simulator だけで大きい「待機→振り向き」の足の移動**（run 7: 39.5 units、ブラウザ 3.0）: ブラウザでフレーム時間を 600 通り変えても再現しないため、run 8 でフレーム記録を追加して調べた。IK の足ターゲットは切替の間固定されており、反転後の踏み替えの最初の 2 フレームでつま先が床から 5〜12 units の低さで横に動き始め、接地判定（17.2 units）に入っていた。spine-cpp と spine-ts の姿勢計算（`noRotationOrReflection`、yDown）は同一であることを公式ソースと spine-core で確認。差はセッションの細部（待機クリップの位相など）によるつま先の高さ。Mali では踏み替えの持ち上げと接地の判定点（足裏）で対応する（REPORT §6.4・§7）。
 
 未対応で記録のみ（低）: 計測ツールのループ継ぎ目の扱い（spineboy の数値には影響しない位置）、フリップブックの焼き込みの取り消し、ContentView の再描画ごとの SKScene 生成（検証アプリのみ）。
 

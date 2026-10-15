@@ -6,7 +6,7 @@ Mali のキャラクター層をゼロベースで再評価するための独立
 |---|---|
 | `CatBehavior/` | Swift パッケージ（標準ライブラリのみ）: 自律行動の選択（Behavior Engine）、移動（Locomotion: 足が滑らない歩行・停止・方向転換）、Navigation（床・場所・停止位置の計画）、ユーザー操作の割り込み、Reduce Motion、一時停止。レンダラーに依存しない |
 | `MotionLab/` | iOS 検証アプリ（SwiftUI）。`CatBehavior` + 公式 `spine-ios` で公式サンプル spineboy を動かす。比較用に SpriteKit フリップブック描画も同じエンジンで動く |
-| `web/` | ブラウザ検証ハーネス（公式 spine-ts + `CatBehavior` を WebAssembly にコンパイルしたもの）。Linux 環境での計測・録画用 |
+| `web/` | ブラウザ検証ハーネス（公式 spine-ts + `CatBehavior` を WebAssembly にコンパイルしたもの）。Linux 環境での計測・録画用（`capture.mjs`）。`probe_timing.mjs` はフレーム時間を変えて同じシナリオを何百通りも再生する調査用ツール |
 | `tools/measure_profile.mjs` | Spine の書き出しから歩幅・接地フェーズ・停止ウィンドウ・ルートモーションを計測する（推測値を使わない） |
 | `Profiles/spineboy.measured.json` | 上記の計測結果（数値のみ。画像は含まない） |
 | `scripts/` | サンプル取得（固定コミット + SHA-256 検証）、Simulator シナリオ実行、診断の集計、CI ログからの静止画・録画の復元（`decode_review_frames.py` / `decode_video_frames.py`） |
