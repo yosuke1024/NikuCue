@@ -24,6 +24,9 @@ final class SpineDriver: ObservableObject {
     private var crosshair: Bone?
     private var crosshairSlot: Slot?
     private var feet: [(id: String, bone: Bone)] = []
+    /// Leg IK targets (children of the root): pinned by the foot planter during clip blends.
+    private var footTargets: [Bone] = []
+    private var planter = FootPlanter(groundTolerance: 17.2)
     @Published private(set) var loaded = false
 
     init(model: StageModel) {
@@ -55,6 +58,7 @@ final class SpineDriver: ObservableObject {
         feet = [("front", "front-foot-tip"), ("rear", "back-foot-tip")].compactMap { id, name in
             c.skeleton.findBone(name).map { (id: id, bone: $0) }
         }
+        footTargets = ["front-foot-target", "rear-foot-target"].compactMap { c.skeleton.findBone($0) }
         // Pick up wherever the engine is (also after switching renderers mid-session).
         let s = model.state
         let entry = c.animationState.setAnimation(0, s.base.clip, s.base.loop)
@@ -113,6 +117,7 @@ final class SpineDriver: ObservableObject {
 
     private func afterUpdate(_ c: SpineController) {
         guard loaded else { return }
+        if model.config.footPlanting, footTargets.count == 2 { plantFeet(c) }
         // the sample's aim pose shows a crosshair; the look-at should not
         if let slot = crosshairSlot { _ = slot.appliedPose.color.set(1, 1, 1, 0) }
         var positions: [String: (x: Double, y: Double)] = [:]
@@ -123,6 +128,27 @@ final class SpineDriver: ObservableObject {
         if let entry = c.animationState.getTrack(0), model.state.base.serial == lastBaseSerial {
             model.diagnostics.drift(engineClipTime: model.state.baseClipTime, rendererTrackTime: Double(entry.trackTime),
                                     mode: model.state.mode)
+        }
+    }
+}
+
+extension SpineDriver {
+    /// Foot planting: keep a grounded foot where it is while two clips blend, then step it (CatBehavior.FootPlanter).
+    /// Runs after the animation was applied: override the IK targets, recompute world transforms, restore the
+    /// animated pose so the next frame starts from the animation again.
+    fileprivate func plantFeet(_ c: SpineController) {
+        let s = model.state
+        let sign = s.facing.sign
+        let animated = footTargets.map { Point(x: s.x + sign * Double($0.pose.x), y: Double($0.pose.y)) }
+        let planted = planter.solve(animated, state: s)
+        for (i, bone) in footTargets.enumerated() {
+            bone.pose.x = Float((planted[i].x - s.x) * sign)
+            bone.pose.y = Float(planted[i].y)
+        }
+        c.skeleton.updateWorldTransform(.pose)
+        for (i, bone) in footTargets.enumerated() {
+            bone.pose.x = Float((animated[i].x - s.x) * sign)
+            bone.pose.y = Float(animated[i].y)
         }
     }
 }

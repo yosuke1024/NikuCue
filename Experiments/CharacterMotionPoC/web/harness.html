@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Harness</title>
+<style>
+  :root { --bg: #f7f2e8; --ink: #3b3127; --muted: #7d6f60; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 -apple-system, system-ui, sans-serif; }
+  header { padding: 10px 16px 6px; font-size: 12px; color: var(--muted); }
+  header b { color: var(--ink); }
+  #stage { position: relative; width: 600px; height: 546.67px; margin: 0 16px; border-radius: 16px; overflow: hidden; cursor: pointer; }
+  #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #rings { position: absolute; inset: 0; pointer-events: none; }
+  .ring { position: absolute; border: 2px solid #2f6fdb; border-radius: 50%; }
+  .ring.scripted { border-color: #8a3fc2; }
+  .ring.scripted::after { content: attr(data-label); position: absolute; top: 100%; left: 50%; transform: translateX(-50%); font-size: 9px; color: #8a3fc2; white-space: nowrap; }
+  #hud { white-space: pre; font: 11px/1.35 ui-monospace, monospace; margin: 8px 16px; min-height: 76px; }
+  .controls { margin: 6px 16px; display: flex; gap: 8px; align-items: center; }
+  .capture .controls { display: none; }
+</style>
+</head>
+<body>
+<header><b>Browser render</b> (official spine-webgl 4.3.13 + CatBehavior compiled to WebAssembly) — not an iOS Simulator or device recording.
+  Character: official Spine sample “spineboy”, evaluation only (non-commercial sample, not a NikuCue asset).</header>
+<div id="stage"><canvas id="room"></canvas><canvas id="gl"></canvas><div id="rings"></div></div>
+<div class="controls">
+  <button id="celebrate">Done ✓ (celebrate)</button><button id="rest">Skip (rest is fine)</button>
+  <label><input type="checkbox" id="rm"> Reduce Motion (app)</label>
+</div>
+<div id="hud"></div>
+<script src="./node_modules/@esotericsoftware/spine-webgl/dist/iife/spine-webgl.js"></script>
+<script type="module">
+  if (new URLSearchParams(location.search).has("capture")) document.body.classList.add("capture");
+  import("./harness.js").catch((e) => { document.getElementById("hud").textContent = "harness failed: " + e; window.harnessError = String(e); });
+</script>
+</body>
+</html>

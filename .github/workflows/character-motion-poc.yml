@@ -72,6 +72,10 @@ jobs:
             -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO 2>&1 | tee ../../build.log | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)|Resolved source packages|spine-runtimes" || true
           test -d build/Build/Products/Debug-iphonesimulator/MotionLab.app
+          # Simulators refuse to launch unsigned apps ("denied by service delegate"): sign ad hoc, as Xcode's
+          # "Sign to Run Locally" does (no team, no certificate)
+          codesign --force --sign - --timestamp=none build/Build/Products/Debug-iphonesimulator/MotionLab.app
+          codesign --verify --verbose build/Build/Products/Debug-iphonesimulator/MotionLab.app
 
       - name: Boot simulator
         run: |
@@ -88,6 +92,14 @@ jobs:
           cp ../../build.log ../../engine-tests.log ci-results/ 2>/dev/null || true
           python3 -I scripts/summarize_diagnostics.py ci-results | tee ci-results/summary.md || true
           cat ci-results/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+          # the full diagnostics, so they can be read from the job log as well as from the artifact
+          for f in ci-results/diagnostics-*.json; do [ -f "$f" ] && { echo "=== $f"; python3 -c "import json,sys; d=json.load(open(sys.argv[1])); d.pop('log', None); [s.pop('samples', None) for s in [d.get('memoryMB', {})]]; print(json.dumps(d, sort_keys=True))" "$f"; }; done || true
+
+      - name: Review frames (small JPEGs in the log, for reviewers without artifact access)
+        if: always()
+        run: |
+          python3 -m venv /tmp/review && /tmp/review/bin/pip install --quiet pillow==11.3.0 || exit 0
+          /tmp/review/bin/python -I scripts/review_frames.py ci-results || true
 
       - name: Upload recordings and diagnostics
         if: always()

@@ -18,6 +18,8 @@ final class Diagnostics {
         var total = 0.0
         var maxStep = 0.0
         var maxRunDrift = 0.0
+        /// Largest total grounded-foot slide inside one occurrence (one blend, one turn, one walk), both feet.
+        var maxOccurrence = 0.0
     }
 
     private(set) var frameCount = 0
@@ -25,10 +27,12 @@ final class Diagnostics {
     private var lastFrameTime: CFTimeInterval?
     private var previous: RenderState?
     private var lastBaseSerialTime: [Int: Double] = [:]
+    private var serialFrom: [Int: String] = [:]
     private(set) var maxRootStep = 0.0
     private(set) var facingFlipsOutsideTurn = 0
     private(set) var maxClipDrift = 0.0
     private var slide: [String: SlideStats] = [:]
+    private var occurrence: [String: Double] = [:]
     private var feetPrev: [String: (x: Double, y: Double)] = [:]
     private var runStart: [String: (x: Double, context: [String: Int])] = [:]
     private var memory: [[Double]] = []
@@ -49,7 +53,10 @@ final class Diagnostics {
             maxRootStep = max(maxRootStep, abs(s.x - p.x))
             if s.facing != p.facing && !(s.base.serial != p.base.serial && s.mode == .turning) { facingFlipsOutsideTurn += 1 }
         }
-        if previous?.base.serial != s.base.serial { lastBaseSerialTime[s.base.serial] = s.time }
+        if previous?.base.serial != s.base.serial {
+            lastBaseSerialTime[s.base.serial] = s.time
+            serialFrom[s.base.serial] = previous?.base.clip ?? "start"
+        }
         previous = s
         if now - lastMemorySample >= 1 {
             lastMemorySample = now
@@ -57,10 +64,10 @@ final class Diagnostics {
         }
     }
 
-    /// What the body is doing this frame, for attributing foot slide.
+    /// What the body is doing this frame, for attributing foot slide ("blend:walk>idle" names the transition).
     func context(of s: RenderState) -> String {
         let sinceClip = s.time - (lastBaseSerialTime[s.base.serial] ?? -1)
-        if sinceClip < s.base.mix + 1e-6 { return "blend" }
+        if sinceClip < s.base.mix + 1e-6 { return "blend:\(serialFrom[s.base.serial] ?? "?")>\(s.base.clip)" }
         switch s.mode {
         case .walking: return "walk"
         case .turning: return "turn"
@@ -82,6 +89,9 @@ final class Diagnostics {
                 st.frames += 1
                 st.total += d
                 st.maxStep = max(st.maxStep, d)
+                let key = "\(ctx)#\(s.base.serial)"
+                occurrence[key, default: 0] += d
+                st.maxOccurrence = max(st.maxOccurrence, occurrence[key] ?? 0)
                 slide[ctx] = st
                 if runStart[id] == nil { runStart[id] = (q.x, [:]) }
                 runStart[id]?.context[ctx, default: 0] += 1
@@ -170,6 +180,7 @@ final class Diagnostics {
         var slideOut: [String: Any] = [:]
         for (k, v) in slide {
             slideOut[k] = ["frames": v.frames, "total": v.total, "maxStep": v.maxStep, "maxRunDrift": v.maxRunDrift,
+                           "maxOccurrence": v.maxOccurrence,
                            "meanPerFrame": v.frames > 0 ? v.total / Double(v.frames) : 0]
         }
         let mem = memory.map { $0[1] }.filter { $0 > 0 }

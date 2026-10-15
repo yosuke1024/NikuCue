@@ -25,8 +25,14 @@ run_scenario() {
   xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$video" &
   local rec=$!
   sleep 2
-  xcrun simctl launch --terminate-running-process --stdout="$stdout" --stderr="$OUT/${name}.stderr.log" \
-    "$UDID" "$BUNDLE" -MLScenario "$name" -MLSeconds "$seconds" "$@"
+  if ! xcrun simctl launch --terminate-running-process --stdout="$stdout" --stderr="$OUT/${name}.stderr.log" \
+    "$UDID" "$BUNDLE" -MLScenario "$name" -MLSeconds "$seconds" "$@"; then
+    log "scenario ${name}: launch failed"
+    kill -INT "$rec" 2>/dev/null || true
+    wait "$rec" 2>/dev/null || true
+    FAILED="${FAILED:-} ${name}"
+    return 0
+  fi
   local start=$SECONDS
   local hooked=0
   while (( SECONDS - start < seconds + 60 )); do
@@ -77,3 +83,4 @@ run_scenario flipbook 60 -MLSeed 7 -MLRenderer flipbook
 
 log "done"
 ls -la "$OUT"
+if [[ -n "${FAILED:-}" ]]; then log "failed scenarios:${FAILED}"; exit 1; fi
