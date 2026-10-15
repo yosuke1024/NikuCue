@@ -16,9 +16,29 @@ final class LifecycleTests: XCTestCase {
         XCTAssertTrue(run.events.contains { $0.event == .stimulusDropped(.celebrate, reason: "paused") })
         run.engine.setPaused(false)
         run.step(5.0)                                       // first frame after resume reports a long delta
-        XCTAssertLessThanOrEqual(abs(run.engine.x - before.x), run.profile.walk.groundSpeed * run.profile.walk.maxTimeScale / 20 + 1e-6)
+        XCTAssertEqual(run.engine.time, before.time, accuracy: 1e-12, "the time away is not integrated")
+        XCTAssertEqual(run.engine.x, before.x)
         run.run(seconds: 20)
         XCTAssertEqual(run.count { $0 == .stimulusApplied(.celebrate) }, 0, "a stale reaction is never replayed")
+        XCTAssertEqual(run.violations, [])
+    }
+
+    func testPauseEndsARunningCelebrationAfterTheHopLands() throws {
+        var run = Run(seed: 4)
+        run.run(seconds: 3)
+        run.send(.celebrate)
+        let end = run.engine.time + 6
+        while run.engine.mode != .hopping && run.engine.time < end { run.step(1.0 / 60.0) }
+        XCTAssertEqual(run.engine.activity, .celebrateReaction)
+        XCTAssertEqual(run.engine.mode, .hopping)
+        run.engine.setPaused(true)
+        for _ in 0..<600 { run.step(1.0 / 60.0) }
+        run.engine.setPaused(false)
+        let resumed = run.engine.time
+        run.run(seconds: 4)
+        // the hop lands (no jump cut), then the celebration ends instead of carrying on with its remaining steps
+        let finished = try XCTUnwrap(run.events.first { $0.time >= resumed && $0.event == .activityFinished(.celebrateReaction) })
+        XCTAssertLessThanOrEqual(finished.time - resumed, run.profile.hop.duration + 0.1)
         XCTAssertEqual(run.violations, [])
     }
 

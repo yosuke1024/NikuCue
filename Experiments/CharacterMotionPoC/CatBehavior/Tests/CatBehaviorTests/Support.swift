@@ -61,6 +61,12 @@ struct Run {
         if s.facing != p.facing && !(s.base.clip == profile.turn.name && s.base.serial != p.base.serial) {
             fail("facing flipped outside a turn start (\(s.base.clip))")
         }
+        // every walk ends inside the blend window (whatever path ended it)
+        if p.mode == .walking && s.mode != .walking {
+            let phase = fract(p.baseClipTime / profile.walk.clip.duration)
+            let w = profile.walk.blendWindow
+            if phase < w.lowerBound - 1e-6 || phase > w.upperBound + 1e-6 { fail("walk ended at phase \(phase)") }
+        }
         // the gaze never aims behind the body (one frame of walking as tolerance)
         if let look = s.look, (look.target.x - s.x) * s.facing.sign < -profile.characterHeight * 0.1 - 12 {
             fail("gaze behind the body: \(look.target.x) vs x \(s.x) facing \(s.facing)")

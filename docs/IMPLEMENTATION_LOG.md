@@ -373,24 +373,43 @@ python3 tools/rig-preview/build.py && node tools/rig-preview/capture.mjs --out a
 |---|---|---|
 | D-CM-1 | 行動・移動・割り込みを Swift パッケージ `CatBehavior`（標準ライブラリのみ）として描画から独立させ、レンダラーは毎フレーム `RenderState` を反映するだけにする | Spine と SpriteKit を同じエンジンで比較でき、移行時も Domain と同列の純粋パッケージとして使える（CLAUDE.md「domain logic pure」） |
 | D-CM-2 | 歩行中の根の移動を「歩行クリップの時間 × 接地足の後退速度」に固定し、停止・開始はブレンドで足が滑らない位相の範囲（ブレンド窓）に計画する。数値は書き出しを公式 spine-core で解析する `tools/measure_profile.mjs` が出す | 「足が滑らない」を設計で保証し、推測値を使わない |
-| D-CM-3 | 割り込みは視線で即応、体はブレーキ距離のあとブレンド窓で止まってから反応。ジャンプの空中・振り向きの途中は待つ。待機枠 1、なでるの連打は 2 秒クールダウン | 「割り込んでも破綻しない」。既存 `ReactionQueue` と同じ考え方 |
+| D-CM-3 | 割り込みは視線で即応（体の前方へのタップ。後方は止まって振り向いてから）、体はブレーキ距離のあとブレンド窓で止まってから反応。ジャンプの空中・振り向きの途中は待つ。待機枠 1（優先度で決める）、なでるの連打は 2 秒クールダウン | 「割り込んでも破綻しない」。待機の規則は Domain の `ReactionQueue`（最新が置き換える）と違うため、移行時は `ReactionQueue` を正として統一する（REPORT §6.2） |
 | D-CM-4 | IK の足ターゲットを使う `FootPlanter`: クリップのブレンド中と振り向き中は接地した足を固定し、終わったら持ち上げて踏み直す。振り向き（scaleX 反転）でも足は瞬間移動せず踏み替える | サンプル実測で振り向き時に接地足が 1 フレームで約 200 units 跳んでいた（§4.3 of REPORT） |
 | D-CM-5 | spine-ios は tag `spine-ts-4.3.13`（2026-07-24）のコミット `b7beb2c` に固定。spine-ts も 4.3.13。サンプルは同コミットから SHA-256 検証付きで取得し、**リポジトリに入れない** | 4.3 の HEAD は SPM の Metal リソース宣言を外した直後で変更途中。サンプル画像は非商用ライセンスで、リポジトリは公開設定 |
 | D-CM-6 | iOS 実行は GitHub Actions（`macos-26`、公開リポジトリのため無償）で build → Simulator で 6 シナリオを録画。録画は 14 日保存の成果物で、コミットしない | この環境は Linux で Xcode / 実機がない |
 | D-CM-7 | ブラウザ検証は同じ Swift ソースを WebAssembly 化（SwiftWasm 6.0.3）して公式 spine-webgl 4.3.13 を駆動。WebAssembly 版とネイティブ版で 90 秒の行動列が完全一致することを `CrossCheckTests` で確認 | Linux 上で描画・録画・計測をするため。Simulator の代わりではない（ラベルを明記） |
+| D-CM-8 | spine-ios ではアニメーションをアプリ側の時計（エンジンの 1 ステップ）で `AnimationState.update` し、spine-ios 自身の更新は `timeScale = 0` で適用だけにする | `SpineView` に `isRendering` をバインドすると SwiftUI の更新ごとに spine-ios のフレーム時計がリセットされ、クリップがエンジンより最大 58 ms 遅れた（Simulator run 3） |
+| D-CM-9 | spine-ios の世界座標を y 下向きとして扱う（表示範囲・ボーンから読む世界座標を変換。ローカル姿勢は y 上向きのまま） | spine-cpp の `Bone::yDown` は既定で true、シェーダーが y を反転。y 上向きの前提ではキャラクターが画面上端に描かれ、足の接地判定も壊れていた（run 3） |
+| D-CM-10 | 視線は前方だけ（後ろの目標は前方に映す、振り向きで視線を外す、通り過ぎた目標への視線は終える）。なでる反応はタップ時の「体のどこを触ったか」に答える。一時停止では実行中の反応を今のステップで終え、復帰後の最初のフレームはエンジンが 0 秒として扱う | 独立レビュー（下記）で確認された不具合。視線が体の後ろを向くフレームが 90 秒あたり 125〜366 あった。docs/05 §3「古いお祝いを再生しない」 |
 
 **実行したコマンドと結果**
 
 ```text
-swift test --package-path Experiments/CharacterMotionPoC/CatBehavior     → 27 tests, 0 failures（Linux, Swift 6.0.3。CI の macOS でも成功）
+swift test --package-path Experiments/CharacterMotionPoC/CatBehavior     → 32 tests, 0 failures（Linux, Swift 6.0.3。CI の macOS でも実行）
 node tools/measure_profile.mjs …spineboy-pro.json …spineboy-pma.atlas     → 歩幅 473.6 units/周期、ブレンド窓 0.378–0.507、跳躍の空中 0.022–1.177 s
 node tools/estimate_flipbook.mjs …                                          → 同じ 4 クリップのフリップブック 49.1–82.6 MB（@3x, 24fps）/ Spine atlas 1.0 MB
 web/build_wasm.sh + web/crosscheck_wasm.mjs + CrossCheckTests              → WebAssembly 版とネイティブ版の 90 秒トレースが一致
 node web/capture.mjs captures/browser                                       → ブラウザ描画の録画 4 本 + 診断 JSON（コミットしない）
-GitHub Actions run 1–3                                                      → MotionLab は初回から BUILD SUCCEEDED（Swift の警告 0）。Simulator 起動は run 1/2 で拒否（下記）
+GitHub Actions run 1–7                                                      → MotionLab は初回から BUILD SUCCEEDED（Swift の警告 0）。Simulator 起動は run 1/2 で拒否、run 3 以降は 6 シナリオとも起動・録画（下記）
 ```
 
 **Simulator 実行**: <!-- SIM_RESULT -->
+
+**独立レビュー**（Workflow `motion-poc-review`、24 エージェント: エンジン・iOS アプリ・計測・CI・報告の主張の 5 観点 → 中〜高の各指摘を別のエージェントが反証）: 確定 10 件、反証 9 件（うち 8 件はレビュー中に修正済みのコードに対するもの）、未検証の低 25 件。対応:
+
+| 指摘 | 対応 |
+|---|---|
+| 視線が体の後ろを向く（呼ぶ・休む・正面へ来る反応、振り向きをまたぐ視線） | 前方だけに制限、全テストの毎フレーム不変条件に追加（修正前のコードでは 7 テストで 76 件の違反） |
+| なでる反応が古いタップ位置へ 180° 振り返る（60 回中 32 回） | タップ時の体の相対位置に答える。テスト追加 |
+| 空中・振り向き中のガード、待機枠の優先度が未テスト。Reduce Motion の途中停止テストが空振り | テスト 5 件を追加・置換（各ガードを壊すとそのテストだけが失敗することを確認） |
+| 足の 1 歩あたりのずれが、最も長い文脈にまとめて計上される | 文脈ごとに区切って計上（iOS と ブラウザで同じ定義） |
+| 同じ種類の刺激が置き換わると反応時間の記録が消える | 古い方だけを除く |
+| 計測していない値（フリップブックの足、ブラウザのフレーム時間）が 0 と表示される | 「n/a / 未計測」と表示 |
+| CI: エンジンのテスト失敗が見逃される（pipefail なし）、診断・録画のないシナリオでも成功扱い | 失敗にする。Release ビルド、Xcode 26.6 を選択、終了時の後始末 |
+| 報告の主張: 描画は CatScene 以下に閉じている、Features は変更なし | 誤り。`setTimeOfDay`・`isPaused`・Gallery・なでる判定・VoiceOver の結合を §2.1 / §6 に明記 |
+| 報告の主張: 視線は常に即応、一時停止は実装済み、待機規則は ReactionQueue と同じ、Reduce Motion は視線だけ | 前方のみ・停止理由の集合は要移植・規則は異なる（統一案）・その場の振り向きはする、に訂正。実行中の反応を一時停止で終える処理はエンジンに追加 |
+
+未対応で記録のみ（低）: 計測ツールのループ継ぎ目の扱い（spineboy の数値には影響しない位置）、フリップブックの焼き込みの取り消し、ContentView の再描画ごとの SKScene 生成（検証アプリのみ）。
 
 **未実施**: 実機での動作確認（この環境から接続できない。手順は REPORT §8）、Simulator 録画のこの環境からの閲覧（成果物の保存先ホストがネットワーク方針で遮断。オーナーは Actions のページから取得可能）、Spine 公式サイトでの価格・規約の最新確認（到達不可）。
 

@@ -22,9 +22,11 @@
 ### 2.1 依存関係
 
 ```text
-Features（Home / Onboarding / Demo / Gallery / Settings）
+Features（Home / Onboarding / Demo / Gallery / Settings）、App（NikuCueApp / CatCoordinator）
    │  CatRoom(height:)  ・ controller.messageKey / currentClip / reduceMotion
    │  enterScene / leaveScene / pause(.modal) / resume / setPaused / playDemo
+   │  ※ SpriteKit の scene を直接呼ぶ箇所もある: scene.setTimeOfDay（Home / Onboarding / Demo / CatCoordinator）、
+   │    scene.isPaused（NikuCueApp）、Gallery は container.rig / rigSpec / animationSpec / artProvider を直接使う
    ▼
 CatRoom ─▶ CatSceneView(SpriteView 30fps) ─▶ CatScene(SKScene, 1 個だけ)
                                                │ onTap → CatCoordinator.petTapped()
@@ -43,16 +45,16 @@ CatCoordinator（App）
    └ isStillValid（待機中の反応の再検証） / onReactionStarted（節目トークンの記録）
 ```
 
-外部（Features）が触るのは `container.scene.controller`（`CatSceneController`）の公開 API と `CatRoom` だけで、描画方式は `CatScene` 以下に閉じている。これが差し替えの継ぎ目になる。
+外部（Features）が主に触るのは `container.scene.controller`（`CatSceneController`）の公開 API と `CatRoom` で、これが差し替えの主な継ぎ目になる。ただし完全には閉じていない：時間帯の切替（部屋の色と夜のうたた寝）は `CatScene.setTimeOfDay` を Features と `CatCoordinator` が直接呼び、アプリの一時停止は `scene.isPaused` も操作し、なでる判定は `CatScene.touchesEnded` がリグのフレームに対して行い、VoiceOver の値は `controller.currentClip`（`ClipID`）で分岐し、Gallery はリグと JSON 契約を直接表示する。移行ではこれらも置き換える（§6.1〜6.2）。
 
 ### 2.2 再利用可否
 
 | 部品 | 場所 | 判定 | 理由 |
 |---|---|---|---|
-| Domain の反応決定（`CatReactionEngine`、`ReactionCatalog`、`CatEvent`、`ReactionIntent`、`ReactionQueue`、`TimeOfDay`） | `Packages/NikuCueDomain/Sources/NikuCueDomain/Cat/` | **そのまま再利用** | 描画と完全に分離済み（Foundation のみ、56 テスト）。「何に反応するか」は方式に依存しない |
+| Domain の反応決定（`CatReactionEngine`、`ReactionCatalog`、`CatEvent`、`ReactionIntent`、`ReactionQueue`、`TimeOfDay`） | `Packages/NikuCueDomain/Sources/NikuCueDomain/Cat/` | **そのまま再利用** | 描画と完全に分離済み（Foundation のみ。NikuCueDomain 全体で 56 テスト、うち反応関連は `ReactionTests` 10 件）。「何に反応するか」は方式に依存しない |
 | `CatCoordinator`（書込結果の振り分け、再検証、節目トークン） | `NikuCue/App/CatCoordinator.swift` | **再利用（接続先を変更）** | `scene.controller` の代わりに新しい `CatStage`（§6）に繋ぐ。再検証と「実際に始まったときに記録」の規則は維持 |
 | `CatSceneController` の外部 API と規則（pause 理由の集合、画面の所有者、復帰時に古い反応を再生しない、吹き出しは SwiftUI） | `NikuCue/Character/CatSceneController.swift` | **API と規則を再利用、中身は置換** | 規則は docs/04 §5・docs/05 の要件そのもの。中身（SKAction のキー管理・余韻・ハート）は描画方式に依存 |
-| `CatRoom` / `CatSceneView` / 吹き出し・VoiceOver | `NikuCue/Character/`, `Features/` | **再利用（中の View を差し替え）** | `SpriteView` を `SpineView` に替えるだけで、レイアウト・アクセシビリティは同じ |
+| `CatRoom` / `CatSceneView` / 吹き出し・VoiceOver | `NikuCue/Character/`, `Features/` | **再利用（中の View を差し替え）** | レイアウトと吹き出しはそのまま。ただし `SpriteView` → `SpineView` に加えて、なでる判定（今は SKScene 内でリグのフレームに対して判定）と VoiceOver の値（今は `currentClip` で分岐）は作り直しが必要 |
 | `CatRig` / `AnimationLibrary` / `RigSpec` / `AnimationSpec` / JSON 契約 3 種 / 3 つの ArtProvider | `NikuCue/Character/`, `Resources/Character/` | **Spine 採用時は置換**（SpriteKit 継続時は再利用） | 骨・キーフレーム・表情差分・ポーズ切替は Spine のスケルトンとアニメーションが担う |
 | `tools/character/*`（全身パックの取り込み、尻尾切り出し、トラック生成）・`tools/rig-preview` | `tools/` | **Spine 採用時は廃止**（参考として保持） | 代わりに `tools/measure_profile.mjs`（書き出しの受け入れ検査）を使う |
 | Mali 原画 v1.1（全身 6 枚） | `docs/assets/mali_v1_1` | **デザイン資料として再利用** | Spine 用にはパーツ分け・隠れ部分の描き足し・横向き/歩行用の絵が別途必要（§6.4） |
@@ -80,9 +82,10 @@ Experiments/CharacterMotionPoC/
 1. **根の移動はクリップの時間そのもの。** 歩行中は `root += groundSpeed × Δ(歩行クリップ時間)` で動かす。`groundSpeed`（spineboy は 473.6 units/s）は接地している足が後ろへ動く速さを書き出しから実測した値。速さを変えるときはクリップの再生速度（timeScale）を変えるので、地面に着いた足は常に止まって見える。加減速は timeScale の変化率を 2.5/s に制限して急変させない。
 2. **止まれる位相に止まる。** 歩行から待機へのブレンドで足が滑らない位相（接地している足が待機姿勢の位置から 30 units 以内）を計測し（spineboy: 0.378〜0.507）、自律移動は「その範囲で歩き始めて、その範囲で止まる」距離に計画する。足が接地しているので、着地時の位相は距離だけで決まる。
 3. **向きは方向転換クリップの最初のフレームでだけ反転する。** 歩行中の反転はしない（いったん止まる → 振り向く → 歩く）。
-4. **割り込みは「視線で即応、体は安全な瞬間に」。** タップの同じフレームで頭（視線）が向き、体はブレーキ距離のあとブレンド窓に入った位置で止まってから反応する。ジャンプの空中・方向転換の途中では体の反応を待たせる。待機枠は 1（`ReactionQueue` と同じ考え方）。なでるの連打は 2 秒のクールダウン中は視線だけ。
-5. **フレームが詰まっても跳ばない。** 1 フレームの積分は最大 1/20 秒。バックグラウンドから戻った最初のフレームは 0 から数える。
+4. **割り込みは「視線で即応、体は安全な瞬間に」。** 体の前方へのタップには同じフレームで頭（視線）が向く。体はブレーキ距離のあとブレンド窓に入った位置で止まってから反応する。後方へのタップは頭が肩越しに振り返れないので視線は動かず、歩行中なら減速して止まり、振り向いて応じる。ジャンプの空中・方向転換の途中では体の反応を待たせる。待機枠は 1 つで、優先度（お祝い > なでる・休む > 呼ぶ）で決める（Domain の `ReactionQueue` の「最新が置き換える」とは規則が違う。§6.2）。なでるの連打は 2 秒のクールダウン中は視線だけ。なでる反応は、タップした時点の「体のどこを触ったか」に答える（止まるまでに体が進んでも、空いた床を振り返らない）。
+5. **フレームが詰まっても跳ばない。** 1 フレームの積分は最大 1/20 秒。一時停止から戻った最初のフレームは、ホストが何秒と報告してもエンジンが 0 秒として扱う。一時停止では待機中の反応を捨て、実行中の反応は今のステップ（跳躍の着地など）で終える。
 6. **罪悪感の仕組みを作らない。** 気分（energy / curiosity / playfulness / sociability）は行動の多様性のためだけに使い、表示しない・習慣やユーザーの不在に依存しない・悪い状態がない（energy が下がると昼寝しやすくなるだけ）。
+7. **視線は前方だけ。** 後ろの目標は前方に映して見上げる・見渡す。歩いて通り過ぎた目標への視線は終わり、振り向き中は視線を外す（頭が肩越しにねじれない）。
 
 <!-- RESULTS -->
 
@@ -94,7 +97,7 @@ Experiments/CharacterMotionPoC/
 |---|---|---|---|
 | アプリ側の実装難易度 | **低〜中**。SwiftUI に `SpineView` を置き、毎フレーム `RenderState` を反映するドライバ約 150 行。CI の Xcode 26 / iOS 26 SDK で初回からビルド成功。C++ コアと Metal 描画は公式ランタイムが担う | **低**。`SKSpriteNode` のテクスチャ差し替え。遷移はクロスフェードを自作 | **中〜高**。既存資産はあるが、骨の階層・IK・メッシュ変形・物理を自作し、キーフレームを JSON で手書きする（エディタなし） |
 | 表現力 | **高**。クリップ間の自動ブレンド、トラックの重ね合わせ（歩きながら視線）、IK による視線と足の接地（実証: §4.3）、メッシュ変形・物理（尻尾・ひげ）・スキン（表情差分・衣装）は Professional 版の機能 | **描いた絵の範囲だけ**。クリップ間は 2 枚の半透明重ね（体がにじむ）、視線や足の位置を実行時に変えられない、振り向きは左右反転のみ | **中**。移動・回転・拡大のみ（メッシュ変形なし）。現行の全身 1 枚絵ではポーズ間で輪郭が「跳ぶ」（実装ログ記載の既知事項）。自律歩行には横向きのパーツ一式が別途必要 |
-| アセット制作負荷 | 初期のリギング（パーツ分け・骨・ウェイト）は重いが、**クリップの追加は軽い**（同じ部品を動かすだけ）。アニメーターに Spine 経験が必要。書き出しは `.skel` + atlas（spineboy で約 1 MB） | **クリップ × フレーム数**の原画が必要（24fps の歩行 1 周期で 24 枚）。修正は全フレーム描き直し。メモリが大きい（§4.8: 4 クリップで 115 MB 実測 → 15 クリップなら数百 MB 規模） | パーツ PNG + 手書きキーフレーム。可愛さの調整がエンジニア作業になり、アニメーターが直接触れない |
+| アセット制作負荷 | 初期のリギング（パーツ分け・骨・ウェイト）は重いが、**クリップの追加は軽い**（同じ部品を動かすだけ）。アニメーターに Spine 経験が必要。書き出しファイルは約 0.3 MB（spineboy: `.skel` 64 KB + atlas PNG 235 KB。展開後のテクスチャは 1.0 MB） | **クリップ × フレーム数**の原画が必要（24fps の歩行 1 周期で 24 枚）。修正は全フレーム描き直し。メモリが大きい（§4.8: 4 クリップで 115 MB 実測 → 15 クリップなら数百 MB 規模） | パーツ PNG + 手書きキーフレーム。可愛さの調整がエンジニア作業になり、アニメーターが直接触れない |
 | 保守性 | 公式ランタイム（ソース公開、SPM）。**エディタとランタイムのバージョン（4.3.x）を揃える必要**があり、ランタイム更新時にアセットの再書き出しが要ることがある。spine-ios は比較的新しく、癖がある（世界座標が y 下向き、SwiftUI の更新でフレーム時計がリセットされる。§4.8。どちらもアプリ側で吸収済み）。4.3 の HEAD は変更途中だったため、リリース時点のコミットに固定した | 依存なしで単純。ただし絵の差し替えが重い | 依存なし。自作コード（リグ・IK・補間）が増え続ける |
 | 実行時（メモリ・負荷） | atlas 1.0 MB（同じ表示密度なら 1.7 MB）、1 つの Metal ビュー。Simulator 実測でアプリ全体 20〜24 MB、60 fps（§4.8） | テクスチャが支配的。同じ 4 クリップを表示密度で焼くと 115 MB、アプリのピーク 138 MB（Simulator 実測、§4.8） | 軽い（パーツ数枚） |
 | ライセンス・費用 | **製品として配布するには Spine のライセンスが必要**（組み込み時点で。Runtimes License / README）。IK 制約・メッシュ等は Professional 版の機能という情報が多い（価格は公式ページで要確認。このセッションからは公式サイトに到達できなかった）。収益・資金調達が直近 12 か月で 50 万 USD を超える事業者は Enterprise（年間契約）が必要 | 無償 | 無償 |
@@ -108,7 +111,8 @@ Experiments/CharacterMotionPoC/
 ### 6.1 目標の構成
 
 ```text
-Features（変更なし：CatRoom、吹き出し、VoiceOver、Gallery、Demo）
+Features（変更は小さい：scene.setTimeOfDay → stage.setTimeOfDay、Gallery のリグ・契約の表示を Spine 用に置換。
+          CatRoom・吹き出し・VoiceOver の構成はそのまま。VoiceOver の値は activity からの対応表に）
    │   既存と同じ API：messageKey / currentClip(→activity) / reduceMotion / enterScene / leaveScene /
    │                   pause(reason) / resume(reason) / setPaused / handle(intent) / cancelReactions / playDemo
    ▼
@@ -120,7 +124,8 @@ CatStage（新、@MainActor ObservableObject。CatSceneController の外部 API 
    └ CharacterRenderer（protocol：RenderState を描く・足と視線の骨を扱う・pause/resume・メモリ解放）
         └ SpineCharacterRenderer（spine-ios の SpineView + MotionLab の SpineDriver を製品化。
                                   エンジンの時計でアニメーションを進め、y 下向きの世界座標を変換する）
-CatCoordinator（変更小：scene.controller → stage。再検証・節目トークンの記録はそのまま）
+CatCoordinator（変更小：scene.controller / scene.setTimeOfDay → stage。再検証・節目トークンの記録はそのまま）
+NikuCueApp（変更小：scene.isPaused → stage の一時停止に一本化）
 NikuCueDomain（変更なし：CatReactionEngine / ReactionQueue / HabitService …）
 ```
 
@@ -130,22 +135,25 @@ NikuCueDomain（変更なし：CatReactionEngine / ReactionQueue / HabitService 
 
 | 現行（CatSceneController） | 移行後（CatStage） | 備考 |
 |---|---|---|
-| `handle(_ intent: ReactionIntent)` | `StimulusMapper` で `Stimulus` にして `engine.send` | 待機枠 1 の規則は engine 側にある |
+| `handle(_ intent: ReactionIntent)` | `StimulusMapper` で `Stimulus` にして `engine.send` | **要追加実装（規則の統一）**。エンジンの待機枠は優先度で決める（お祝いが待っている間のスキップは視線だけ）。Domain の `ReactionQueue` は「待機できる最新の反応が置き換える」。製品では `ReactionQueue` を正とし、`CatStage` が反応を 1 件ずつエンジンへ渡す（エンジンの優先度は自律行動との関係だけに使う）案を推奨 |
 | `isStillValid` / `onReactionStarted` | engine に「開始直前の確認」フックを追加し、開始時に `stimulusApplied` イベント → 節目トークン記録 | 現行の「実際に始まったときだけ記録」「古い反応は始めない」を維持（**要追加実装**） |
 | `cancelReactions(habitId:dayKey:)` | `engine.cancel(kind:)`（待機中は破棄、実行中は空中なら着地後に静かに戻る） | **要追加実装**。悲しませない・瞬間移動しない規則は今回の Motor が担保 |
-| `pause(.sceneInactive / .modal / .sceneLeft)`・`resume` | 同じ理由集合 → `engine.setPaused` + `SpineView(isRendering:)` + `controller.pause()` | 今回 MotionLab で実装済み（復帰後の最初のフレームは 0 から） |
-| `reduceMotion` | `engine.setReducedMotion`（歩かない・跳ばない・視線と静かな待機で表現） | 今回実装済み |
-| `setAmbient(.dozing)`（夜） | 行動選択の文脈に `TimeOfDay` を渡し、夜は昼寝・休息の重みを上げる | **要追加実装**（小） |
-| `messageKey`（吹き出し） | `stimulusApplied` + 反応ごとの `messageAtMs` で表示 | SwiftUI のまま |
+| `pause(.sceneInactive / .modal / .sceneLeft)`・`resume` | 同じ理由集合 → `engine.setPaused` + `SpineView(isRendering:)` + `controller.pause()` | エンジン側は実装済み（待機中の反応を捨てる、実行中の反応は今のステップで終える、復帰後の最初のフレームは 0 秒）。**停止理由の集合と画面の所有者（enterScene / leaveScene）は要移植**（MotionLab は scenePhase の 1 つだけ） |
+| `reduceMotion` | `engine.setReducedMotion`（歩かない・跳ばない。その場の振り向き・視線・静かな待機で表現） | 今回実装済み |
+| `setAmbient(.dozing)`（夜）・`CatScene.setTimeOfDay`（部屋の色） | 行動選択の文脈に `TimeOfDay` を渡し、夜は昼寝・休息の重みを上げる。部屋の色は SwiftUI の背景に移す | **要追加実装**（小） |
+| `messageKey`（吹き出し） | `stimulusApplied` + 反応ごとの `messageAtMs` で表示 | 表示は SwiftUI のまま。**吹き出しの遅延・表示時間・余韻・反応間の間は要移植**（現行 `CatSceneController` の規則） |
+| `playDemo`（Gallery / Demo） | 刺激を直接送る、または Spine のクリップを単独再生するデモ用 API | **要追加実装**。Gallery のリグ・表情・契約の表示は Spine 用（スキン・アニメーション一覧）に置換 |
+| なでる判定（`CatScene.touchesEnded`） | スケルトンの境界（またはスロットの当たり判定）でタップを判定し `.pet` | **要追加実装**（MotionLab は体の幅の帯で判定） |
+| VoiceOver の値（`currentClip` で分岐） | `activity`（`ActivityKind`）からアクセシビリティ値への対応表 | **要追加実装**（小） |
 | `activeActionCount`（QA Q40） | engine の計画・イベント数とレンダラーのトラック数 | テストで上限を確認 |
 
 ### 6.3 反応（Domain）→ 刺激（行動エンジン）の対応
 
 | `ClipID`（Domain） | 発生源 | 行動エンジンでの扱い（Reduce Motion 時） |
 |---|---|---|
-| `celebrate` | 習慣を完了 | `.celebrate`：正面を向く → 視線をユーザーへ → その場で小さく跳ぶ → 余韻（跳ばずに視線と笑顔） |
-| `milestone` | 3 / 7 / 14 日 | `.celebrate` の大きい版（2 段の喜び + ハート）※ハートは SwiftUI か Spine のスロットで |
-| `pet` | 猫をタップ | `.pet(at:)`：視線を指へ、必要なら振り向く（同じ。視線のみ） |
+| `celebrate` | 習慣を完了 | `.celebrate`：正面を向く → 視線をユーザーへ → その場で小さく跳ぶ → 余韻（跳ばずに、その場の振り向きと視線と笑顔） |
+| `milestone` | 3 / 7 / 14 日 | `.celebrate` の大きい版（2 段の喜び + ハート）※ハートは SwiftUI か Spine のスロットで。**刺激は要追加** |
+| `pet` | 猫をタップ | `.pet(at:)`：触った場所へ視線、必要なら振り向く（同じ。歩かない） |
 | `settle` | スキップ | `.encourageRest`：視線をユーザーへ → 休む（同じ）。悲しい表情は使わない |
 | `greet` | 画面に入った・おかえり | 新 `.greet`：視線 → 正面へ歩いて座る（視線のみ） |
 | `cheer` | 応援を頼む | 新 `.cheer`：正面で見上げる（同じ） |
@@ -154,7 +162,7 @@ NikuCueDomain（変更なし：CatReactionEngine / ReactionQueue / HabitService 
 ### 6.4 Mali 用 Spine アセットの要件（制作発注の叩き台）
 
 - **視点**: 自由行動は横向き（または 3/4）の歩行が必要。座りは正面寄りでよい。1 つのスケルトン内でスキン / アタッチメント切替で両立させ、振り向きクリップで正面を経由する。
-- **最小クリップ**: `sit_idle`（呼吸 + 尻尾、ループ）、`stand_idle`、`walk`（ループ）、`turn`（その場、最初のフレームで反転する作り）、`sit_down` / `stand_up`、`look`（頭と目の視線、加算トラック）、`groom`（毛づくろい）、`stretch`（伸び）、`nap`（ループ）、`yawn`、`happy_hop`（その場、着地は座りか立ちの待機姿勢へ）、`milestone`、`pet_react`（目を細めて寄る）、`cheer`、`settle`、`greet`。悲しい・空腹・病気の表現は作らない（CLAUDE.md）。
+- **最小クリップ**: `sit_idle`（呼吸 + 尻尾、ループ）、`stand_idle`、`walk`（ループ）、`turn`（その場、最初のフレームで反転する作り）、`sit_down` / `stand_up`、`look`（頭と目の視線、加算トラック）、`groom`（毛づくろい）、`stretch`（伸び）、`nap`（ループ）、`yawn`、`happy_hop`（その場、着地は座りか立ちの待機姿勢へ）、`milestone`、`pet_react`（目を細めて寄る）、`cheer`、`settle`、`greet`、`ear_twitch`（耳・頭の小さな動き。後方からのタップに即座に応じる、加算トラック）。悲しい・空腹・病気の表現は作らない（CLAUDE.md）。
 - **骨と制約（Professional 機能を前提）**: 頭・目の視線用 IK ターゲット、前後の足の IK ターゲット（root の子、足の接地に使う）、尻尾とひげの物理、表情差分（目・口のアタッチメント）。
 - **歩行の作り方（足を滑らせないための条件）**: その場歩き（root は動かさない）、**1 周期に止まれる区間を左右の足で 2 か所**（今回のサンプルは 1 か所で、割り込みに最大約 1.7 秒かかった）、可能なら `walk_start` / `walk_stop`。停止区間の待機姿勢と足の位置を揃える。
 - **書き出し規約**: Spine 4.3.x（ランタイムと同じマイナー版）、バイナリ `.skel` + PMA atlas、@3x で 1:1 になる倍率、root = 床の中心・右向き。
@@ -181,7 +189,9 @@ NikuCueDomain（変更なし：CatReactionEngine / ReactionQueue / HabitService 
 - 視線は体の前方だけ（後ろの目標は前方に映して見上げる・見渡す）。歩いて通り過ぎた目標への視線は終わる。振り向き中は視線を外す。
 - WebAssembly 版のビルドには SwiftWasm 6.0.3 ツールチェーンを使った（ブラウザ検証専用。製品には関係しない）。WebAssembly 版と通常の Swift 版で 90 秒の行動列が完全一致することを確認済み。
 - MotionLab の画面文言はローカライズしていない（開発ツールのため。製品では既存の文言リソースを使う）。
-- 行動エンジンに未実装のもの：夜（`doze`）の重み付け、`cancel` API、開始直前の確認フック、`greet` / `cheer` の刺激（§6.2〜6.3）。
+- 移行で追加・移植が必要なもの（§6.2〜6.3）：夜（`doze`）の重み付けと部屋の色、`cancel` API、開始直前の確認フック、`greet` / `cheer` / `milestone` の刺激、`playDemo`（Gallery / Demo）、吹き出しの時間の規則、停止理由の集合と画面の所有者、なでる判定、VoiceOver の値、Domain の `ReactionQueue` と待機規則の統一。
+- 後方へのタップ（体の向きと反対側）には視線が応じない（頭が肩越しに振り返れない）。歩行中なら減速して止まり、振り向いて応じるまで約 1〜2 秒かかる。Mali では耳や頭の小さな動きで即座に応じるクリップを用意したい（§6.4）。
+- Reduce Motion でもその場の振り向きは行う（歩行・跳躍はしない）。振り向きも止めるべきかはオーナー確認事項。
 
 ## 8. オーナー判断事項と次のタスク
 

@@ -151,6 +151,8 @@ public struct CatBehaviorEngine: Sendable {
     /// Where a waiting pet touched the body, relative to the root and the facing at the time of the tap (the body
     /// may walk on before it can react; the reaction answers the touched spot, not the empty floor behind).
     private var pendingPetOffset: Double = 0
+    /// The next step is the first after a pause: it integrates nothing (the time away is not motion).
+    private var resumeFrame = false
     private var lastCompletion: Motor.Completion = .none
     private var gaze = Gaze()
     private var petCooldownUntil: Double = -1
@@ -210,13 +212,20 @@ public struct CatBehaviorEngine: Sendable {
         }
     }
 
-    /// App backgrounded / screen left: nothing advances, waiting reactions are discarded (never replayed later).
+    /// App backgrounded / screen left: nothing advances, waiting reactions are discarded and a running reaction ends
+    /// after the step it is in (a hop still lands), so nothing old is replayed on return (docs/05 §3). The first
+    /// frame after resuming counts from zero, whatever time the host reports for it.
     public mutating func setPaused(_ paused: Bool) {
         guard paused != isPaused else { return }
         isPaused = paused
-        if paused, let p = pending {
-            log(.stimulusDropped(p.kind, reason: "paused"))
-            pending = nil
+        if paused {
+            if let p = pending {
+                log(.stimulusDropped(p.kind, reason: "paused"))
+                pending = nil
+            }
+            if let kind = plan?.kind, reactionPriority(kind) > 0 { plan?.truncateAfterCurrent() }
+        } else {
+            resumeFrame = true
         }
         log(.paused(paused))
     }
@@ -230,7 +239,8 @@ public struct CatBehaviorEngine: Sendable {
 
     public mutating func step(_ rawDt: Double) -> RenderState {
         guard !isPaused else { return render() }
-        let dt = clamp(rawDt, 0, config.maxStep)
+        let dt = resumeFrame ? 0 : clamp(rawDt, 0, config.maxStep)
+        resumeFrame = false
         // decisions use the state at the start of the frame; clips started here begin at this frame's start
         handleCompletion(lastCompletion)
         handlePending()
