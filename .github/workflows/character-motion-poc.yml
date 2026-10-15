@@ -1,0 +1,98 @@
+# Technical evaluation of the character motion approach (Experiments/CharacterMotionPoC).
+# Builds the MotionLab evaluation app (spine-ios + CatBehavior), runs scripted scenarios on an iOS Simulator,
+# records the screen and collects the app's own diagnostics. Nothing here ships or touches NikuCue's app target.
+#
+# The recordings show the official Spine sample "spineboy" (evaluation only, non-commercial sample art): they are
+# uploaded as short-lived workflow artifacts and are never committed to the repository.
+name: Character motion PoC (Simulator)
+
+on:
+  push:
+    branches: [claude/loving-gates-ak20t5]
+    paths:
+      - "Experiments/CharacterMotionPoC/**"
+      - ".github/workflows/character-motion-poc.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: character-motion-poc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulator:
+    name: Build, run and record on iOS Simulator
+    runs-on: macos-26
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: Experiments/CharacterMotionPoC
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          xcrun simctl list runtimes
+
+      - name: Engine tests (CatBehavior, macOS)
+        run: swift test --package-path CatBehavior 2>&1 | tee ../../engine-tests.log
+
+      - name: Fetch the evaluation sample (pinned commit, SHA-256 verified)
+        run: ./scripts/fetch_spine_samples.sh
+
+      - name: Cache Swift packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: Experiments/CharacterMotionPoC/build/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('Experiments/CharacterMotionPoC/tools/generate_motionlab_project.py') }}
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)["devices"]
+          runtimes = sorted((k for k in d if "iOS" in k), key=lambda k: [int(x) for x in k.rsplit("iOS-", 1)[1].split("-")])
+          for rt in reversed(runtimes):
+              phones = [x for x in d[rt] if x["name"].startswith("iPhone") and "Pro Max" not in x["name"] and "Plus" not in x["name"]]
+              if phones:
+                  print(phones[-1]["udid"]); break
+          ')
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl list devices | grep "$UDID"
+
+      - name: Build MotionLab for the Simulator
+        run: |
+          set -o pipefail
+          xcodebuild build -project MotionLab/MotionLab.xcodeproj -scheme MotionLab -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee ../../build.log | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)|Resolved source packages|spine-runtimes" || true
+          test -d build/Build/Products/Debug-iphonesimulator/MotionLab.app
+
+      - name: Boot simulator
+        run: |
+          xcrun simctl boot "${{ steps.sim.outputs.udid }}" || true
+          xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+
+      - name: Run scenarios with screen recording
+        run: ./scripts/ci_simulator_run.sh build/Build/Products/Debug-iphonesimulator/MotionLab.app "${{ steps.sim.outputs.udid }}" ci-results
+
+      - name: Summarize diagnostics
+        if: always()
+        run: |
+          mkdir -p ci-results
+          cp ../../build.log ../../engine-tests.log ci-results/ 2>/dev/null || true
+          python3 -I scripts/summarize_diagnostics.py ci-results | tee ci-results/summary.md || true
+          cat ci-results/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload recordings and diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: motionlab-simulator-results
+          path: Experiments/CharacterMotionPoC/ci-results
+          retention-days: 14

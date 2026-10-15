@@ -1,0 +1,172 @@
+{
+  "generatedBy": "tools/measure_profile.mjs (spine-core 4.3.13)",
+  "source": "spineboy-pro.json",
+  "note": "Evaluation profile of the official Spine sample 'spineboy' (non-commercial sample, not a product asset).",
+  "setupBounds": {
+    "x": -188.64,
+    "y": -7.94,
+    "width": 418.45,
+    "height": 686.2
+  },
+  "groundTolerance": 17.15,
+  "idleFeet": {
+    "front": {
+      "x": -82.34,
+      "y": -0.41
+    },
+    "rear": {
+      "x": 110.93,
+      "y": 0.7
+    }
+  },
+  "durations": {
+    "aim": 0,
+    "death": 4.9333,
+    "hoverboard": 1,
+    "idle": 1.6667,
+    "idle-turn": 0.2667,
+    "jump": 1.3333,
+    "portal": 3.1667,
+    "run": 0.6667,
+    "run-to-idle": 0.2667,
+    "shoot": 0.6333,
+    "walk": 1
+  },
+  "locomotion": {
+    "walk": {
+      "clip": "walk",
+      "duration": 1,
+      "blendWindow": [
+        0.3783,
+        0.5067
+      ],
+      "blendWindowMaxSlide": 30,
+      "blendWindowBestSlide": 0.11,
+      "groundSpeed": 473.64,
+      "strideLength": 473.64,
+      "plantPhases": [
+        0.035,
+        0.515
+      ],
+      "plantKind": "doubleSupport",
+      "stopPhases": [
+        {
+          "phase": 0.035,
+          "cost": 243.62
+        },
+        {
+          "phase": 0.515,
+          "cost": 37.25
+        }
+      ],
+      "enterPhase": 0.4933,
+      "enterCost": 23.83,
+      "coreStanceSlide": 12.78,
+      "footLift": {
+        "front": 79.73,
+        "rear": 60.83
+      }
+    },
+    "run": {
+      "clip": "run",
+      "duration": 0.6667,
+      "blendWindow": [
+        0.38,
+        0.425
+      ],
+      "blendWindowMaxSlide": 30,
+      "blendWindowBestSlide": 0.16,
+      "groundSpeed": 1471.7,
+      "strideLength": 981.14,
+      "plantPhases": [
+        0.4962,
+        0.9937
+      ],
+      "plantKind": "midStance",
+      "stopPhases": [
+        {
+          "phase": 0.4962,
+          "cost": 94.98
+        },
+        {
+          "phase": 0.9937,
+          "cost": 268.78
+        }
+      ],
+      "enterPhase": 0,
+      "enterCost": null,
+      "coreStanceSlide": 12.17,
+      "footLift": {
+        "front": 163.41,
+        "rear": 213.91
+      }
+    }
+  },
+  "transitions": {
+    "runStop": {
+      "clip": "run-to-idle",
+      "duration": 0.2667,
+      "sampleRate": 60,
+      "rootMotion": [
+        0,
+        3.3,
+        9.7,
+        13.8,
+        15.4,
+        14.69,
+        13.04,
+        10.89,
+        11.33,
+        11.33,
+        11.33,
+        11.33,
+        11.33,
+        11.33,
+        11.33,
+        11.33,
+        11.33
+      ],
+      "total": 11.33,
+      "pivotSwitches": 2,
+      "carriedWhileAirborne": 0
+    },
+    "turn": {
+      "clip": "idle-turn",
+      "duration": 0.2667,
+      "sampleRate": 60,
+      "rootMotion": [
+        0,
+        42.46,
+        53.46,
+        61.4,
+        66.62,
+        70.3,
+        72.97,
+        74.89,
+        75.93,
+        76.53,
+        76.82,
+        76.81,
+        76.8,
+        76.8,
+        76.8,
+        76.8,
+        76.8
+      ],
+      "total": 76.8,
+      "pivotSwitches": 3,
+      "carriedWhileAirborne": 0
+    }
+  },
+  "reactions": {
+    "jump": {
+      "clip": "jump",
+      "duration": 1.3333,
+      "airborne": [
+        0.0217,
+        1.1767
+      ],
+      "peakFootHeight": 737.57
+    }
+  }
+}

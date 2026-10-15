@@ -1,0 +1,13 @@
+{
+  "name": "nikucue-character-motion-poc-web",
+  "private": true,
+  "description": "Evaluation-only browser harness: official spine-ts runtime + the CatBehavior engine compiled to WebAssembly. Not shipped.",
+  "type": "module",
+  "dependencies": {
+    "@esotericsoftware/spine-core": "4.3.13",
+    "@esotericsoftware/spine-webgl": "4.3.13"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

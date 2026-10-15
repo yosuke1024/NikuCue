@@ -1,0 +1,12 @@
+# Evaluation-only Spine sample assets (non-commercial license): fetched by scripts/fetch_spine_samples.sh, never committed
+.samples-cache/
+MotionLab/MotionLab/SpineSamples/
+web/samples/
+# Build outputs
+web/node_modules/
+web/build/
+CatBehavior/.build/
+MotionLab/build/
+# Recordings and captures of the sample character stay out of the public repository (delivered separately)
+captures/
+ci-results/
