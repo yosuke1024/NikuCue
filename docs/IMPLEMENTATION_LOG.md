@@ -364,3 +364,34 @@ python3 tools/rig-preview/build.py && node tools/rig-preview/capture.mjs --out a
 
 却下のうち、安価で筋のよい 4 件も入れた: 間の後に反応が無効になったら待機ループを再起動する（間の途中の時間帯・Reduce Motion の変更を反映）、中断した反応の遅延吹き出しを取り消す、反応開始時にフェード中のハートを即消ししない、ハートのフェード一覧から消えたノードを外す。
 
+
+### キャラクター基盤の再評価: Spine 2D + spine-ios の技術検証（2026-10-15, オーナー依頼, 検証ブランチ `claude/loving-gates-ak20t5`）
+
+依頼: 6 枚の全身画像 + 軽い動きでは「自分の意思で生活している猫」を表現できないため、描画・アニメーション層をゼロベースで再評価する。第一候補は Spine 2D + 公式 spine-ios、比較対象は SpriteKit。自律行動の Behavior Engine と画面内の Movement / Navigation を新設する。**既存実装は削除せず、独立した実験ディレクトリ `Experiments/CharacterMotionPoC/` で進めた**（`NikuCue/` アプリ・Domain・Mali 原画・JSON 契約は無変更）。詳細と結論は `Experiments/CharacterMotionPoC/REPORT.md`。
+
+| ID | 決定 | 根拠 |
+|---|---|---|
+| D-CM-1 | 行動・移動・割り込みを Swift パッケージ `CatBehavior`（標準ライブラリのみ）として描画から独立させ、レンダラーは毎フレーム `RenderState` を反映するだけにする | Spine と SpriteKit を同じエンジンで比較でき、移行時も Domain と同列の純粋パッケージとして使える（CLAUDE.md「domain logic pure」） |
+| D-CM-2 | 歩行中の根の移動を「歩行クリップの時間 × 接地足の後退速度」に固定し、停止・開始はブレンドで足が滑らない位相の範囲（ブレンド窓）に計画する。数値は書き出しを公式 spine-core で解析する `tools/measure_profile.mjs` が出す | 「足が滑らない」を設計で保証し、推測値を使わない |
+| D-CM-3 | 割り込みは視線で即応、体はブレーキ距離のあとブレンド窓で止まってから反応。ジャンプの空中・振り向きの途中は待つ。待機枠 1、なでるの連打は 2 秒クールダウン | 「割り込んでも破綻しない」。既存 `ReactionQueue` と同じ考え方 |
+| D-CM-4 | IK の足ターゲットを使う `FootPlanter`: クリップのブレンド中と振り向き中は接地した足を固定し、終わったら持ち上げて踏み直す。振り向き（scaleX 反転）でも足は瞬間移動せず踏み替える | サンプル実測で振り向き時に接地足が 1 フレームで約 200 units 跳んでいた（§4.3 of REPORT） |
+| D-CM-5 | spine-ios は tag `spine-ts-4.3.13`（2026-07-24）のコミット `b7beb2c` に固定。spine-ts も 4.3.13。サンプルは同コミットから SHA-256 検証付きで取得し、**リポジトリに入れない** | 4.3 の HEAD は SPM の Metal リソース宣言を外した直後で変更途中。サンプル画像は非商用ライセンスで、リポジトリは公開設定 |
+| D-CM-6 | iOS 実行は GitHub Actions（`macos-26`、公開リポジトリのため無償）で build → Simulator で 6 シナリオを録画。録画は 14 日保存の成果物で、コミットしない | この環境は Linux で Xcode / 実機がない |
+| D-CM-7 | ブラウザ検証は同じ Swift ソースを WebAssembly 化（SwiftWasm 6.0.3）して公式 spine-webgl 4.3.13 を駆動。WebAssembly 版とネイティブ版で 90 秒の行動列が完全一致することを `CrossCheckTests` で確認 | Linux 上で描画・録画・計測をするため。Simulator の代わりではない（ラベルを明記） |
+
+**実行したコマンドと結果**
+
+```text
+swift test --package-path Experiments/CharacterMotionPoC/CatBehavior     → 27 tests, 0 failures（Linux, Swift 6.0.3。CI の macOS でも成功）
+node tools/measure_profile.mjs …spineboy-pro.json …spineboy-pma.atlas     → 歩幅 473.6 units/周期、ブレンド窓 0.378–0.507、跳躍の空中 0.022–1.177 s
+node tools/estimate_flipbook.mjs …                                          → 同じ 4 クリップのフリップブック 49.1–82.6 MB（@3x, 24fps）/ Spine atlas 1.0 MB
+web/build_wasm.sh + web/crosscheck_wasm.mjs + CrossCheckTests              → WebAssembly 版とネイティブ版の 90 秒トレースが一致
+node web/capture.mjs captures/browser                                       → ブラウザ描画の録画 4 本 + 診断 JSON（コミットしない）
+GitHub Actions run 1–3                                                      → MotionLab は初回から BUILD SUCCEEDED（Swift の警告 0）。Simulator 起動は run 1/2 で拒否（下記）
+```
+
+**Simulator 実行**: <!-- SIM_RESULT -->
+
+**未実施**: 実機での動作確認（この環境から接続できない。手順は REPORT §8）、Simulator 録画のこの環境からの閲覧（成果物の保存先ホストがネットワーク方針で遮断。オーナーは Actions のページから取得可能）、Spine 公式サイトでの価格・規約の最新確認（到達不可）。
+
+**オーナー判断事項**: Spine 採用の可否と版（IK・メッシュは Professional 機能、売上等 50 万 USD 超は Enterprise）、docs/04 §2 と CLAUDE.md（Spine を必須にしない）の改訂、Mali の Spine リグ発注（要件は REPORT §6.4）。

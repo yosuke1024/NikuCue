@@ -164,7 +164,7 @@ NikuCueDomain（変更なし：CatReactionEngine / ReactionQueue / HabitService 
 | 段階 | 内容 | 規模の目安 |
 |---|---|---|
 | 0 | 意思決定：Spine の版とライセンス購入者、docs/04 §2・CLAUDE.md の改訂 | オーナー |
-| 1 | `CatBehavior` を `Packages/` に昇格（今回のテスト 26 件ごと）、`CatStage` と `SpineCharacterRenderer` を実装、Debug ビルドで現行と切替可能にする | 中 |
+| 1 | `CatBehavior` を `Packages/` に昇格（今回のテスト 27 件ごと）、`CatStage` と `SpineCharacterRenderer` を実装、Debug ビルドで現行と切替可能にする | 中 |
 | 2 | Mali の Spine リグとクリップ制作（§6.4）、受け入れ検査の CI 化 | 大（アーティスト作業が中心） |
 | 3 | Domain 反応の結線（§6.3）、吹き出しの時間、`cancel`・開始直前の確認フック、夜の重み、VoiceOver | 中 |
 | 4 | 実機検証（30fps 設定、メモリ、発熱、低電力モード）と G1（可愛さ）レビュー | 中 |
