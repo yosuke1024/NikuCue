@@ -11,11 +11,11 @@
 | # | 依頼 | 実施内容 | 状態 |
 |---|---|---|---|
 | 1 | 現在のキャラクター関連コードの依存関係と再利用可能部分の調査 | §2 | 完了 |
-| 2 | Spine 公式サンプル + spine-ios で SwiftUI 内アニメーション再生の技術検証 | `MotionLab`（SwiftUI の `SpineView` に spine-ios を組み込み）。CI の macOS / Xcode 26 でビルド成功 | <!-- STATUS_2 --> |
-| 3 | 画面内を歩き、停止し、方向転換する試作 | `CatBehavior` の Motor / Navigator（歩幅と足の接地を Spine の書き出しから計測し、足が滑らない移動を計画） | 完了（テスト・ブラウザ・<!-- STATUS_3 -->） |
+| 2 | Spine 公式サンプル + spine-ios で SwiftUI 内アニメーション再生の技術検証 | `MotionLab`（SwiftUI の `SpineView` に spine-ios を組み込み）。CI の macOS / Xcode 26.6 でビルドし、iPhone 17 Simulator で再生・録画 | 完了（Simulator。§4.8） |
+| 3 | 画面内を歩き、停止し、方向転換する試作 | `CatBehavior` の Motor / Navigator（歩幅と足の接地を Spine の書き出しから計測し、足が滑らない移動を計画） | 完了（テスト・ブラウザ・Simulator） |
 | 4 | 自発的な行動選択、移動、ユーザー操作による割り込み | `CatBehavior` の行動選択（隠れた気分 + 反復抑制 + 自然な順序）、刺激（なでる・呼ぶ・達成のお祝い・休む）の割り込み | 完了 |
 | 5 | SpriteKit を続けた場合との比較（実装難易度・表現力・アセット制作負荷・保守性） | §5。同じエンジンで SpriteKit フリップブック描画も実装し、メモリを実測・推計 | 完了 |
-| 6 | 実機または Simulator での動作確認と画面録画 | 実機: **未実施**（この環境は Linux で、実機に接続できない）。Simulator: GitHub Actions の macOS ランナーで録画 <!-- STATUS_6 --> | <!-- STATUS_6B --> |
+| 6 | 実機または Simulator での動作確認と画面録画 | Simulator: GitHub Actions の macOS ランナーで 6 シナリオを録画・計測（§4.8）。ブラウザでも同じエンジンで 4 シナリオを録画。実機: **未実施**（この環境は Linux で、実機に接続できない） | Simulator 完了 / 実機 未実施 |
 
 ## 2. 現行キャラクター実装の依存関係と再利用可否
 
@@ -94,9 +94,9 @@ Experiments/CharacterMotionPoC/
 |---|---|---|---|
 | アプリ側の実装難易度 | **低〜中**。SwiftUI に `SpineView` を置き、毎フレーム `RenderState` を反映するドライバ約 150 行。CI の Xcode 26 / iOS 26 SDK で初回からビルド成功。C++ コアと Metal 描画は公式ランタイムが担う | **低**。`SKSpriteNode` のテクスチャ差し替え。遷移はクロスフェードを自作 | **中〜高**。既存資産はあるが、骨の階層・IK・メッシュ変形・物理を自作し、キーフレームを JSON で手書きする（エディタなし） |
 | 表現力 | **高**。クリップ間の自動ブレンド、トラックの重ね合わせ（歩きながら視線）、IK による視線と足の接地（実証: §4.3）、メッシュ変形・物理（尻尾・ひげ）・スキン（表情差分・衣装）は Professional 版の機能 | **描いた絵の範囲だけ**。クリップ間は 2 枚の半透明重ね（体がにじむ）、視線や足の位置を実行時に変えられない、振り向きは左右反転のみ | **中**。移動・回転・拡大のみ（メッシュ変形なし）。現行の全身 1 枚絵ではポーズ間で輪郭が「跳ぶ」（実装ログ記載の既知事項）。自律歩行には横向きのパーツ一式が別途必要 |
-| アセット制作負荷 | 初期のリギング（パーツ分け・骨・ウェイト）は重いが、**クリップの追加は軽い**（同じ部品を動かすだけ）。アニメーターに Spine 経験が必要。書き出しは `.skel` + atlas（spineboy で約 1 MB） | **クリップ × フレーム数**の原画が必要（24fps の歩行 1 周期で 24 枚）。修正は全フレーム描き直し。メモリが大きい（§4.8: 4 クリップで 49〜83 MB 推計 → 15 クリップなら数百 MB 規模） | パーツ PNG + 手書きキーフレーム。可愛さの調整がエンジニア作業になり、アニメーターが直接触れない |
-| 保守性 | 公式ランタイム（ソース公開、SPM）。**エディタとランタイムのバージョン（4.3.x）を揃える必要**があり、ランタイム更新時にアセットの再書き出しが要ることがある。spine-ios は比較的新しい（4.3 の HEAD は変更途中だったため、リリース時点のコミットに固定した） | 依存なしで単純。ただし絵の差し替えが重い | 依存なし。自作コード（リグ・IK・補間）が増え続ける |
-| 実行時（メモリ・負荷） | atlas 1.0 MB（同じ表示密度なら 1.7 MB）、1 つの Metal ビュー。Simulator 実測は §4.8 | テクスチャが支配的（推計 49〜83 MB / 4 クリップ、Simulator 実測は §4.8） | 軽い（パーツ数枚） |
+| アセット制作負荷 | 初期のリギング（パーツ分け・骨・ウェイト）は重いが、**クリップの追加は軽い**（同じ部品を動かすだけ）。アニメーターに Spine 経験が必要。書き出しは `.skel` + atlas（spineboy で約 1 MB） | **クリップ × フレーム数**の原画が必要（24fps の歩行 1 周期で 24 枚）。修正は全フレーム描き直し。メモリが大きい（§4.8: 4 クリップで 115 MB 実測 → 15 クリップなら数百 MB 規模） | パーツ PNG + 手書きキーフレーム。可愛さの調整がエンジニア作業になり、アニメーターが直接触れない |
+| 保守性 | 公式ランタイム（ソース公開、SPM）。**エディタとランタイムのバージョン（4.3.x）を揃える必要**があり、ランタイム更新時にアセットの再書き出しが要ることがある。spine-ios は比較的新しく、癖がある（世界座標が y 下向き、SwiftUI の更新でフレーム時計がリセットされる。§4.8。どちらもアプリ側で吸収済み）。4.3 の HEAD は変更途中だったため、リリース時点のコミットに固定した | 依存なしで単純。ただし絵の差し替えが重い | 依存なし。自作コード（リグ・IK・補間）が増え続ける |
+| 実行時（メモリ・負荷） | atlas 1.0 MB（同じ表示密度なら 1.7 MB）、1 つの Metal ビュー。Simulator 実測でアプリ全体 20〜24 MB、60 fps（§4.8） | テクスチャが支配的。同じ 4 クリップを表示密度で焼くと 115 MB、アプリのピーク 138 MB（Simulator 実測、§4.8） | 軽い（パーツ数枚） |
 | ライセンス・費用 | **製品として配布するには Spine のライセンスが必要**（組み込み時点で。Runtimes License / README）。IK 制約・メッシュ等は Professional 版の機能という情報が多い（価格は公式ページで要確認。このセッションからは公式サイトに到達できなかった）。収益・資金調達が直近 12 か月で 50 万 USD を超える事業者は Enterprise（年間契約）が必要 | 無償 | 無償 |
 | NikuCue の制約との適合 | 通信なし（ランタイムの HTTP 読み込み機能は使わずバンドルのみ）。**docs/04 §2「Spine/Rive/Live2D を必須にしない」と CLAUDE.md「隠れた制作要件にしない」に対し、オーナーの明示的な仕様改訂が必要** | 適合 | 適合（現行方針） |
 | 主なリスク | ライセンス費用、Spine を扱えるアニメーターの確保、ランタイム更新への追従 | メモリ・アプリサイズ、制作量 | 「猫らしい自由行動」の品質に届かない可能性（今回の課題の出発点） |
@@ -118,7 +118,8 @@ CatStage（新、@MainActor ObservableObject。CatSceneController の外部 API 
    ├ StimulusMapper（ReactionIntent → Stimulus、§6.3）
    ├ ReactionTiming（吹き出しの遅延・表示時間・余韻。現行 CatSceneController の規則を移植）
    └ CharacterRenderer（protocol：RenderState を描く・足と視線の骨を扱う・pause/resume・メモリ解放）
-        └ SpineCharacterRenderer（spine-ios の SpineView + MotionLab の SpineDriver を製品化）
+        └ SpineCharacterRenderer（spine-ios の SpineView + MotionLab の SpineDriver を製品化。
+                                  エンジンの時計でアニメーションを進め、y 下向きの世界座標を変換する）
 CatCoordinator（変更小：scene.controller → stage。再検証・節目トークンの記録はそのまま）
 NikuCueDomain（変更なし：CatReactionEngine / ReactionQueue / HabitService …）
 ```
@@ -164,7 +165,7 @@ NikuCueDomain（変更なし：CatReactionEngine / ReactionQueue / HabitService 
 | 段階 | 内容 | 規模の目安 |
 |---|---|---|
 | 0 | 意思決定：Spine の版とライセンス購入者、docs/04 §2・CLAUDE.md の改訂 | オーナー |
-| 1 | `CatBehavior` を `Packages/` に昇格（今回のテスト 27 件ごと）、`CatStage` と `SpineCharacterRenderer` を実装、Debug ビルドで現行と切替可能にする | 中 |
+| 1 | `CatBehavior` を `Packages/` に昇格（今回のテスト 31 件ごと）、`CatStage` と `SpineCharacterRenderer` を実装、Debug ビルドで現行と切替可能にする | 中 |
 | 2 | Mali の Spine リグとクリップ制作（§6.4）、受け入れ検査の CI 化 | 大（アーティスト作業が中心） |
 | 3 | Domain 反応の結線（§6.3）、吹き出しの時間、`cancel`・開始直前の確認フック、夜の重み、VoiceOver | 中 |
 | 4 | 実機検証（30fps 設定、メモリ、発熱、低電力モード）と G1（可愛さ）レビュー | 中 |
@@ -172,11 +173,12 @@ NikuCueDomain（変更なし：CatReactionEngine / ReactionQueue / HabitService 
 
 ## 7. 既知の問題・制約（正直な記録）
 
-- **実機では未確認**。この環境は Linux で実機に接続できない。Simulator は GitHub Actions の macOS（Apple Silicon の Simulator、GPU はホストの Metal）で、実機の性能・発熱・電池とは違う。
-- 画面録画のうち Simulator のものは CI の成果物（14 日保存）にあり、**この環境からはダウンロードできない**（成果物の保存先ホストがネットワーク方針で遮断）。数値は CI ログから取得した。
-- サンプル由来の限界：`idle-turn` は反転直後に足が寄る作りで、振り向きの間は足が少し動く（ルートモーションで消そうとすると最初の 1/60 秒で 42 units 跳ぶため不採用）。`jump` は大きな跳躍で、着地姿勢が待機と違う（足の接地補正後も 23 units 程度動く）。視線は銃を構える `aim` を薄く重ねて代用（Mali では頭と目の IK にする）。
+- **実機では未確認**。この環境は Linux で実機に接続できない。Simulator は GitHub Actions の macOS（Apple Silicon の Simulator、GPU はホストと共有）で、実機の性能・発熱・電池とは違う。CI の Simulator ではフレーム落ち（最大 1 秒程度）が起きた。
+- **Simulator のフル解像度の録画は CI の成果物（14 日保存）にあり、この環境からはダウンロードできない**（成果物の保存先ホストがネットワーク方針で遮断）。数値は CI ログから取得し、録画は CI ログに書き出した低解像度フレーム（2〜4 fps、幅 150 px）から復元して確認した。最初のシナリオは録画開始からアプリの描画まで約 25 秒かかり（Simulator の初回起動）、低解像度版は先頭 100 秒だけなので、無操作 90 秒の後半が切れている。フル解像度版には全体が入っている。
+- サンプル由来の限界：`idle-turn` は反転直後に足が寄る作りで、振り向きの間は足を固定して踏み替える（ルートモーションで消そうとすると最初の 1/60 秒で 42 units 跳ぶため不採用）。`jump` は大きな跳躍で、着地姿勢が待機と違う（足の接地補正後も 40 units 程度動く）。視線は銃を構える `aim` を薄く重ねて代用しているため、録画では「銃を向ける」姿勢に見える（Mali では頭と目の IK にする）。
 - 割り込みの体の反応は中央値約 1 秒・最大約 1.7 秒（視線は即時）。サンプルの歩行に止まれる区間が 1 周期に 1 か所しかないため。§6.4 の制作条件で短縮できる。
 - 足の滑りの計測はつま先の骨で行っており、かかと〜つま先の転がり（自然な動き）も「移動」として数える。値は上限側の評価。
+- 視線は体の前方だけ（後ろの目標は前方に映して見上げる・見渡す）。歩いて通り過ぎた目標への視線は終わる。振り向き中は視線を外す。
 - WebAssembly 版のビルドには SwiftWasm 6.0.3 ツールチェーンを使った（ブラウザ検証専用。製品には関係しない）。WebAssembly 版と通常の Swift 版で 90 秒の行動列が完全一致することを確認済み。
 - MotionLab の画面文言はローカライズしていない（開発ツールのため。製品では既存の文言リソースを使う）。
 - 行動エンジンに未実装のもの：夜（`doze`）の重み付け、`cancel` API、開始直前の確認フック、`greet` / `cheer` の刺激（§6.2〜6.3）。
@@ -187,4 +189,4 @@ NikuCueDomain（変更なし：CatReactionEngine / ReactionQueue / HabitService 
 2. **仕様の改訂**：docs/04 §2「Rive/Spine/Live2D を必須にしない」と CLAUDE.md「隠れた制作要件にしない」を、Spine を正式な制作要件とする内容に改める（採用する場合）。
 3. **Mali の Spine リグ制作の発注**：§6.4 を叩き台に、アニメーターと視点・クリップ・止まれる区間の条件を合意する。
 4. **実機確認**：Mac で `Experiments/CharacterMotionPoC/README.md` の手順（サンプル取得 → `MotionLab.xcodeproj` を開いて実機で Run、Signing で自分の Team を選ぶ）。見る点：歩行中に足が滑らないか、止まる・振り向く瞬間の不自然さ、タップへの反応の速さ、Reduce Motion、バックグラウンド復帰、30 分程度の連続表示での発熱。
-5. **Simulator の録画を見る**：GitHub の Actions 実行ページの成果物 `motionlab-simulator-results`（14 日で消えます）。この環境から直接確認するには、環境のネットワーク設定で `productionresultssa3.blob.core.windows.net`（または `*.blob.core.windows.net`）を許可してください。
+5. **Simulator の録画を見る**：GitHub の Actions 実行ページ（<!-- SIM_RUN_URL -->）の成果物 `motionlab-simulator-results`（14 日で消えます。6 シナリオの mp4・スクリーンショット・診断 JSON）。この環境から直接確認できるようにするには、環境のネットワーク設定で `productionresultssa3.blob.core.windows.net`（または `*.blob.core.windows.net`）を許可してください。
