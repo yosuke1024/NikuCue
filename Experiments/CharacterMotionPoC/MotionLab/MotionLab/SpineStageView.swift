@@ -15,6 +15,10 @@ import SwiftUI
 ///  - track 1: the "look at" overlay, aimed by moving the skeleton's IK target bone to the gaze point;
 ///  - skeleton x / scaleX: the root position and facing.
 /// The driver never decides anything; it only mirrors the engine.
+///
+/// Coordinates: the engine's stage is y-up (floor at 0). spine-ios's world is y-DOWN (spine-cpp `Bone::yDown` is
+/// true and its shader flips y), so view bounds and world positions read back from bones are converted here. Bone
+/// local poses (IK targets, crosshair) stay in the skeleton's own y-up space.
 @MainActor
 final class SpineDriver: ObservableObject {
     private final class Box {
@@ -132,7 +136,7 @@ final class SpineDriver: ObservableObject {
         if let slot = crosshairSlot { _ = slot.appliedPose.color.set(1, 1, 1, 0) }
         var positions: [String: (x: Double, y: Double)] = [:]
         for (id, bone) in feet {
-            positions[id] = (Double(bone.appliedPose.worldX), Double(bone.appliedPose.worldY))
+            positions[id] = (Double(bone.appliedPose.worldX), -Double(bone.appliedPose.worldY))   // y-down → stage y-up
         }
         model.diagnostics.feet(positions, state: model.state)
         if let entry = c.animationState.getTrack(0), model.state.base.serial == lastBaseSerial {
@@ -180,8 +184,9 @@ struct SpineStageView: View {
             controller: driver.controller,
             mode: .fit,
             alignment: .center,
-            // the view shows exactly the stage, so stage units map to points with one uniform scale
-            boundsProvider: RawBounds(x: model.stage.minX, y: -model.floorDepth,
+            // the view shows exactly the stage, so stage units map to points with one uniform scale; spine-ios's
+            // world is y-down, so the stage's top (y = height) is world y = -height and the floor band is below 0
+            boundsProvider: RawBounds(x: model.stage.minX, y: -model.stage.height,
                                       width: model.stage.maxX - model.stage.minX, height: model.stage.height + model.floorDepth),
             backgroundColor: .clear,
             isRendering: $isRendering

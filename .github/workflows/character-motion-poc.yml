@@ -101,6 +101,15 @@ jobs:
           python3 -m venv /tmp/review && /tmp/review/bin/pip install --quiet pillow==11.3.0 || exit 0
           /tmp/review/bin/python -I scripts/review_frames.py ci-results || true
 
+      - name: Recording frames (low resolution, for reviewers without artifact access)
+        if: always()
+        run: |
+          # decode with scripts/decode_video_frames.py; the full-resolution recordings are in the artifact
+          for spec in "autonomous 4 150 100" "interaction 4 150 100" "lifecycle 3 150 60" "flipbook 2 150 75"; do
+            set -- $spec
+            [ -f "ci-results/$1.mp4" ] && swift scripts/extract_video_frames.swift "ci-results/$1.mp4" "$1" "$2" "$3" "$4" || true
+          done
+
       - name: Upload recordings and diagnostics
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

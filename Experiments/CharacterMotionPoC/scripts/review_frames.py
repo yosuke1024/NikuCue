@@ -11,7 +11,8 @@ from pathlib import Path
 from PIL import Image
 
 folder = Path(sys.argv[1])
-for name in ["autonomous_t30s.png", "interaction_t30s.png", "flipbook_t30s.png", "reducedMotion_t30s.png"]:
+for name in ["autonomous_t5s.png", "autonomous_t30s.png", "autonomous_t60s.png", "interaction_t30s.png", "interaction_t60s.png",
+             "lifecycle_t30s.png", "reducedMotion_t30s.png", "systemReduceMotion_t5s.png", "flipbook_t30s.png"]:
     p = folder / name
     if not p.exists():
         continue

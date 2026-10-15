@@ -54,8 +54,9 @@ final class FlipbookLibrary: ObservableObject {
                     drawable.skeleton.y = 0
                     drawable.update(delta: 0)
                     let size = CGSize(width: box.width * pixelsPerUnit, height: box.height * pixelsPerUnit)
+                    // `box` is y-up (stage); spine-ios's world is y-down, so its top edge is at world y = -maxY
                     guard let image = try drawable.renderToImage(
-                        size: size, boundsProvider: RawBounds(x: box.minX, y: box.minY, width: box.width, height: box.height),
+                        size: size, boundsProvider: RawBounds(x: box.minX, y: -box.maxY, width: box.width, height: box.height),
                         backgroundColor: .clear, scaleFactor: 1)
                     else { continue }
                     let texture = SKTexture(cgImage: image)

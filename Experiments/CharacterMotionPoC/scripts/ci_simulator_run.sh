@@ -38,6 +38,7 @@ run_scenario() {
   fi
   local start=$SECONDS
   local hooked=0
+  local shots=" 5 30 60 85 "
   while (( SECONDS - start < seconds + 60 )); do
     if grep -q "ML_DIAG_DONE" "$stdout" 2>/dev/null; then break; fi
     if ls "$(container)/Documents/"diagnostics-*.json >/dev/null 2>&1; then sleep 1; break; fi
@@ -46,7 +47,11 @@ run_scenario() {
       "$DURING"
     fi
     for t in 5 30 60 85; do
-      if (( SECONDS - start == t )); then xcrun simctl io "$UDID" screenshot "$OUT/${name}_t${t}s.png" >/dev/null 2>&1 || true; fi
+      # ">=" and a to-do list: a loop pass can take more than a second, so "==" skipped some screenshots
+      if (( SECONDS - start >= t )) && [[ "$shots" == *" $t "* ]]; then
+        shots="${shots/ $t / }"
+        xcrun simctl io "$UDID" screenshot "$OUT/${name}_t${t}s.png" >/dev/null 2>&1 || true
+      fi
     done
     sleep 1
   done
