@@ -129,6 +129,7 @@ final class Diagnostics {
                 }
                 note(e.time, "applied \(k.rawValue)")
             case .stimulusAcknowledged(let k, let reason):
+                pendingStimuli.removeAll { $0.kind == k }       // a glance only: no body reaction follows
                 note(e.time, "glance \(k.rawValue) (\(reason))")
             case .stimulusDropped(let k, let reason):
                 pendingStimuli.removeAll { $0.kind == k }

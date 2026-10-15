@@ -1,0 +1,52 @@
+{
+  "pixelsPerUnit": 0.655,
+  "fps": 24,
+  "clips": [
+    {
+      "clip": "idle",
+      "frames": 40,
+      "frameBoxUnits": [
+        470,
+        666
+      ],
+      "fullMB": 20.5,
+      "trimmedMB": 19.5
+    },
+    {
+      "clip": "walk",
+      "frames": 24,
+      "frameBoxUnits": [
+        509,
+        698
+      ],
+      "fullMB": 14,
+      "trimmedMB": 10.1
+    },
+    {
+      "clip": "idle-turn",
+      "frames": 6,
+      "frameBoxUnits": [
+        577,
+        695
+      ],
+      "fullMB": 3.9,
+      "trimmedMB": 2.7
+    },
+    {
+      "clip": "jump",
+      "frames": 32,
+      "frameBoxUnits": [
+        586,
+        1438
+      ],
+      "fullMB": 44.2,
+      "trimmedMB": 16.8
+    }
+  ],
+  "frames": 102,
+  "flipbookFullFramesMB": 82.6,
+  "flipbookTrimmedMB": 49.1,
+  "spineAtlasMB": 1,
+  "spineAtlasScale": 0.5,
+  "spineAtlasAtSameDensityMB": 1.72
+}

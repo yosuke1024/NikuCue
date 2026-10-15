@@ -10,13 +10,17 @@ import path from "node:path";
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const out = path.resolve(process.argv[2] || path.join(here, "../captures/browser"));
-const wanted = process.argv.slice(3);
+const metricsOnlyAll = process.argv.includes("--metrics-only");
+const wanted = process.argv.slice(3).filter((a) => !a.startsWith("--"));
 const scenarios = [
   { name: "autonomous", seconds: 90, seed: 7 },
   { name: "interaction", seconds: 90, seed: 11 },
   { name: "lifecycle", seconds: 45, seed: 5, background: { at: 15, seconds: 10 } },
   { name: "reducedMotion", seconds: 40, seed: 3, media: "reduce" },
-].filter((s) => !wanted.length || wanted.includes(s.name));
+  // same sessions without foot planting: numbers only (no video), for the on/off comparison
+  { name: "interaction-nofootlock", scenario: "interaction", seconds: 90, seed: 11, footLock: 0, metricsOnly: true },
+  { name: "autonomous-nofootlock", scenario: "autonomous", seconds: 90, seed: 7, footLock: 0, metricsOnly: true },
+].filter((s) => !wanted.length || wanted.includes(s.name)).map((s) => (metricsOnlyAll ? { ...s, metricsOnly: true } : s));
 
 const types = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm",
   ".json": "application/json", ".png": "image/png", ".atlas": "text/plain", ".skel": "application/octet-stream" };
@@ -39,7 +43,7 @@ for (const sc of scenarios) {
   const page = await browser.newPage({ viewport: { width: 632, height: 690 }, deviceScaleFactor: 1.5 });
   page.on("pageerror", (e) => console.error("pageerror", e.message));
   if (sc.media) await page.emulateMedia({ reducedMotion: sc.media });
-  await page.goto(`http://127.0.0.1:${port}/harness.html?scenario=${sc.name}&seed=${sc.seed}&capture=1`);
+  await page.goto(`http://127.0.0.1:${port}/harness.html?scenario=${sc.scenario || sc.name}&seed=${sc.seed}&capture=1&footLock=${sc.footLock ?? 1}`);
   await page.waitForFunction(() => window.harnessReady || window.harnessError, null, { timeout: 60000 });
   const err = await page.evaluate(() => window.harnessError);
   if (err) throw new Error(err);
@@ -48,7 +52,7 @@ for (const sc of scenarios) {
   fs.mkdirSync(frames);
   const clip = { x: 0, y: 0, width: 632, height: 690 };
   let n = 0;
-  const shot = async () => { await page.screenshot({ path: path.join(frames, `${String(n++).padStart(5, "0")}.png`), clip }); };
+  const shot = async () => { if (!sc.metricsOnly) await page.screenshot({ path: path.join(frames, `${String(n++).padStart(5, "0")}.png`), clip }); };
   const started = Date.now();
   for (let f = 0; f < sc.seconds * 30; f++) {
     const t = f / 30;
@@ -62,7 +66,9 @@ for (const sc of scenarios) {
     if (f % 300 === 0) console.log(`${sc.name}: ${t.toFixed(0)} s (${((Date.now() - started) / 1000).toFixed(0)} s wall)`);
   }
   const summary = await page.evaluate(() => window.harness.summary());
+  summary.extra.scenario = sc.name;
   fs.writeFileSync(path.join(out, `diagnostics-${sc.name}-browser.json`), JSON.stringify(summary, null, 2));
+  if (sc.metricsOnly) { fs.rmSync(frames, { recursive: true, force: true }); await page.close(); console.log(`${sc.name}: metrics only`); continue; }
   const video = path.join(out, `browser_${sc.name}.mp4`);
   execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", "30", "-i", path.join(frames, "%05d.png"),
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "22", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", video]);

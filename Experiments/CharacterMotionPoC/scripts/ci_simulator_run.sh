@@ -6,9 +6,9 @@ set -euo pipefail
 
 APP="$1"
 UDID="$2"
-OUT="$3"
 BUNDLE="placeholder.nikucue.motionlab"
-mkdir -p "$OUT"
+mkdir -p "$3"
+OUT="$(cd "$3" && pwd)"          # absolute: simctl hands --stdout/--stderr paths to the simulator's launchd
 
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 
@@ -27,16 +27,20 @@ run_scenario() {
   sleep 2
   if ! xcrun simctl launch --terminate-running-process --stdout="$stdout" --stderr="$OUT/${name}.stderr.log" \
     "$UDID" "$BUNDLE" -MLScenario "$name" -MLSeconds "$seconds" "$@"; then
-    log "scenario ${name}: launch failed"
-    kill -INT "$rec" 2>/dev/null || true
-    wait "$rec" 2>/dev/null || true
-    FAILED="${FAILED:-} ${name}"
-    return 0
+    log "scenario ${name}: launch with stdout capture failed; retrying without it"
+    if ! xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE" -MLScenario "$name" -MLSeconds "$seconds" "$@"; then
+      log "scenario ${name}: launch failed"
+      kill -INT "$rec" 2>/dev/null || true
+      wait "$rec" 2>/dev/null || true
+      FAILED="${FAILED:-} ${name}"
+      return 0
+    fi
   fi
   local start=$SECONDS
   local hooked=0
   while (( SECONDS - start < seconds + 60 )); do
     if grep -q "ML_DIAG_DONE" "$stdout" 2>/dev/null; then break; fi
+    if ls "$(container)/Documents/"diagnostics-*.json >/dev/null 2>&1; then sleep 1; break; fi
     if [[ -n "${DURING:-}" && $hooked -eq 0 && $(( SECONDS - start )) -ge ${DURING_AT:-0} ]]; then
       hooked=1
       "$DURING"
@@ -63,6 +67,8 @@ background_for_ten_seconds() {
 }
 
 xcrun simctl install "$UDID" "$APP"
+xcrun simctl appinfo "$UDID" "$BUNDLE" || true
+plutil -p "$APP/Info.plist" | head -40 || true
 xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 2>/dev/null || true
 
 # 1. acceptance: 90 s with no input at all

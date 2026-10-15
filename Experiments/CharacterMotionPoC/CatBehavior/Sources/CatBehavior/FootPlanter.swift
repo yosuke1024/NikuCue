@@ -33,20 +33,21 @@ public struct FootPlanter: Sendable {
             serial = s.base.serial
             serialStart = s.time
         }
-        // a turn mirrors the whole body: nothing to keep in place. (A walk past its start blend plants nothing new;
-        // a foot still held from that blend finishes with a step like any other.)
-        let resetAll = s.facing != facing || s.mode == .turning
+        // The turn's first frame mirrors the body (scaleX): an asymmetric stance would make the feet jump to the
+        // other side. Instead every foot steps from where it was to where the mirrored pose puts it.
+        let flipped = s.facing != facing
         facing = s.facing
-        let blending = s.time - serialStart < s.base.mix && s.mode != .turning
+        // Grounded feet are held while two clips blend and while an in-place turn plays (its feet shuffle), and are
+        // re-planted with a step afterwards. A walk past its start blend plants nothing new.
+        let blending = s.time - serialStart < s.base.mix || s.mode == .turning
         var out: [Point] = []
         for i in animated.indices {
             let p = animated[i]
             var f = feet[i]
             defer { feet[i] = f }
-            if resetAll {
-                f = Foot(lockX: nil, step: nil, last: p)
-                out.append(p)
-                continue
+            if flipped, let last = f.last {
+                f.lockX = nil
+                f.step = (last.x, s.time)
             }
             if let lock = f.lockX {
                 if p.y > groundTolerance || !blending {

@@ -108,7 +108,8 @@ function recordEvents(list) {
       const i = diag.pendingStimuli.findIndex(([k]) => k === arg);
       if (i >= 0) { (diag.latency[arg] ||= []).push(t - diag.pendingStimuli[i][1]); diag.pendingStimuli = diag.pendingStimuli.filter(([k]) => k !== arg); }
     }
-    if (kind === "dropped") diag.pendingStimuli = diag.pendingStimuli.filter(([k]) => k !== arg);
+    // answered with a glance only (cooldown / busy) or dropped: no body reaction will follow for that input
+    if (kind === "dropped" || kind === "glance") diag.pendingStimuli = diag.pendingStimuli.filter(([k]) => k !== arg);
     if (!["clip", "finished", "received", "walk", "stopRequested"].includes(kind)) {
       diag.log.push(`${t.toFixed(2).padStart(6)}s ${d}`);
       if (diag.log.length > 400) diag.log.shift();

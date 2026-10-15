@@ -62,9 +62,16 @@ struct Motor: Sendable {
         return events
     }
 
+    /// The current track was started in this frame's decisions and has not been rendered yet.
+    private var trackIsFresh = false
+
     private mutating func play(_ clip: ClipSpec, loop: Bool, startTime: Double = 0, mix: Double, freezePrevious: Bool = false) {
+        // A clip replaced before it was ever rendered (e.g. arrive → stand → turn in one frame) passes its freeze on:
+        // the renderer still blends out of the clip before it, which must not keep stepping.
+        let freeze = freezePrevious || (trackIsFresh && track.freezePrevious)
         track = BaseTrack(clip: clip.name, duration: clip.duration, loop: loop, startTime: startTime, mix: mix,
-                          serial: track.serial + 1, freezePrevious: freezePrevious)
+                          serial: track.serial + 1, freezePrevious: freeze)
+        trackIsFresh = true
         clipTime = startTime
         events.append(.clipStarted(clip.name, mix: mix))
     }
@@ -138,6 +145,7 @@ struct Motor: Sendable {
     /// Integrates one frame. Root position changes only here.
     mutating func advance(_ dt: Double) -> Completion {
         modeTime += dt
+        trackIsFresh = false
         switch mode {
         case .standing, .resting:
             let goal: Double = mode == .resting ? 1 : 0
