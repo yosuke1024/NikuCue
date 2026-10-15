@@ -47,9 +47,9 @@ final class StageModel: ObservableObject {
 
     private(set) var engine: CatBehaviorEngine
     private(set) var state: RenderState
-    /// Engine step / wall-clock delta of the last frame (< 1 only after a hitch): renderers scale their own clip
-    /// clocks by it so the animation never runs ahead of the engine.
-    private(set) var lastStepScale = 1.0
+    /// Seconds the engine actually advanced in the last frame (0 while paused, at most `maxStep` after a hitch).
+    /// Renderers advance their clips by exactly this, so the engine is the only clock.
+    private(set) var lastEngineStep = 0.0
     let diagnostics = Diagnostics()
     private var lastTick: CFTimeInterval?
     private var startTime: CFTimeInterval?
@@ -103,13 +103,13 @@ final class StageModel: ObservableObject {
         let raw = lastTick.map { now - $0 } ?? 0
         lastTick = now
         if startTime == nil { startTime = now }
-        let dt = min(raw, engine.config.maxStep)
-        lastStepScale = raw > 0 ? dt / raw : 1
         engine.setReducedMotion(effectiveReduceMotion)
         if let script, let start = startTime, !scenarioFinished {
             script.fire(elapsed: now - start, model: self)
         }
+        let before = engine.time
         state = engine.step(raw)
+        lastEngineStep = engine.time - before
         diagnostics.frame(state, now: now)
         diagnostics.events(engine.drainEvents())
         if now - lastHUD > 0.25 {

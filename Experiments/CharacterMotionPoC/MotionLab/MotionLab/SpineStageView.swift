@@ -1,10 +1,15 @@
 import CatBehavior
+import Combine
 import QuartzCore
 import SpineiOS
 import SpineSwift
 import SwiftUI
 
 /// Applies the engine's `RenderState` to a spine-ios skeleton once per frame:
+///  - the animation advances by the engine's own step (`StageModel.lastEngineStep`), never by spine-ios's frame
+///    delta: `SpineView` resets that clock whenever SwiftUI updates the view with an `isRendering` binding
+///    (`SpineUIView.isRendering` sets `renderer.lastDraw`), which on the Simulator left the clips lagging the
+///    engine (up to 48 ms) and the feet sliding;
 ///  - track 0: the base clip (a new serial starts it with its mix; a stopping walk is frozen while it blends out),
 ///    with the engine's playback rate, so the walk cycle and the root movement stay locked together;
 ///  - track 1: the "look at" overlay, aimed by moving the skeleton's IK target bone to the gaze point;
@@ -65,6 +70,7 @@ final class SpineDriver: ObservableObject {
         entry.trackTime = Float(s.baseClipTime)
         lastBaseSerial = s.base.serial
         apply(s, to: c, startClips: false)
+        c.animationState.timeScale = 0           // spine-ios's own update only applies the state (see beforeUpdate)
         loaded = true
     }
 
@@ -72,12 +78,16 @@ final class SpineDriver: ObservableObject {
         guard loaded else { return }
         let s = model.tick(now: CACurrentMediaTime())
         apply(s, to: c, startClips: true)
+        // spine-ios calls AnimationState.update(its delta) and apply right after this callback: advance the state
+        // here by the engine's step and leave the global timeScale at 0 so that update adds nothing.
+        let state = c.animationState
+        state.timeScale = 1
+        state.update(Float(model.lastEngineStep))
+        state.timeScale = 0
     }
 
     private func apply(_ s: RenderState, to c: SpineController, startClips: Bool) {
         let state = c.animationState
-        // after a hitch the engine integrates at most maxStep: scale the renderer's own delta to match
-        state.timeScale = Float(model.lastStepScale)
         if startClips, s.base.serial != lastBaseSerial {
             if s.base.freezePrevious, let current = state.getTrack(0) { current.timeScale = 0 }
             let entry = state.setAnimation(0, s.base.clip, s.base.loop)
@@ -154,7 +164,8 @@ extension SpineDriver {
 }
 
 struct SpineStageView: View {
-    @ObservedObject var model: StageModel
+    /// Not observed: the HUD publishes several times a second and every body update reaches `updateUIView`.
+    let model: StageModel
     @StateObject private var driver: SpineDriver
     @State private var isRendering: Bool? = true
 
@@ -175,7 +186,7 @@ struct SpineStageView: View {
             backgroundColor: .clear,
             isRendering: $isRendering
         )
-        .onChange(of: model.isActive) { _, active in
+        .onReceive(model.$isActive.removeDuplicates().dropFirst()) { active in
             // stop the Metal view in the background; turning it back on resets its frame clock (no catch-up jump)
             isRendering = active
             if active { driver.controller.resume() } else { driver.controller.pause() }
