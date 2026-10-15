@@ -21,7 +21,10 @@ const scenarios = [
   // same sessions without foot planting: numbers only (no video), for the on/off comparison
   { name: "interaction-nofootlock", scenario: "interaction", seconds: 90, seed: 11, footLock: 0, metricsOnly: true },
   { name: "autonomous-nofootlock", scenario: "autonomous", seconds: 90, seed: 7, footLock: 0, metricsOnly: true },
-].filter((s) => !wanted.length || wanted.includes(s.name)).map((s) => (metricsOnlyAll ? { ...s, metricsOnly: true } : s));
+  // the same sessions with irregular frame times and hitches like the CI Simulator's (numbers only, run on request)
+  { name: "interaction-hitches", scenario: "interaction", seconds: 90, seed: 11, metricsOnly: true, hitches: true, onRequest: true },
+  { name: "autonomous-hitches", scenario: "autonomous", seconds: 90, seed: 7, metricsOnly: true, hitches: true, onRequest: true },
+].filter((s) => (wanted.length ? wanted.includes(s.name) : !s.onRequest)).map((s) => (metricsOnlyAll ? { ...s, metricsOnly: true } : s));
 
 const types = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm",
   ".json": "application/json", ".png": "image/png", ".atlas": "text/plain", ".skel": "application/octet-stream" };
@@ -62,7 +65,14 @@ for (const sc of scenarios) {
       for (let k = 0; k < 30; k++) { await page.evaluate(() => window.harness.advance(0)); await shot(); }  // 1 s of "away" in the video
       await page.evaluate((s) => window.harness.resume(s), sc.background.seconds);
     }
-    await page.evaluate(() => window.harness.advance(2, 1 / 60));
+    if (sc.hitches) {
+      // two frames of 1/60 s ± 15 %, and every ~2.5 s one 0.2 s hitch (deterministic, like the CI Simulator's worst)
+      const jitter = (k) => (1 + 0.15 * Math.sin(f * 12.9898 + k * 78.233)) / 60;
+      const hitch = f % 75 === 37 ? 0.2 : null;
+      await page.evaluate(([a, b]) => { window.harness.advance(1, a); return window.harness.advance(1, b); }, [hitch ?? jitter(0), jitter(1)]);
+    } else {
+      await page.evaluate(() => window.harness.advance(2, 1 / 60));
+    }
     await shot();
     if (f % 300 === 0) console.log(`${sc.name}: ${t.toFixed(0)} s (${((Date.now() - started) / 1000).toFixed(0)} s wall)`);
   }

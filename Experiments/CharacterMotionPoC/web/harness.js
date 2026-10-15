@@ -85,7 +85,10 @@ function recordFeet(s) {
       // one occurrence = one clip blend / one turn / one walk: total grounded-foot slide inside it (both feet)
       const key = `${ctxName}#${s.base.serial}`;
       diag.occurrence[key] = (diag.occurrence[key] || 0) + d;
-      st.maxOccurrence = Math.max(st.maxOccurrence || 0, diag.occurrence[key]);
+      if (diag.occurrence[key] > (st.maxOccurrence || 0)) {
+        st.maxOccurrence = diag.occurrence[key];
+        st.worstAt = diag.serialStart[s.base.serial] ?? s.time;   // when that clip started (engine time)
+      }
       // a stance that spans a walk, a blend and standing is split there (same as Diagnostics.swift)
       const open = diag.segment[id];
       if (open && open.context !== ctxName) closeSegment(id, q.x);
@@ -286,6 +289,8 @@ window.harness = {
     await nextPaint();
     return { t: virtualTime, activity: current.activity, mode: current.mode, x: current.x };
   },
+  /** Steps the given frame durations without drawing (diagnostic probes: metrics only, much faster). */
+  steps(dts) { for (const dt of dts) frame(paused ? 0 : dt); return { t: virtualTime }; },
   /** Simulates the app going to the background for `seconds`: engine paused, nothing renders, then resume. */
   background(seconds) {
     engine.setPaused(true);

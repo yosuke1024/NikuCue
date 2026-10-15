@@ -20,6 +20,8 @@ final class Diagnostics {
         var maxRunDrift = 0.0
         /// Largest total grounded-foot slide inside one occurrence (one blend, one turn, one walk), both feet.
         var maxOccurrence = 0.0
+        /// Engine time at which the clip of that worst occurrence started (to find it in the event log).
+        var worstAt = -1.0
     }
 
     private(set) var frameCount = 0
@@ -34,6 +36,10 @@ final class Diagnostics {
     private var slide: [String: SlideStats] = [:]
     private var occurrence: [String: Double] = [:]
     private var feetPrev: [String: (x: Double, y: Double)] = [:]
+    /// Last ~40 frames of feet and planted IK targets, kept to explain a large slide (snapshotted when one happens).
+    private var trace: [[String: Double]] = []
+    private var lastPlant: (animated: [Point], planted: [Point])?
+    private var traces: [String: [[String: Double]]] = [:]
     /// The open grounded segment of each foot: where it started and in which context (one context per segment).
     private var segment: [String: (x: Double, context: String)] = [:]
     private var memory: [[Double]] = []
@@ -78,8 +84,23 @@ final class Diagnostics {
     }
 
     /// Foot world positions (stage units) after the renderer updated the skeleton.
+    /// The foot planter's input and output this frame (IK targets, stage units), for the slide trace.
+    func plant(animated: [Point], planted: [Point]) { lastPlant = (animated, planted) }
+
     func feet(_ positions: [String: (x: Double, y: Double)], state s: RenderState) {
         let ctx = context(of: s)
+        let modeCodes: [MotorMode: Double] = [.standing: 0, .resting: 1, .walking: 2, .turning: 3, .hopping: 4]
+        let sinceClip: Double = s.time - (lastBaseSerialTime[s.base.serial] ?? s.time)
+        var row: [String: Double] = ["t": s.time, "x": s.x, "facing": s.facing.sign, "serial": Double(s.base.serial),
+                                     "sinceClip": sinceClip, "mode": modeCodes[s.mode] ?? -1]
+        for (id, p) in positions { row["\(id)X"] = p.x; row["\(id)Y"] = p.y }
+        if let lp = lastPlant, lp.animated.count == 2 {
+            row["aFx"] = lp.animated[0].x; row["aFy"] = lp.animated[0].y; row["aRx"] = lp.animated[1].x; row["aRy"] = lp.animated[1].y
+            row["pFx"] = lp.planted[0].x; row["pFy"] = lp.planted[0].y; row["pRx"] = lp.planted[1].x; row["pRy"] = lp.planted[1].y
+        }
+        lastPlant = nil
+        trace.append(row)
+        if trace.count > 40 { trace.removeFirst(trace.count - 40) }
         for (id, p) in positions {
             defer { feetPrev[id] = p }
             guard let q = feetPrev[id] else { continue }
@@ -92,7 +113,11 @@ final class Diagnostics {
                 st.maxStep = max(st.maxStep, d)
                 let key = "\(ctx)#\(s.base.serial)"
                 occurrence[key, default: 0] += d
-                st.maxOccurrence = max(st.maxOccurrence, occurrence[key] ?? 0)
+                if (occurrence[key] ?? 0) > st.maxOccurrence {
+                    st.maxOccurrence = occurrence[key] ?? 0
+                    st.worstAt = lastBaseSerialTime[s.base.serial] ?? s.time     // when that clip started (engine time)
+                    if st.maxOccurrence > 10 { traces[ctx] = trace }               // the frames that led to it
+                }
                 slide[ctx] = st
                 // a stance that spans a walk, a blend and standing is split there, so each context reports only
                 // the drift that happened in it
@@ -189,7 +214,7 @@ final class Diagnostics {
         var slideOut: [String: Any] = [:]
         for (k, v) in slide {
             slideOut[k] = ["frames": v.frames, "total": v.total, "maxStep": v.maxStep, "maxRunDrift": v.maxRunDrift,
-                           "maxOccurrence": v.maxOccurrence,
+                           "maxOccurrence": v.maxOccurrence, "worstAt": v.worstAt,
                            "meanPerFrame": v.frames > 0 ? v.total / Double(v.frames) : 0]
         }
         let mem = memory.map { $0[1] }.filter { $0 > 0 }
@@ -205,6 +230,7 @@ final class Diagnostics {
             "activities": activityCounts,
             "stimulusLatency": stimulusLatency,
             "lifecycle": lifecycle,
+            "slideTraces": traces,
             "log": log,
         ]
     }

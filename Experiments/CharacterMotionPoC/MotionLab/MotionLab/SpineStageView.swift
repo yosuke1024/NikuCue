@@ -155,6 +155,7 @@ extension SpineDriver {
         let sign = s.facing.sign
         let animated = footTargets.map { Point(x: s.x + sign * Double($0.pose.x), y: Double($0.pose.y)) }
         let planted = planter.solve(animated, state: s)
+        model.diagnostics.plant(animated: animated, planted: planted)
         for (i, bone) in footTargets.enumerated() {
             bone.pose.x = Float((planted[i].x - s.x) * sign)
             bone.pose.y = Float(planted[i].y)

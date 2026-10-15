@@ -99,7 +99,7 @@ jobs:
           python3 -I scripts/summarize_diagnostics.py ci-results | tee ci-results/summary.md || true
           cat ci-results/summary.md >> "$GITHUB_STEP_SUMMARY" || true
           # the full diagnostics, so they can be read from the job log as well as from the artifact
-          for f in ci-results/diagnostics-*.json; do [ -f "$f" ] && { echo "=== $f"; python3 -c "import json,sys; d=json.load(open(sys.argv[1])); d.pop('log', None); [s.pop('samples', None) for s in [d.get('memoryMB', {})]]; print(json.dumps(d, sort_keys=True))" "$f"; }; done || true
+          for f in ci-results/diagnostics-*.json; do [ -f "$f" ] && { echo "=== $f"; python3 -c "import json,sys; d=json.load(open(sys.argv[1])); [s.pop('samples', None) for s in [d.get('memoryMB', {})]]; print(json.dumps(d, sort_keys=True))" "$f"; }; done || true
 
       - name: Review frames (small JPEGs in the log, for reviewers without artifact access)
         if: always()
